@@ -171,7 +171,7 @@ Dynamic UI switching between:
 
 | Key | Action |
 |-----|--------|
-| ` | Toggle Full Automation Loop |
+| / | Toggle Full Automation Loop |
 | [ | Start Race Loop |
 | ] | Start Buy Loop |
 | \ | Start Claim Loop |
@@ -243,6 +243,7 @@ Use the following tuning configuration:
 <p align="center">
   <img width="2559" height="1439" alt="image" src="https://github.com/user-attachments/assets/13020a98-4b58-4c2d-862f-bf1f2982068b" />
 </p>
+
 ---
 
 ## ⚙️ Required Game Setting Setup
@@ -305,8 +306,7 @@ While the macro may still function with the Skills HUD enabled, turning it off i
 This tool relies on **timed inputs and UI navigation**, meaning:
 
 - ⏱️ Performance varies between systems  
-- 🖥️ Loading times depend on hardware (SSD/HDD/CPU/GPU)  
-- 🎮 Input delay differs between controller and keyboard  
+- 🖥️ Loading times depend on hardware (SSD/HDD/CPU/GPU)    
 - 🌐 Background processes can affect timing accuracy  
 
 ---
