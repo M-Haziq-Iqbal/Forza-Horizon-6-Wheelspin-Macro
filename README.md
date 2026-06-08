@@ -86,7 +86,7 @@ Before installing, ensure your system meets the following requirements:
 
 ## 🔁 Automation Modes
 
-The automation workflow is split into three independent processes that can be executed separately or combined into a continuous cycle. 
+The automation workflow is split into three independent processes that can be executed separately or combined into a continuous cycle.  
 
 ### 🏁 Race Mode (Hotkey: `[`)
 Runs only the race automation process.
@@ -108,6 +108,7 @@ Runs only the reward claiming process.
 
 ### ♾️ Full Automation Loop (Hotkey: `` ` ``)
 Combines all processes into a single continuous workflow (Race → Buy → Claim → Repeat). The macro will continuously cycle through all stages until stopped by the user. This mode is highly recommended for long unattended farming sessions *only after* timing has been properly verified on your system.
+🎥[Watch the Full Loop Demonstration](https://www.youtube.com/watch?v=6ezhyNeIYko)
 
 ### 🛑 Stopping Automation
 Any running automation mode can be safely stopped through the GUI or designated stop controls. **Always supervise initial runs** to verify timing before leaving the macro unattended for extended periods.
