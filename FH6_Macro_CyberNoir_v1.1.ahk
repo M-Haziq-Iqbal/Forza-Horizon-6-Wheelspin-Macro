@@ -837,7 +837,7 @@ ClaimLoop() {
 		    PressKey("Down")
 		    PressKey("Enter")
 		    PressKey("Down")
-		    PressKey("Enter", 4000)
+		    PressKey("Enter", 5000)
 	
 		    if (ActiveMode != "Claim" || (!MasterMode && MasterStart))
 				break
