@@ -1,10 +1,9 @@
-# 🌑 FH6 Wheelspin Macro – Cyber Noir Edition
-
 An AutoHotkey v2 automation tool designed for Forza Horizon 6, featuring a custom GUI, pixel-aware session tracking, and structured automation workflows to streamline repetitive in-game progression tasks.
 
 <p align="center">
-  <img width="280" height="812" alt="Screenshot 2026-06-08 190710" src="https://github.com/user-attachments/assets/7442437d-6790-42e4-99f7-430218c32d11"> 
-  <img width="278" height="811" alt="Screenshot 2026-06-08 200155" src="https://github.com/user-attachments/assets/18e42cf4-d7d8-4222-9cbc-f2f72be44540"> 
+  <img width="278" height="827" alt="Screenshot 2026-06-11 030128" src="https://github.com/user-attachments/assets/cc2ce940-ee29-42fb-a972-6d39df4aa094">
+  <img width="276" height="825" alt="Screenshot 2026-06-11 030139" src="https://github.com/user-attachments/assets/c20e98c0-9a2f-446e-985a-6b2e4232cb09">
+
 </p>
 
 ---
@@ -160,6 +159,10 @@ Before using the macro, ensure your game is properly configured. The automation 
 > 
 > The dynamic pixel engine samples hex color data across coordinates exclusively located on the left half of the display workspace. If background apps (e.g., Discord, browser windows, Spotify), streaming overlays, or Windows system notification banners obscure any section of the screen's left half, the `WaitForMenuRelative` scanner will read false values, resulting in an immediate **Sync Error / Menu Timeout**.
 
+<p align="center">
+  <img width="2563" height="1453" alt="Screenshot 2026-06-11 025901" src="https://github.com/user-attachments/assets/700ce2ab-6d03-474a-8dfb-fa6c46e263d9">
+</p>
+
 ### 🏁 Starting Position
 Make sure you are in the Home Menu, loaded fully into an active session (no loading screens), with active keyboard input before starting any session.  
 📌 All sessions use this identical baseline starting structure.
@@ -215,7 +218,7 @@ Verify your in-game configurations match the settings below for maximum consiste
 | Shifting | AUTOMATIC |
 
 <p align="center">
-  <img width="2559" height="1438" alt="Difficulty Settings" src="https://github.com/user-attachments/assets/43f2059b-4fb6-4540-a573-7ff43abfd561"> 
+  <img width="2559" height="1438" alt="Difficulty Settings" src="https://github.com/user-attachments/assets/43f2059b-4fb6-4540-a573-7ff43abfd561">
 </p>
 
 ### 🚫 Disable Skills HUD

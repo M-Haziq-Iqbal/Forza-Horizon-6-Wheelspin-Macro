@@ -476,8 +476,9 @@ RaceLoop() {
         SetTimer(RaceTimerTick, 1000)
   
         Process("Returning to Free Roam...")
+        Sleep(500) ; Buffer time to ensure previous race fully ends before sending inputs
         PressKey("Esc") ; Return to Free Roam
-        if !WaitForMenuRelative(0.071, 0.289, "0xFFFFFF", "0xFFFFFF", 20000) {
+        if !WaitForMenuRelative(0.071, 0.289, "0x0a0909", "0xFFFFFF", 20000) {
             Process("Sync Error: Unable to return to Free Roam!")
             break
         }
