@@ -119,8 +119,7 @@ Runs only the vehicle purchasing process.
 ### 🛞 Unlock Mode (Hotkey `]`)
 Runs only the reward unlocking process.
 * **Pre-Flight Resource Verification:** Automatically scans and checks if skill points are sufficient before starting standalone cycles.
-* Enters the Car Mastery panels with precise verification states.
-* **Live Resource Depletion:** Subtracts the vehicle's mastery point footprint in real time from the UI dashboard counter as each car's rewards are claimed to perfectly sync with the game's internal economy.
+* Unlock the required mastery perks for specific rewards using different cars, and remove the unlocked cars from garage afterwards.
 
 ### ♾️ Full Automation Loop (Hotkey `/`)
 Combines all processes into a single continuous workflow (Race → Buy → Unlock → Repeat). The macro will continuously cycle through all stages for the designated number of sequence loops, properly maintaining residual skill point offsets across full cycles.  
