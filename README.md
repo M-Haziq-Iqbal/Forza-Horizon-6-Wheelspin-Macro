@@ -363,3 +363,9 @@ This project is licensed under the terms of the [MIT License](LICENSE) - check t
 ## 📌 Safety & Responsibility Notice
 
 This automation tool operates entirely via keyboard simulation methods and does not alter memory blocks or inject structural payload modifications into internal game file assets. Active tracking, deployment execution paths, and supervision targets fall completely under the responsibility of the end user.
+
+<p align="center">
+  <a href="https://ko-fi.com/mhaziqiqbal">
+    <img src="https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" width="200" alt="Support me on Ko-fi">
+  </a>
+</p>
