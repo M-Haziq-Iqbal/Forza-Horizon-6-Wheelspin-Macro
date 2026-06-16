@@ -18,7 +18,14 @@
 #Include modules\Task_Unlock.ahk
 #Include modules\Task_Spin.ahk
 
-TraySetIcon(A_ScriptDir "\assets\icon.ico")
+;@Ahk2Exe-SetMainIcon assets\icon.ico
+
+; Setup tray icon dynamically
+if A_IsCompiled {
+    TraySetIcon(A_ScriptFullPath)  ; Pulls the embedded icon directly from the EXE
+} else {
+    TraySetIcon(A_ScriptDir "\assets\icon.ico") ; Standard path used while testing uncompiled
+}
 
 ; Construct and display the visual interface
 BuildGui()

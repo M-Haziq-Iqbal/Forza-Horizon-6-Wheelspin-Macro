@@ -160,6 +160,8 @@ ResetIndicators() {
     DelaySlider_UI.Enabled := true
     CodeSelect_UI.Enabled := true
     LoopCount_In.Enabled := true
+
+    PressKey("W up")
 }
 
 ; ══════════════════════════════════════════════
