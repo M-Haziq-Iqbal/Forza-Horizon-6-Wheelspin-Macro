@@ -1,6 +1,6 @@
 ; ╔═════════════════════════════════════════╗
-; ║        MHI - FH6 Wheelspin Macro		║
-; ║        Cyber Noir Edition v1.6.1        ║
+; ║        MHI - FH6 Wheelspin Macro        ║
+; ║        Cyber Noir Edition v1.7.0        ║
 ; ╚═════════════════════════════════════════╝
 
 #Requires AutoHotkey v2.0
@@ -11,7 +11,8 @@
 #Include Lib\OCR.ahk
 
 #Include modules\Config.ahk
-#Include modules\UI.ahk
+#Include modules\MainGUI.ahk
+#Include modules\MiniGUI.ahk
 #Include modules\Engine.ahk
 #Include modules\Task_Race.ahk
 #Include modules\Task_Buy.ahk
@@ -26,9 +27,6 @@ if A_IsCompiled {
 } else {
     TraySetIcon(A_ScriptDir "\assets\icon.ico") ; Standard path used while testing uncompiled
 }
-
-; Construct and display the visual interface
-BuildGui()
 
 ; ══════════════════════════════════════════════
 ;  GAME-FOCUS BOUNDED HOTKEYS

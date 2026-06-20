@@ -1,9 +1,13 @@
 ; ╔═════════════════════════════════════════╗
 ; ║        MHI - FH6 Wheelspin Macro		║
-; ║        Cyber Noir Edition v1.6.1        ║
+; ║        Cyber Noir Edition v1.7.0        ║
 ; ╚═════════════════════════════════════════╝
 
-#Requires AutoHotkey v2.0
+; ══════════════════════════════════════════════
+;  GLOBAL DATA SOURCING (Super-Globals)
+; ══════════════════════════════════════════════
+global CarList          := ["Subaru Impreza 22B-STi", "Lamborghini Revuelto", "Dodge Viper GTS ACR"]
+global CodeList         := ["AMMAGEDON", "LIQUIDPOTATO"]
 
 ; ══════════════════════════════════════════════
 ;  ENVIRONMENT & WINDOW DEFINITIONS
@@ -17,7 +21,7 @@ global MasterStart    := ""
 global RaceStart      := ""
 
 global DarkMode       := true
-global MyGui          := ""
+global MainGUI          := ""
 global StatusText     := ""
 
 global Key_UI         := ""
@@ -50,12 +54,12 @@ global UserTier         := "STANDARD"
 ; ══════════════════════════════════════════════
 ;  BALANCING PRESETS & TUNING METRICS
 ; ══════════════════════════════════════════════
-global SelectedCar      := "Subaru Impreza 22B-STi"
+global SelectedCar      := CarList[1]
 global SelectedCarPoint := 30
 
-global SelectedCode     := "AMMAGEDON"
-global AveragePoints    := 9.9
-global MaxPoints        := 990
+global SelectedCode     := CodeList[1]
+global AveragePoints    := 9.8
+global MaxPoints        := 980
 global MaxSections      := 100
 
 global SpeedLabel_UI    := ""

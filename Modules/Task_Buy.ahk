@@ -1,9 +1,7 @@
 ; ╔═════════════════════════════════════════╗
-; ║        MHI - FH6 Wheelspin Macro		║
-; ║        Cyber Noir Edition v1.6.1        ║
+; ║        MHI - FH6 Wheelspin Macro        ║
+; ║        Cyber Noir Edition v1.7.0        ║
 ; ╚═════════════════════════════════════════╝
-
-#Requires AutoHotkey v2.0
 
 global BuyCount := 0
 global SkillPtsScanSuccess := false
@@ -18,14 +16,18 @@ StartBuy() {
     }
     
     StartIndicators()
+    UpdateMiniWidgetMode(activeMode)
     if (ActiveMode = "Buy") {
         
         BuyCount            := 0
         SkillPtsScanSuccess := false
         CarCount_In.Value   := Floor(SkillPtsCount_In.Value / SelectedCarPoint)
         CarsLabel_UI.Value  := CarCount_In.Value
+
         CarCount_UI.Value   := "0"
         BuyRunTime_UI.Value := "00:00"
+        MiniCarCount_UI.Value   := "0"
+        MiniBuyRunTime_UI.Value := "00:00"
 
         CarCount_UI.SetFont("c" cHighlight)
         BuyRunTime_UI.SetFont("c" cHighlight)
@@ -130,7 +132,6 @@ BuyLoop() {
                     PressKey("Down")
                     PressKey("Right")
                 }
-            break
         }
 
         if CheckAbort()
@@ -147,6 +148,7 @@ BuyLoop() {
             
             BuyCount++
             CarCount_UI.Value := BuyCount
+            MiniCarCount_UI.Value := BuyCount
         }
 
         ShowNotif("success", "Car Purchase", BuyCount " " SelectedCar " have been purchased.")
@@ -163,4 +165,36 @@ BuyLoop() {
         
         break
     }
+}
+
+SkillPtsScan(ratioX, ratioY, ratioW, ratioH, waitTime:= 1000, delay:=1000) {
+    global SkillPtsCount_In, SkillPtsWant_In, CarCount_In
+    global PointsLabel_UI, SectorLabel_UI, TimeLabel_UI, CarsLabel_UI
+    global ActiveMode, MaxPoints, PointsGain, PointsTotal, TimeTotal, SelectedCarPoint
+
+    points := ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime, , true)
+
+    if (points = -1) {
+        SkillPtsCount_In.Value := 0
+    } else {
+        SkillPtsCount_In.Value := points
+    }
+
+    SkillPtsWant_In.Value := Min(999 - points, MaxPoints)
+
+    PointsGain := GetMinScore(SkillPtsWant_In.Value)
+    PointsTotal := Min(PointsGain + SkillPtsCount_In.Value, 999)
+
+    CarCount_In.Value := Floor(PointsTotal / SelectedCarPoint)
+
+    TimeTotal := CalcTimeRace(SkillPtsWant_In.Value)  + CalcTimeBuy(CarCount_In.Value) + CalcTimeUnlock(CarCount_In.Value)
+
+    PointsLabel_UI.Value := PointsGain
+    SectorLabel_UI.Value := Ceil(PointsGain/AveragePoints)
+    TimeLabel_UI.Value :=  Format("{:02}:{:02}", Floor(TimeTotal) , Round((TimeTotal - Floor(TimeTotal)) * 60))
+    CarsLabel_UI.Value := Floor(PointsTotal / SelectedCarPoint)
+
+    Sleep(delay)
+
+    return points
 }

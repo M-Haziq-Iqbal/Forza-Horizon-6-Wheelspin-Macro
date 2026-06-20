@@ -1,6 +1,6 @@
 ; ╔═════════════════════════════════════════╗
-; ║        MHI - FH6 Wheelspin Macro		║
-; ║        Cyber Noir Edition v1.6.1        ║
+; ║        MHI - FH6 Wheelspin Macro        ║
+; ║        Cyber Noir Edition v1.7.0        ║
 ; ╚═════════════════════════════════════════╝
 
 #Requires AutoHotkey v2.0
@@ -20,16 +20,23 @@ StartUnlock() {
     }
     
     StartIndicators()
+    UpdateMiniWidgetMode(activeMode)
     if (ActiveMode = "Unlock") {
         UnlockCount            := 0
         UnlockRunSeconds       := 0
         SkillPtsScanSuccess := false
         CarCount_In.Value      := Floor(SkillPtsCount_In.Value / SelectedCarPoint)
         CarsLabel_UI.Value     := CarCount_In.Value
+
         SWheelCount_UI.Value   := "0"
         WheelCount_UI.Value    := "0"
         CreditCount_UI.Value   := "0 CR"
         UnlockRunTime_UI.Value := "00:00"
+
+        MiniSWheelCount_UI.Value   := "0"
+        MiniWheelCount_UI.Value    := "0"
+        MiniCreditCount_UI.Value   := "0 CR"
+        MiniUnlockRunTime_UI.Value := "00:00"
 
         UnlockRunTime_UI.SetFont("c" cHighlight)
         SetTimer(UnlockTimerTick, 1000)
@@ -77,14 +84,14 @@ UnlockLoop() {
             PressKey("Enter") ; Select Car Mastery
             
             Process("Scanning Skill Points...")
-            points := SkillPtsScan(0.331, 0.851, 0.054, 0.033)
+            points := SkillPtsScan(0.331, 0.851, 0.054, 0.033, 1500, 1500)
 
             if points != -1 {
                 SkillPtsScanSuccess := true
             }
             else {
                 SkillPtsScanSuccess := false
-                ShowNotif("fail", "Car Unlock", "Unable to scan Current Skill Points amount. `nManual input required.")
+                ShowNotif("fail", "Reward Unlock", "Unable to scan Current Skill Points amount. `nManual input required.")
             }
 
             Process("Returning to Campaign Menu...")
@@ -98,16 +105,16 @@ UnlockLoop() {
         if CarCount_In.Value > 0
             Switch SelectedCar {
                 Case "Subaru Impreza 22B-STi":
-                    ShowNotif("info", "Mastery Unlock", CarCount_In.Value " Super Wheelspins will be obtained." )
+                    ShowNotif("info", "Reward Unlock", CarCount_In.Value " Super Wheelspins will be obtained." )
                     
                 Case "Lamborghini Revuelto":
-                    ShowNotif("info", "Mastery Unlock", CarCount_In.Value " Super Wheelspins and`n" CarCount_In.Value*3 " Wheelspins will be obtained." )
+                    ShowNotif("info", "Reward Unlock", CarCount_In.Value " Super Wheelspins and`n" CarCount_In.Value*3 " Wheelspins will be obtained." )
                     
                 Case "Dodge Viper GTS ACR":
-                    ShowNotif("info", "Mastery Unlock", CarCount_In.Value*85400 " CR will be obtained.")
+                    ShowNotif("info", "Reward Unlock", FormatCommas(CarCount_In.Value*85400) " CR will be obtained.")
             }
         else {
-            ShowNotif("error", "Car Unlock", "Insufficient Skill Points")
+            ShowNotif("error", "Reward Unlock", "Insufficient Skill Points")
             break
         }
         
@@ -137,6 +144,25 @@ UnlockLoop() {
         PressKey("Enter") ; Select First Car
         PressKey("Down") ; Navigate to Get in Car
         PressKey("Enter", 5000) ; Select Get in Car
+
+        Process("Scanning the right car...")
+        scannedCar := ScanOCR(0.333, 0.250, 0.260, 0.233, 1000)
+
+        if scannedCar
+        if InStr(scannedCar,"1998 Subaru", 1) && SelectedCar = CarList[1] {
+            ShowNotif("error", "Reward Unlock", "The first car is not 1998 Subaru!`nEmergency break!")
+            Process("Exiting the process...")
+            break
+        } else if InStr(scannedCar, "2021 Lamborghini", 1) && SelectedCar = CarList[2] {
+            ShowNotif("error", "Reward Unlock", "The first car is not 2021 Lamborghini!`nEmergency break!")
+            Process("Exiting the process...")
+            break
+        } else if InStr(scannedCar,"1999 Dodge", 1) && SelectedCar = CarList[3] {
+            ShowNotif("error", "Reward Unlock", "The first car is not 1999 Dodge!`nEmergency break!")
+            Process("Exiting the process...")
+            break
+        } 
+
         PressKey("Esc", 1500) ; Navigate to Auction House Menu
         PressKey("Esc", 1500) ; Navigate to Buy & Sell Menu
         if CheckAbort()
@@ -156,7 +182,7 @@ UnlockLoop() {
                 PressKey("Down", 50) ; Navigate to Car Mastery
             PressKey("Enter") ; Select Car Mastery
 
-            if !WaitForMenuRelative("Opening Car Mastery...", 0.176, 0.545, "0xFFFFFF", "", 3000, 100) {
+            if !WaitForPixel("Opening Car Mastery...", 0.176, 0.545, "0xFFFFFF", "", 3000, 100) {
                 Process("Sync Error: Car Mastery menu failed to load!")
                 break
             }
@@ -180,10 +206,12 @@ UnlockLoop() {
                     UnlockCount++
 
                     SWheelCount := UnlockCount
+
                     SWheelCount_UI.Value := SWheelCount
+                    MiniSWheelCount_UI.Value := SWheelCount
 
                     if Mod(UnlockCount, NotiFreqInterv) = 0
-                        ShowNotif("info", "Mastery Unlock", SWheelCount " Super Wheelspins have been obtained." )
+                        ShowNotif("info", "Reward Unlock", SWheelCount " Super Wheelspins have been obtained." )
 
                 Case "Lamborghini Revuelto":
                     PressKey("Enter", 1100)
@@ -202,9 +230,11 @@ UnlockLoop() {
 
                     SWheelCount_UI.Value := SWheelCount
                     WheelCount_UI.Value  := WheelCount
+                    MiniSWheelCount_UI.Value := SWheelCount
+                    MiniWheelCount_UI.Value  := WheelCount
 
                     if Mod(UnlockCount, NotiFreqInterv) = 0
-                        ShowNotif("info", "Mastery Unlock", SWheelCount " Super Wheelspins and`n" WheelCount " Wheelspins have been obtained." )
+                        ShowNotif("info", "Reward Unlock", SWheelCount " Super Wheelspins and`n" WheelCount " Wheelspins have been obtained." )
                     
                 Case "Dodge Viper GTS ACR":
                     PressKey("Enter", 1100)
@@ -220,10 +250,12 @@ UnlockLoop() {
                     UnlockCount++
 
                     CreditCount := UnlockCount*85400
-                    CreditCount_UI.Value := CreditCount " CR"
+
+                    CreditCount_UI.Value := FormatCommas(CreditCount) " CR"
+                    MiniCreditCount_UI.Value := FormatCommas(CreditCount) " CR"
 
                     if Mod(UnlockCount, NotiFreqInterv) = 0
-                        ShowNotif("info", "Mastery Unlock", CreditCount " CR have been obtained.")
+                        ShowNotif("info", "Reward Unlock", FormatCommas(CreditCount) " CR have been obtained.")
             }
 
             SkillPtsCount_In.Value -=  SelectedCarPoint
@@ -261,10 +293,27 @@ UnlockLoop() {
             PressKey("Down") ; Navigate to Get in Car 
             PressKey("Enter") ; Select Get in Car
 
-            if !WaitForMenuRelative("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 100) {
+            if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 100) {
                 Process("Sync Error: Unable to get in car!")
                 break
             }
+
+            Process("Scanning the right car...")
+            scannedCar := ScanOCR(0.333, 0.250, 0.260, 0.233, 1000)
+
+            if InStr(scannedCar,"1998 Subaru", 1) && SelectedCar = CarList[1] {
+                ShowNotif("error", "Reward Unlock", "The first car is not 1998 Subaru!`nEmergency break!")
+                Process("Exiting the process...")
+                break
+            } else if InStr(scannedCar, "2021 Lamborghini", 1) && SelectedCar = CarList[2] {
+                ShowNotif("error", "Reward Unlock", "The first car is not 2021 Lamborghini!`nEmergency break!")
+                Process("Exiting the process...")
+                break
+            } else if InStr(scannedCar,"1999 Dodge", 1) && SelectedCar = CarList[3] {
+                ShowNotif("error", "Reward Unlock", "The first car is not 1999 Dodge!`nEmergency break!")
+                Process("Exiting the process...")
+                break
+            } 
 
             if CheckAbort()
                 break
@@ -289,13 +338,13 @@ UnlockLoop() {
 
         Switch SelectedCar {
             Case "Subaru Impreza 22B-STi":
-                ShowNotif("success", "Mastery Unlock", SWheelCount " Super Wheelspins have been obtained." )
+                ShowNotif("success", "Reward Unlock", SWheelCount " Super Wheelspins have been obtained." )
                 
             Case "Lamborghini Revuelto":
-                ShowNotif("success", "Mastery Unlock", SWheelCount " Super Wheelspins and`n" WheelCount " Wheelspins have been obtained." )
+                ShowNotif("success", "Reward Unlock", SWheelCount " Super Wheelspins and`n" WheelCount " Wheelspins have been obtained." )
                 
             Case "Dodge Viper GTS ACR":
-                ShowNotif("success", "Mastery Unlock", CreditCount " CR have been obtained.")
+                ShowNotif("success", "Reward Unlock", FormatCommas(CreditCount) " CR have been obtained.")
         }
         
         PressKey("PgUp") ; Navigate to Campaign Menu

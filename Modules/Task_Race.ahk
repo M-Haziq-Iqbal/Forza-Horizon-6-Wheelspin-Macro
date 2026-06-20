@@ -1,6 +1,6 @@
 ; ╔═════════════════════════════════════════╗
-; ║        MHI - FH6 Wheelspin Macro		║
-; ║        Cyber Noir Edition v1.6.1        ║
+; ║        MHI - FH6 Wheelspin Macro        ║
+; ║        Cyber Noir Edition v1.7.0        ║
 ; ╚═════════════════════════════════════════╝
 
 #Requires AutoHotkey v2.0
@@ -19,14 +19,22 @@ StartRace() {
     }
     
     StartIndicators()
+    UpdateMiniWidgetMode(activeMode)
+    
     if (ActiveMode = "Race" && SkillPtsWant_In.Value > 0 && SkillPtsCount_In.Value < 999) {
         SectorCount          := 0
         TotalRunSeconds      := 0
         RaceRunSeconds       := 0
         PointsCount          := 0
-        SectorCount_UI.Value := "0"
-        PointsCount_UI.Value := "0"
+
+        SectorCount_UI.Value := 0
+        PointsCount_UI.Value := 0
         RaceRunTime_UI.Value := "00:00"
+
+        ; Update GUI
+        MiniSectorCount_UI.Value := 0
+        MiniPointsCount_UI.Value := 0
+        MiniRaceRunTime_UI.Value := "00:00"
 
         PointsCount_UI.SetFont("c" cHighlight)
         SectorCount_UI.SetFont("c" cHighlight)
@@ -40,7 +48,7 @@ StartRace() {
 RaceLoop() {
     global ActiveMode, MasterMode, MasterStart, RaceStart
     global cActive, cHighlight, cIdle
-    global SectorCount, PointsCount_UI, CarCount_UI, RaceRunTime_UI, PixelCheck_UI, SectorCount_UI
+    global SectorCount, PointsCount_UI, CarCount_UI, RaceRunTime_UI, SectorCount_UI
     global AveragePoints, Maxpoints, PointsGain, PointsCount, RaceRunSeconds
     global CodeEventLab_UI, CodeEventLab, CodeSelect_UI
 
@@ -56,7 +64,7 @@ RaceLoop() {
         Sleep(1000)
         PressKey("Esc") ; Return to Free Roam
 
-        if !WaitForMenuRelative("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 20000, 2000) {
+        if !WaitForPixel("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 20000, 1000) {
             Process("Sync Error: Unable to return to Free Roam!")
             break
         }
@@ -86,7 +94,7 @@ RaceLoop() {
         Loop 7
             PressKey("pgDn", 100)
 
-        if !WaitForMenuRelative("Waiting for EventLab to load...", 0.427, 0.594, "0x000000", , 10000) {
+        if !WaitForPixel("Waiting for EventLab to load...", 0.283, 0.198, "0xFCC500", , 10000) {
             Process("Sync Error: EventLab search timed out!")
             break
         }
@@ -94,7 +102,7 @@ RaceLoop() {
         if CheckAbort()
             break
 
-        if !WaitForMenuRelative("Choosing Race Type...",0.441, 0.609, "0xFFFFFF", , 10000) {
+        if !WaitForPixel("Choosing Race Type...",0.331, 0.567, "0xFFFFFF", , 10000) {
             Process("Sync Error: EventLab search timed out!")
             break
         }
@@ -112,7 +120,7 @@ RaceLoop() {
         Process("Loading EventLab...")
         PressKey("Enter") ; Select Car
         
-        if !WaitForMenuRelative("Waiting for track to load...", 0.158, 0.678, "0xFFFFFF", "", 30000) {
+        if !WaitForPixel("Waiting for track to load...", 0.158, 0.678, "0xFFFFFF", "", 30000) {
             Process("Sync Error: EventLab track failed to load!")
             break
         }
@@ -140,8 +148,12 @@ RaceLoop() {
                 SectorCount++
 
                 PointsCount := Floor(SectorCount * AveragePoints) ; Using average points per race for estimation to account for variability
+
+                ; Update GUI
                 PointsCount_UI.Value    := PointsCount
                 SectorCount_UI.Value     := SectorCount
+                MiniPointsCount_UI.Value    := PointsCount
+                MiniSectorCount_UI.Value     := SectorCount
                 
                 if (Mod(SectorCount, 4) = 0 && PointsCount < PointsGain) {
                     PressKey("w down", 50) ; Press throttle to move forward
@@ -171,7 +183,7 @@ RaceLoop() {
                     PressKey("w down", 18000)
                 }
 
-                if WaitForMenuRelative("Turning...", 0.202, 0.843, "0x696562", ,8000, 500, false, 25) {
+                if WaitForPixel("Turning...", 0.202, 0.843, "0x696562", ,6000, 500, true, 25, "Failed braking on time.", 5) {
                     Process("Braking...")
                     PressKey("w up")
                     PressKey("s down", 1500)
@@ -180,9 +192,8 @@ RaceLoop() {
                     Process("Throttling...")
                     PressKey("w down", 2000)
                 } else {
-                    FailedTurn++
-                    if FailedTurn > 2
-                        ShowNotif("fail", "EventLab Race", FailedTurn " times failed braking on time. `nConsider checking current progress.")
+                    Process("Releasing throttle...")
+                    PressKey("w up", 2000)
                 }
 
                 if CheckAbort()
@@ -194,22 +205,28 @@ RaceLoop() {
                     ShowNotif("info", "EventLab Race", SectorCount " sectors of EventLab Race completed.")
 
                 PointsCount := Floor(SectorCount * AveragePoints) ; Using average points per race for estimation to account for variability
+
+                ; Update GUI
                 PointsCount_UI.Value    := PointsCount
                 SectorCount_UI.Value    := SectorCount
+                MiniPointsCount_UI.Value    := PointsCount
+                MiniSectorCount_UI.Value    := SectorCount
                 
                 if (Mod(SectorCount, 50) = 0) {
 
-                    if !WaitForMenuRelative("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 10000) {
+                    if !WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 20000, , true, , "Leaderboard failed to load! `nRestarting event...") {
                         Process("Sync Error: EventLab leaderboard failed to load!")
-                        break
-                    }
-                    
-                    if PointsCount < PointsGain {
-                        Process("Restarting the Event...")
-                        PressKey("X") ; Restart
-                        PressKey("Enter") ; Confirm Restart Event
 
-                        if !WaitForMenuRelative("Waiting for next round to load...", 0.174, 0.683, "0xFFFFFF", "", 20000) {
+                        Process("Restarting the Event...", 2000)
+                        PressKey("Esc", 1000) ; Pause Menu
+                        PressKey("Left") ; Navigate to Restart
+                        PressKey("Enter") ; Restart Event
+                        PressKey("Enter") ; Confirm Restart
+
+                        SectorCount -= 5
+                        PointsCount -= 49
+                        
+                        if !WaitForPixel("Waiting for next round to load...", 0.174, 0.683, "0xFFFFFF", "", 20000) {
                             Process("Sync Error: EventLab next round failed to load!")
                             break
                         }
@@ -217,12 +234,27 @@ RaceLoop() {
                         PressKey("Enter", 2000) ; Start Race Event
                         PressKey("W down", 50) ; Early throttle
                         Process("Countdown...", 3000)
-                    }
-                    else {
-                        Process("Quitting the Event...")
-                        PressKey("Enter") ; Continue
-                        break
-                    }
+                    } else {
+                        if PointsCount < PointsGain {
+                            Process("Restarting the Event...")
+                            PressKey("X") ; Restart
+                            PressKey("Enter") ; Confirm Restart Event
+
+                            if !WaitForPixel("Waiting for next round to load...", 0.174, 0.683, "0xFFFFFF", "", 20000) {
+                                Process("Sync Error: EventLab next round failed to load!")
+                                break
+                            }
+                            Process("Entering the Event")
+                            PressKey("Enter", 2000) ; Start Race Event
+                            PressKey("W down", 50) ; Early throttle
+                            Process("Countdown...", 3000)
+                        }
+                        else {
+                            Process("Quitting the Event...")
+                            PressKey("Enter") ; Continue
+                            break
+                        }
+                        }
                 }
             }
             PressKey("w up")
@@ -240,7 +272,7 @@ RaceLoop() {
 
         RaceStart := false
 
-        if !WaitForMenuRelative("Returning to Free Roam...", 0.061, 0.945, "0xFFFFFF", "", 30000) {
+        if !WaitForPixel("Returning to Free Roam...", 0.061, 0.945, "0xFFFFFF", "", 30000) {
             Process("Sync Error: Unable to return to Free Roam!")
             break
         }
@@ -260,7 +292,7 @@ RaceLoop() {
         PressKey("Enter") ; Select Return Home
         PressKey("Enter") ; Confirm Travel to Home
 
-        if !WaitForMenuRelative("Returning to Home...", 0.168, 0.722, "0xFFFFFF", "", 20000) {
+        if !WaitForPixel("Returning to Home...", 0.168, 0.722, "0xFFFFFF", "", 20000) {
             Process("Sync Error: Unable to return Home!")
             break
         }
@@ -273,14 +305,12 @@ RaceLoop() {
     }
 }
 
-SkillPtsRaceScan(ratioX, ratioY, ratioW, ratioH, delay:= 1000) {
+SkillPtsRaceScan(ratioX, ratioY, ratioW, ratioH, waitTime:= 1000) {
     global SkillPtsCount_In, SkillPtsWant_In, CarCount_In
     global PointsLabel_UI, SectorLabel_UI, TimeLabel_UI, CarsLabel_UI
     global ActiveMode, MaxPoints, CustomSkillPts, PointsGain, PointsTotal, TimeTotal, SelectedCarPoint, RaceStart
-
-    Sleep(delay)
-
-    points := ScanNumber(ratioX, ratioY, ratioW, ratioH)
+    
+    points := ScanOCR(ratioX, ratioY, ratioW, ratioH, 1000, , true)
 
     if RaceStart {
 
@@ -309,15 +339,20 @@ SkillPtsRaceScan(ratioX, ratioY, ratioW, ratioH, delay:= 1000) {
 
     if !RaceStart {
 
+        ; 1. Save the previous value first
         SkillPtsCount_InPrev := SkillPtsCount_In.Value
-        SkillPtsCount_InNew := SkillPtsCount_In.Value - SkillPtsCount_InPrev
-    
-        if points = -1 {
-            SkillPtsCount_In.Value := PointsGain
+        
+        if (points = -1) {
+            SkillPtsCount_In.Value := PointsTotal - 10
             ShowNotif("fail", "EventLab Race", "Skill Points Scan Failed. `nDefaulting to estimated Skill Points gained...")
         }
         else {
+            ; 2. Update to the new points
             SkillPtsCount_In.Value := points
+            
+            ; 3. Now calculate the difference (New total - Old total)
+            SkillPtsCount_InNew := SkillPtsCount_In.Value - SkillPtsCount_InPrev
+            
             ShowNotif("success", "EventLab Race", SkillPtsCount_InNew " Skill Points have been obtained.")
         }
 

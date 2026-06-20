@@ -1,6 +1,6 @@
 ; ╔═════════════════════════════════════════╗
-; ║        MHI - FH6 Wheelspin Macro		║
-; ║        Cyber Noir Edition v1.6.1        ║
+; ║        MHI - FH6 Wheelspin Macro        ║
+; ║        Cyber Noir Edition v1.7.0        ║
 ; ╚═════════════════════════════════════════╝
 
 #Requires AutoHotkey v2.0
@@ -45,20 +45,20 @@ SpinLoop() {
 
     CheckAbort() => (ActiveMode != "Spin")
 
-    if WaitForMenuRelative("Checking Wheelspin type...", 0.121, 0.312, "0xC7FD05", , 1000, 50, true, 5, "Super Wheelspinning...")
+    if WaitForPixel("Checking Wheelspin type...", 0.121, 0.312, "0xC7FD05", , 1000, 50, true, 5, "Super Wheelspinning...")
         SpinType := "Super Wheelspin"
-    else if WaitForMenuRelative("Checking Wheelspin type...", 0.879, 0.462, "0xC9FE03", , 1000, 50, true, 5, "Wheelspinning...")
+    else if WaitForPixel("Checking Wheelspin type...", 0.879, 0.462, "0xC9FE03", , 1000, 50, true, 5, "Wheelspinning...")
         SpinType := "Wheelspin"
     else
         return
 
     Process("Spinning...")
-    PressKey("Enter", 1000) ; Enter Wheelspin
+    PressKey("Enter") ; Enter Wheelspin
 
     if SpinType = "Super Wheelspin"
-        SpinLeftCount   := ScanNumber(0.107, 0.622, 0.071, 0.052)
+        SpinLeftCount   := ScanOCR(0.107, 0.622, 0.071, 0.052, 5000, , true)
     else if SpinType = "Wheelspin"
-        SpinLeftCount   := ScanNumber(0.148, 0.624, 0.075, 0.054)
+        SpinLeftCount   := ScanOCR(0.148, 0.624, 0.075, 0.054, 5000, , true)
 
     SpinLeftCount := SpinLeftCount = -1 ? SpinToOpen : SpinLeftCount
 
@@ -66,13 +66,21 @@ SpinLoop() {
         loop Min(SpinToOpen, SpinLeftCount) {
             Process("Skipping...")
 
-            if ScanText(0.072, 0.916, 0.027, 0.034, 5000, "Skip")
+            if ScanOCR(0.072, 0.916, 0.027, 0.034, 2000, "Skip")
                 PressKey("Enter", 50) ; Skip`
 
+            ; Rescan Wheelspin amount to avoid desync
             SpinOpenCount++
+            if Mod(SpinOpenCount, 5) = 0 && SpinOpenCount > 0 {
+                if SpinType = "Super Wheelspin"
+                    SpinLeftCount   := ScanOCR(0.107, 0.622, 0.071, 0.052, 5000, , true)
+                else if SpinType = "Wheelspin"
+                    SpinLeftCount   := ScanOCR(0.148, 0.624, 0.075, 0.054, 5000, , true)
+            }
+
             SpinOpenCount_UI.Value    := SpinOpenCount
             SpinLeftCount_UI.Value    := SpinLeftCount
-            if (WaitForMenuRelative("Collecting...", 0.058, 0.926, "0xFFFFFF", , 4000, 50, true, , "Collecting...")) {
+            if (WaitForPixel("Collecting...", 0.058, 0.926, "0xFFFFFF", , 4000, 50, true, , "Collecting...")) {
 
                 if Mod(SpinOpenCount, SpinToOpen) = 0 && SpinOpenCount > 0 {
                     PressKey("Esc", 50) ; Collect Prize
@@ -82,7 +90,7 @@ SpinLoop() {
             }
             
             while (RewardCount < 3) {
-                if (WaitForMenuRelative("Selling...", 0.450, 0.695, "0x000000", , 1000, 50, true, , "Info: No duplicate car found!")) {
+                if (WaitForPixel("Selling...", 0.450, 0.695, "0x000000", , 1000, 50, true, , "Info: No duplicate car found!")) {
                     if SpinMode = "SELL" {
                         PressKey("Down", 50)
                         PressKey("Down", 50)
@@ -107,10 +115,7 @@ SpinLoop() {
         }
         PressKey("Esc", 1000) ; Return to Free Roam to avoid Inactivity Status
         
-        if !WaitForMenuRelative("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 10000) {
-            Process("Sync Error: Unable to return to Free Roam!")
-            break
-        }
+        WaitForPixel("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 10000)
 
         Process("Navigating Menu...")
         PressKey("Esc", 1000) ; Open Menu
