@@ -69,7 +69,7 @@ RaceLoop() {
         PressKey("PgDn", 100) ; Navigate to Cars Menu
 
         Process("Scanning Skill Points")
-        SkillPtsRaceScan(0.283, 0.708, 0.060, 0.041)
+        SkillPtsRaceScan(0.282, 0.723, 0.039, 0.039)
 
         Process("Navigating to EventLab Menu")
         Loop 2
