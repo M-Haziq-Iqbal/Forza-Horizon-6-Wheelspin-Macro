@@ -132,6 +132,7 @@ Runs only the vehicle purchasing process.
 * **Resource-Driven Budgets:** Dynamically calculates the maximum number of cars to process based strictly on active skill points, triggering an immediate early-exit safeguard if resources run thin.
 * Dynamically shifts execution pathways based on whether the **STANDARD** or **PREMIUM** tier toggle button is engaged.
 * Employs off-by-one buffer padding adjustments to purchase an extra safety asset, preventing menu recognition tracking errors.
+* **Flexible Starting Car Choice:** You are no longer forced to start from the absolute first vehicle in your garage. You have full control to choose exactly which car the macro begins processing from in standalone mode.
 
 ### 🛞 Unlock Mode (Hotkey `]`)
 Runs only the reward unlocking process.
@@ -216,6 +217,15 @@ Make sure you are in the Home Menu, loaded fully into an active session (no load
 <p align="center">
   <img width="2559" height="1439" alt="Starting Position" src="https://github.com/user-attachments/assets/e6c585b4-264e-4a4c-8cf8-8d4ed7144ffc"> 
 </p>
+
+#### For Unlock Mode
+In standalone Unlock mode, you have the freedom to choose your starting car, **you must handle the menu navigation and sorting manually** before triggering the Unlock Mode script:
+
+1. Navigate to the **Buy & Sell** tab, enter the **Auction House**, and select **Start Auction**.
+2. Press `X` to change the sorting order, scroll down to select **Recently Added**, and confirm.
+3. Open the vehicle grid list.
+4. **CRITICAL STEP:** Use your arrow keys to **hover over or highlight the specific car you want to start the process with—but do not press Enter to select it.** 
+5. With the target starting car highlighted in the menu, launch the Unlock Mode script to let the macro safely take over the automated pipeline from that exact spot.
 
 #### For Wheelspin / Spin Mode
 Open the pause menu and navigate over to the **My Horizon** tab. Use your keyboard controls to highlight/hover over the specific wheelspin tile (Regular Wheelspin or Super Wheelspin) that you intend to farm, **without actually entering or clicking into the menu selection**. The detached draggable wheelspin panel can be snapped nearby for convenient monitoring.
