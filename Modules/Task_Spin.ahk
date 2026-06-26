@@ -38,14 +38,13 @@ SpinLoop() {
     SpinToOpen      := LoopCount_In.Value
     SpinLeftCount   := 0
     SpinOpenCount   := 0
-    RewardCount     := 0
     SpinType        := ""
 
     CheckAbort() => (ActiveMode != "Spin")
 
-    if WaitForPixel("Checking Wheelspin type...", 0.121, 0.312, "0xC7FD05", , 1000, 50, true, 25, "Super Wheelspinning...")
+    if WaitForPixel("Checking Wheelspin type...", 0.121, 0.312, "0xC7FD05", , 1000, 50, true, 25, "Super Wheelspinning...", 50)
         SpinType := "Super Wheelspin"
-    else if WaitForPixel("Checking Wheelspin type...", 0.879, 0.462, "0xC9FE03", , 1000, 50, true, 25, "Wheelspinning...")
+    else if WaitForPixel("Checking Wheelspin type...", 0.879, 0.462, "0xC9FE03", , 1000, 50, true, 25, "Wheelspinning...", 50)
         SpinType := "Wheelspin"
     else
         return
@@ -61,10 +60,10 @@ SpinLoop() {
     SpinLeftCount := SpinLeftCount = -1 ? SpinToOpen : SpinLeftCount
 
     While (ActiveMode = "Spin" && SpinLeftCount > 0)  {
-        loop Min(SpinToOpen, SpinLeftCount) {
+        loop Min(SpinToOpen, SpinLeftCount) {            
             Process("Skipping...")
 
-            if ScanOCR(0.072, 0.916, 0.027, 0.034, 2000, "Skip")
+            if InStr(ScanOCR(0.071, 0.915, 0.110-0.070, 0.945-0.915, 2000), "S", 0)
                 PressKey("Enter", 50) ; Skip`
 
             if CheckAbort()
@@ -72,11 +71,16 @@ SpinLoop() {
 
             ; Rescan Wheelspin amount to avoid desync
             SpinOpenCount++
-            if Mod(SpinOpenCount, 5) = 0 && SpinOpenCount > 0 {
+
+            if Mod(SpinOpenCount, SpinToOpen) = 0 {
+                break
+            }
+            
+            if Mod(SpinOpenCount, 5) = 0 {
                 if SpinType = "Super Wheelspin"
-                    spin := ScanOCR(0.107, 0.622, 0.071, 0.052, 5000, , true)
+                    spin := ScanOCR(0.107, 0.622, 0.071, 0.052, 2000, , true)
                 else if SpinType = "Wheelspin"
-                    spin := ScanOCR(0.148, 0.624, 0.075, 0.054, 5000, , true)
+                    spin := ScanOCR(0.148, 0.624, 0.075, 0.054, 2000, , true)
                 SpinLeftCount := spin = -1 ? SpinLeftCount : spin
             }
 
@@ -85,8 +89,9 @@ SpinLoop() {
 
             SpinOpenCount_UI.Value    := SpinOpenCount
             SpinLeftCount_UI.Value    := SpinLeftCount
-            if (WaitForPixel("Collecting...", 0.058, 0.926, "0xFFFFFF", , 4000, 50, true, , 0)) {
-
+            Process("Collecting...")
+            if InStr(ScanOCR(0.071, 0.915, 0.110-0.070, 0.945-0.915, 4000), "C") {
+            ; if (WaitForPixel("Collecting...", 0.058, 0.926, "0xFFFFFF", , 4000, 50, true, , 0)) {
                 if Mod(SpinOpenCount, SpinToOpen) = 0 && SpinOpenCount > 0 {
                     PressKey("Esc", 50) ; Collect Prize
                 } else {
@@ -96,27 +101,22 @@ SpinLoop() {
 
             if CheckAbort()
                 break
-            
-            while (RewardCount < 3) {
-                if WaitForPixel("Selling...", 0.450, 0.695, "0x000000", , 1000, 50, true, , 0) {
-                    if SpinMode = "SELL" {
-                        PressKey("Down", 50)
-                        PressKey("Down", 50)
-                        PressKey("Enter", 50)
-                    } else if SpinMode = "KEEP"{
-                        PressKey("Enter", 50)
-                    }
-                } else {
-                    break
-                }
-                RewardCount++
-            }
-            RewardCount := 0
-            SpinLeftCount--
 
-            if Mod(SpinOpenCount, SpinToOpen) = 0 && SpinOpenCount > 0 {
-                break
+            Loop 3 {
+                if GetPixelColorAfterDelay(0.450, 0.695, 500) = "0x000000" {
+                    if SpinMode = "SELL" {
+                        Process("Selling...")
+                        PressKey("Down", 50)
+                        PressKey("Down", 50)
+                        PressKey("Enter", 50)
+                    } 
+                    else if SpinMode = "KEEP"
+                        PressKey("Enter", 50)
+                } 
+                else
+                    break
             }
+            SpinLeftCount--
 
             if CheckAbort()
                 break

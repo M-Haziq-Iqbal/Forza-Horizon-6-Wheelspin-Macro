@@ -518,8 +518,8 @@ WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs 
             return false
 
         WinGetClientPos(&mLeft, &mTop, &mWidth, &mHeight, GameTitle)
-        centerX := mLeft + (ratioX * mWidth)
-        centerY := mTop  + (ratioY * mHeight)
+        centerX := mLeft + Integer(ratioX * mWidth)
+        centerY := mTop  + Integer(ratioY * mHeight)
             
         ; Define a tiny bounding box based on your radius
         x1 := centerX - radius
@@ -564,6 +564,43 @@ WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs 
             }
         }
         Sleep(50) 
+    }
+}
+
+GetPixelColorAfterDelay(ratioX, ratioY, delayMs := 2000) {
+    global ActiveMode, MasterMode, MasterStart, CurrentMultiplier, GameTitle
+    CoordMode("Pixel", "Screen")
+    
+    ; Apply your macro speed multiplier to the wait time
+    delayMs *= CurrentMultiplier
+    StartTime := A_TickCount
+
+    ; 1. Responsive delay loop (allows emergency abort while waiting)
+    Loop {
+        if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
+            return "" ; Aborted
+            
+        if !WinExist(GameTitle)
+            return ""
+
+        ; Check if the required time has passed
+        if (A_TickCount - StartTime >= delayMs)
+            break
+            
+        Sleep(50) 
+    }
+
+    ; 2. Calculate the exact target coordinates right at the moment of capture
+    WinGetClientPos(&mLeft, &mTop, &mWidth, &mHeight, GameTitle)
+    centerX := Integer(mLeft + (ratioX * mWidth))
+    centerY := Integer(mTop  + (ratioY * mHeight))
+
+    ; 3. Grab and return the Hex color code (e.g., "0xFFFFFF")
+    try {
+        detectedColor := PixelGetColor(centerX, centerY)
+        return detectedColor
+    } catch {
+        return "" ; Game window closed or minimized during grab
     }
 }
 
