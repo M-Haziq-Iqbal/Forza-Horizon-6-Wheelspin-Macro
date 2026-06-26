@@ -184,12 +184,7 @@ RaceLoop() {
             while (PointsCount < PointsGain) {
 
                 Process("Throttling...")
-
-                if(Mod(SectorCount, 1) = 0) {
-                    PressKey("w down", 16000)
-                } else {
-                    PressKey("w down", 18000)
-                }
+                PressKey("w down", 18000)
 
                 if CheckAbort()
                     break
