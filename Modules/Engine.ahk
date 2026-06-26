@@ -1214,3 +1214,39 @@ ReadMacroIni(Section, Key, DefaultValue := "") {
     
     return DefaultValue ; Returns this if no file or key was found
 }
+
+VerifyAuction(timeoutMs := 5000) {
+    global ActiveMode, MasterMode, MasterStart, CurrentMultiplier, GameTitle
+    
+    timeoutMs *= CurrentMultiplier
+    StartTime := A_TickCount
+    
+    Process("Safety Scan: 'Create Auction' menu...")
+
+    Loop {
+        ; 1. Standard emergency stops
+        if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
+            return false
+            
+        if !WinExist(GameTitle)
+            return false
+
+        ; 2. Scan the dangerous UI area
+        ocrText := ScanOCR(0.403, 0.373, 0.598 - 0.403, 0.425 - 0.373)
+
+        ; 3. TRIPWIRE: If the phrase appears, IMMEDIATELY abort the macro
+        if InStr(ocrText, "Create Auction") {
+            Process("CRITICAL: 'Create Auction' detected! Aborting loop.")
+            ShowNotif("error", "Accidental Sell Blocked", "Macro intercepted on a selling screen. Stopped safely.")
+            return false ; Tell the main script to STOP
+        }
+
+        ; 4. SAFE ZONE: If 5 seconds pass and the tripwire was never hit, we are safe
+        if (A_TickCount - StartTime > timeoutMs) {
+            Process("Safety Check Passed: No forbidden text found.")
+            return true ; Tell the main script it's safe to keep going
+        }
+
+        Sleep(400) ; Low CPU overhead throttle
+    }
+}

@@ -165,6 +165,9 @@ UnlockLoop() {
         PressKey("Down") ; Navigate to Get in Car
         PressKey("Enter", 5000) ; Select Get in Car
 
+        if !VerifyAuction(2000)
+            break
+
         if CheckAbort()
             break
 
@@ -318,6 +321,9 @@ UnlockLoop() {
             PressKey("Enter") ; Select Next Car
             PressKey("Down") ; Navigate to Get in Car 
             PressKey("Enter") ; Select Get in Car
+
+            if !VerifyAuction(2000)
+                break
 
             if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 100) {
                 Process("Sync Error: Unable to get in car!")
