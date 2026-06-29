@@ -1,0 +1,1763 @@
+diff --git a/Main.ahk b/Main.ahk
+index bff4765..1856e2f 100644
+--- a/Main.ahk
++++ b/Main.ahk
+@@ -28,25 +28,19 @@
+ #Include modules\SpecialK.ahk
+ 
+ ;@Ahk2Exe-SetMainIcon assets\icon.ico
+-
+ ; Setup tray icon dynamically
+-if A_IsCompiled {
+-    TraySetIcon(A_ScriptFullPath)  ; Pulls the embedded icon directly from the EXE
+-} else {
+-    TraySetIcon(A_ScriptDir "\assets\icon.ico") ; Standard path used while testing uncompiled
+-}
++TraySetIcon(A_IsCompiled ? A_ScriptFullPath : A_ScriptDir "\assets\icon.ico")
++
++UpdateMonitorMetrics()
+ 
+-; ══════════════════════════════════════════════
+-;  GAME-FOCUS BOUNDED HOTKEYS
+-; ══════════════════════════════════════════════
++BuildMainGui()
++BuildMiniGui()
++UpdateMiniWidgetMode("")
+ 
+ ; Tell AHK to keep running in the background to listen for hotkeys
+ Persistent(true)
+ 
+-SetTimer(SpoofWindowFocus, 250) ; Fires every 250ms
+-
+ #HotIf WinActive(GameTitle)
+-
+ \::StartRace()
+ [::StartBuy()
+ ]::StartUnlock()
+@@ -58,11 +52,8 @@ F5::ToggleDetectionZone()
+ ; F11::SetGameResolution()
+ F12::Reload()
+ !LButton::MoveWindow()
+-
+ #HotIf
+ 
+ #HotIf IsSpinGuiOpen()
+-
+ =::StartSpin() 
+-
+ #HotIf
+\ No newline at end of file
+diff --git a/Modules/Config.ahk b/Modules/Config.ahk
+index aa42f4a..7cc6037 100644
+--- a/Modules/Config.ahk
++++ b/Modules/Config.ahk
+@@ -11,10 +11,11 @@ global GameTitle        := "ahk_exe " GameExe
+ global MacroIni         := "mhiacro.ini"
+ global GameDir          := FindGameDirFromProfiles()
+ global GameMonitor      := 1
++global GameHwnd         := 0  ; Initializes the permanent window pointer handle
+ 
+-global WindowedMode         := false
+-global IsGameLocked         := false
+-global IsGameAlwaysOnTop    := false
++global IsGameWindowed       := CheckWindowed()
++global IsGameLocked         := WinGetStyle(GameTitle) & 0x08000000 ? true : false
++global IsGameAlwaysOnTop    := WinGetExStyle(GameTitle) & 0x8 ? true : false
+ 
+ ; ══════════════════════════════════════════════
+ ;  EVENTLAB PRESETS & DATA SOURCING
+@@ -63,13 +64,16 @@ global SelectedReso     := _iniReso ? _iniReso : ResoList[1]
+ global CarList          := ["Subaru Impreza 22B-STi", "Lamborghini Revuelto", "Dodge Viper GTS ACR"]
+ global CarData          := Map(
+     "Subaru Impreza 22B-STi", {
+-        SkillPtsCost: 30
++        SkillPtsCost: 30,
++        AltName: "1998 Subaru"
+     },
+     "Lamborghini Revuelto", {
+-        SkillPtsCost: 39
++        SkillPtsCost: 39,
++        AltName: "2024 Lamborghini"
+     },
+     "Dodge Viper GTS ACR", {
+-        SkillPtsCost: 30
++        SkillPtsCost: 30,
++        AltName: "1999 Dodge"
+     }
+ )
+ _iniCar                 := ReadMacroIni("Settings", "Car", "")
+diff --git a/Modules/Engine.ahk b/Modules/Engine.ahk
+index b20ccb6..827d0b2 100644
+--- a/Modules/Engine.ahk
++++ b/Modules/Engine.ahk
+@@ -126,6 +126,10 @@ StartIndicators() {
+     }
+     EventLabSelect_UI.Enabled := false
+ 
++    StopBtn.Opt("cFF5A5A")
++    PauseBtn.Opt("cFFD166")
++    PauseBtn.Value := "❚❚"
++    
+     SetTimer(TotalTimerTick, 1000)
+ }
+ 
+@@ -174,6 +178,10 @@ ResetIndicators() {
+     EventLabSelect_UI.Enabled    := true
+     LoopCount_In.Enabled     := true
+ 
++    StopBtn.Opt("c94A3B8")
++    PauseBtn.Opt("c94A3B8")
++    PauseBtn.Value := "❚❚"
++
+     PressKey("W up")
+ }
+ 
+@@ -604,38 +612,10 @@ GetPixelColorAfterDelay(ratioX, ratioY, delayMs := 2000) {
+     }
+ }
+ 
+-LocatePixelInArea(ratioX, ratioY, ratioW, ratioH, targetColor, variation := 5) {
+-    CoordMode "Pixel", "Screen"
+-    global GameTitle
+-    
+-    if !WinExist(GameTitle)
+-        return false
+-        
+-    WinGetClientPos(&winX, &winY, &winW, &winH, GameTitle)
+-    
+-    ; Define scanning bounding boundaries using your relative percentages
+-    x1 := winX + Round(ratioX * winW)
+-    y1 := winY + Round(ratioY * winH)
+-    x2 := winX + Round(ratioW * winW) 
+-    y2 := winY + Round(ratioH * winH)
+-    
+-    ; Runs an immediate 1-shot search across the target zone
+-    if PixelSearch(&foundX, &foundY, x1, y1, x2, y2, targetColor, variation) {
+-        ; Returns the clean Y coordinate relative ONLY to the window's edge
+-        return foundY - winY 
+-    }
+-    
+-    return false ; Return clean false if color isn't anywhere in that box area
+-}
+-
+ ; ══════════════════════════════════════════════
+ ;  CONTROL OUTPUTS & HARDWARE ACTIONS
+ ; ══════════════════════════════════════════════
+ 
+-; --- Put this at the very top of your main script file ---
+-global GameHwnd := 0  ; Initializes the permanent window pointer handle
+-
+-; --- Your Updated PressKey Function ---
+ PressKey(key, delay := 500) {
+     ; OPTIMIZATION: Added GameHwnd and MiniKey_UI to your global list
+     global Key_UI, MiniKey_UI, cHighlight, cIdle, CurrentMultiplier, GameTitle, GameHwnd
+@@ -649,25 +629,19 @@ PressKey(key, delay := 500) {
+         case "Backspace": displayname := "⬅ Backspace"
+         case "w down", "w up": displayname := "W"
+         case "s down", "s up": displayname := "S"
+-        Default:          displayname := key
++        default:          displayname := key
+     }
+ 
+     Key_UI.Value     := "⌨  [ " displayName " ]"
+     MiniKey_UI.Value := "⌨  [ " displayName " ]"
+ 
++    ; Parse out the base key and the state modifier (down/up)
+     cleanKey := key
+     suffix   := ""
+     if InStr(key, " ") {
+         parts    := StrSplit(key, " ")
+         cleanKey := parts[1]   
+-        suffix   := " " parts[2] 
+-    }
+-
+-    if (scCode := GetKeySC(cleanKey)) {
+-        hexSC   := Format("{:03X}", scCode)
+-        sendKey := "sc" hexSC suffix
+-    } else {
+-        sendKey := key
++        suffix   := parts[2] ; "down" or "up"
+     }
+ 
+     ; SMART HWND CACHING:
+@@ -683,9 +657,29 @@ PressKey(key, delay := 500) {
+     }
+ 
+     try {
+-        ; CRUCIAL CHANGE: We target GameHwnd directly instead of the GameTitle string text.
+-        ; This makes background input delivery 100% immune to focus changes.
+-        ControlSend("{" sendKey "}", , GameHwnd)
++        ; Retrieve the OS-level Virtual Key and Scan Code for the key
++        vkCode := GetKeyVK(cleanKey)
++        scCode := GetKeySC(cleanKey)
++        
++        ; Construct the lParam bitmasks for Windows message accuracy
++        lParamDown := 0x00000001 | (scCode << 16)
++        lParamUp   := 0xC0000001 | (scCode << 16)
++
++        ; CRUCIAL CHANGE: Replaced ControlSend with direct PostMessage pipeline routing
++        if (suffix = "down") {
++            ; 0x0100 = WM_KEYDOWN
++            PostMessage(0x0100, vkCode, lParamDown, , "ahk_id " GameHwnd)
++        }
++        else if (suffix = "up") {
++            ; 0x0101 = WM_KEYUP
++            PostMessage(0x0101, vkCode, lParamUp, , "ahk_id " GameHwnd)
++        } 
++        else {
++            ; Normal full key press (Down -> Short Hold -> Up)
++            PostMessage(0x0100, vkCode, lParamDown, , "ahk_id " GameHwnd)
++            Sleep(40) ; Human-like micro-delay holding the key down
++            PostMessage(0x0101, vkCode, lParamUp, , "ahk_id " GameHwnd)
++        }
+     } catch {
+         ShowNotif("error", "Target Error", "Keystroke missed because game canvas was lost.")
+     }
+@@ -702,15 +696,6 @@ Process(text, delay := 0) {
+     Sleep(delay)
+ }
+ 
+-WriteNumber(num) {
+-    global GameTitle
+-
+-    for digit in StrSplit(String(num)) {
+-        ControlSend("{" digit "}", , GameTitle)
+-        Sleep(50) 
+-    }
+-}
+-
+ UpdateSpeed(*) {
+     global SpeedLabel_UI, DelaySlider_UI
+ 
+@@ -722,6 +707,10 @@ UpdateSpeed(*) {
+     WriteMacroIni("Settings", "CurrentMultiplier", CurrentMultiplier)
+ }
+ 
++; ══════════════════════════════════════════════
++;  RESOLUTION-RELATIVE MATRIX INITIALIZATION
++; ══════════════════════════════════════════════
++
+ GetGameMonitor() {
+     global GameTitle
+     if !WinExist(GameTitle)
+@@ -754,6 +743,43 @@ GetGameMonitor() {
+     return bestMonitor
+ }
+ 
++UpdateMonitorMetrics() {
++    global MonLeft, MonTop, MonRight, MonBottom, MonWidth, MonHeight, ScaleX, ScaleY, FontScale
++    global GameHwnd, GameTitle
++
++    ; Smart Handle Syncing
++    if (!GameHwnd || !WinExist(GameHwnd)) {
++        if IsSet(GameTitle)
++            GameHwnd := WinExist(GameTitle)
++    }
++
++    gameMonitor := GetGameMonitor()
++    
++    ; 1. POSITIONING BOUNDS: Read usable Desktop workspace context (Excludes taskbars)
++    MonitorGetWorkArea(gameMonitor, &wLeft, &wTop, &wRight, &wBottom)
++    MonLeft    := wLeft
++    MonTop     := wTop
++    MonRight   := wRight
++    MonBottom  := wBottom
++    MonWidth   := wRight - wLeft
++    MonHeight  := wBottom - wTop
++
++    ; 2. DISPLAY SCALING PROPORTIONS: Read true raw hardware panel parameters
++    MonitorGet(gameMonitor, &mLeft, &mTop, &mRight, &mBottom)
++    fullWidth  := mRight - mLeft
++    fullHeight := mBottom - mTop
++    
++    ScaleX     := fullWidth / 2560
++    ScaleY     := fullHeight / 1440
++
++    ; 3. PER-WINDOW CONTEXTUAL DPI TRANSFORMATION
++    targetDpi := (GameHwnd && WinExist(GameHwnd)) 
++                 ? DllCall("User32\GetDpiForWindow", "Ptr", GameHwnd, "UInt") 
++                 : DllCall("User32\GetDpiForSystem", "UInt")
++
++    FontScale  := ScaleX / (targetDpi / 96)
++}
++
+ FormatCommas(val) {
+     return RegExReplace(val, "\G\d+?(?=(\d{3})+(?:\D|$))", "$0,")
+ }
+@@ -765,211 +791,130 @@ FormatCommas(val) {
+ OnMessage(0x0201, WM_LBUTTONDOWN)
+ 
+ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
+-    global MainGUI, MiniGui, SpinGUI, RestoreBtn, PauseBtn, StopBtn, DragOffsetX, DragOffsetY
+-    global SliderCfg, SliderKnob, SliderTrack, MainDragOffsetX, MainDragOffsetY
+-    global SpinDragOffsetX, SpinDragOffsetY ; Scoped asynchronous position matrix
+-
+-    ; ── 1. MINI GUI ROUTING ──
+-    if (IsSet(MiniGui) && WinExist("ahk_id " MiniGui.Hwnd)) {
+-        if (hwnd == MiniGui.Hwnd || DllCall("GetParent", "Ptr", hwnd) == MiniGui.Hwnd) {
+-            if ((IsSet(RestoreBtn) && hwnd == RestoreBtn.Hwnd) || 
+-                (IsSet(PauseBtn)   && hwnd == PauseBtn.Hwnd)   || 
+-                (IsSet(StopBtn)    && hwnd == StopBtn.Hwnd)) {
+-                return
+-            }
++    global MainGUI, MiniGui, SpinGUI, RestoreBtn, PauseBtn, StopBtn
++    global SliderKnob, SliderTrack
++    global MainDragOffsetX, MainDragOffsetY, SpinDragOffsetX, SpinDragOffsetY, MiniDragOffsetX, MiniDragOffsetY
++
++    ; 1. Identify the top-level parent window safely
++    rootHwnd := DllCall("User32\GetAncestor", "Ptr", hwnd, "UInt", 2, "Ptr")
++
++    ; 2. CUSTOM SLIDER ENGINE ROUTING (Evaluated first)
++    if (IsSet(SliderKnob) && IsSet(SliderTrack) && (hwnd == SliderKnob.Hwnd || hwnd == SliderTrack.Hwnd)) {
++        DragSliderTimer()
++        SetTimer(DragSliderTimer, 10)
++        return
++    }
++
++    ; 3. MINI GUI ROUTING
++    if (IsSet(MiniGui) && MiniGui && rootHwnd == MiniGui.Hwnd) {
++        if ((IsSet(RestoreBtn) && hwnd == RestoreBtn.Hwnd) || 
++            (IsSet(PauseBtn)   && hwnd == PauseBtn.Hwnd)   || 
++            (IsSet(StopBtn)    && hwnd == StopBtn.Hwnd)) {
++            return
++        }
++        
++        ctrlClass := WinGetClass(hwnd)
++        if (ctrlClass == "AutoHotkeyGUI" || ctrlClass == "Static") {
+             CoordMode("Mouse", "Screen")
+             MouseGetPos(&mouseX, &mouseY)
+             WinGetPos(&guiX, &guiY, , , MiniGui.Hwnd)
+-            DragOffsetX := mouseX - guiX
+-            DragOffsetY := mouseY - guiY
++            MiniDragOffsetX := mouseX - guiX
++            MiniDragOffsetY := mouseY - guiY
+             SetTimer(DragMiniGui, 10)
+-            return
+         }
++        return
+     }
+ 
+-    ; ── 2. SPIN GUI ROUTING (Asynchronous Hand-off) ──
+-    try {
+-        if (IsSet(SpinGUI) && SpinGUI && hwnd == SpinGUI.Hwnd) {
+-            CoordMode("Mouse", "Screen")
+-            MouseGetPos(&mouseX, &mouseY)
+-            WinGetPos(&guiX, &guiY, , , SpinGUI.Hwnd)
+-            SpinDragOffsetX := mouseX - guiX
+-            SpinDragOffsetY := mouseY - guiY
+-            SetTimer(DragSpinGUI, 10)
+-            return
++    ; 4. SPIN GUI ROUTING
++    if (IsSet(SpinGUI) && SpinGUI && rootHwnd == SpinGUI.Hwnd) {
++        if (hwnd == SpinGUI.Hwnd || DllCall("User32\GetParent", "Ptr", hwnd) == SpinGUI.Hwnd) {
++            ctrlClass := WinGetClass(hwnd)
++            if (ctrlClass == "AutoHotkeyGUI" || ctrlClass == "Static") {
++                ; Bypass if clicking close or text elements with click handlers
++                if (ctrlClass == "Static" && (WinGetStyle(hwnd) & 0x100))
++                    return 
++                
++                CoordMode("Mouse", "Screen")
++                MouseGetPos(&mouseX, &mouseY)
++                WinGetPos(&guiX, &guiY, , , SpinGUI.Hwnd)
++                SpinDragOffsetX := mouseX - guiX
++                SpinDragOffsetY := mouseY - guiY
++                SetTimer(DragSpinGUI, 10)
++            }
+         }
+-    } catch {
+-        ; Quietly catch and discard "Windowless GUI" exceptions if the panel was destroyed
+-    }
+-
+-    ; ── 3. MAIN GUI ROUTING ──
+-    if (!IsSet(MainGUI) || !WinExist("ahk_id " MainGUI.Hwnd))
+-        return
+-
+-    ; Check control identity relative to the layout window
+-    oldMouseMode := CoordMode("Mouse", "Window")
+-    MouseGetPos(,, &win, &ctrlHwnd, 2)
+-    CoordMode("Mouse", oldMouseMode)
+-    
+-    ; Custom Slider Engine Check -> Hands off to non-blocking background timer
+-    if (IsSet(SliderKnob) && IsSet(SliderTrack) && (ctrlHwnd == SliderKnob.Hwnd || ctrlHwnd == SliderTrack.Hwnd)) {
+-        DragSliderTimer() ; Fire once instantly to catch the initial click coordinate
+-        SetTimer(DragSliderTimer, 10)
+         return
+     }
+-    
+-    ; Main Background Dragging -> Replaced PostMessage with non-blocking screen mapping
+-    if (hwnd == MainGUI.Hwnd) {
+-        CoordMode("Mouse", "Screen")
+-        MouseGetPos(&mouseX, &mouseY)
+-        WinGetPos(&guiX, &guiY, , , MainGUI.Hwnd)
+-        MainDragOffsetX := mouseX - guiX
+-        MainDragOffsetY := mouseY - guiY
+-        SetTimer(DragMainGUI, 10)
++
++    ; 5. MAIN GUI ROUTING
++    if (IsSet(MainGUI) && MainGUI && rootHwnd == MainGUI.Hwnd) {
++        if (hwnd == MainGUI.Hwnd || DllCall("User32\GetParent", "Ptr", hwnd) == MainGUI.Hwnd) {
++            ctrlClass := WinGetClass(hwnd)
++            if (ctrlClass == "AutoHotkeyGUI" || ctrlClass == "Static") {
++                ; Bypass if clicking close (✕) or minimize (─) buttons [cite: 101]
++                if (ctrlClass == "Static" && (WinGetStyle(hwnd) & 0x100))
++                    return 
++                
++                CoordMode("Mouse", "Screen")
++                MouseGetPos(&mouseX, &mouseY)
++                WinGetPos(&guiX, &guiY, , , MainGUI.Hwnd)
++                MainDragOffsetX := mouseX - guiX
++                MainDragOffsetY := mouseY - guiY
++                SetTimer(DragMainGUI, 10)
++            }
++        }
+         return
+     }
+ }
+ 
+ ; ══════════════════════════════════════════════
+-;  GAME WINDOW MANIPULATION
++;  BACKGROUND ASYNC WORKER LOOPS (NON-BLOCKING)
+ ; ══════════════════════════════════════════════
+ 
+-SetGameResolution(ctrl) {
+-    global WindowedMode, GameTitle, SelectedReso
+-    global IsGameAlwaysOnTop, AlwaysOnTopBtn
+-
+-    if !WinExist(GameTitle) {
+-        ShowNotif("error", "Resolution Resizing Error", "Game window could not be found.")
++DragMainGUI() {
++    global MainGUI, MainDragOffsetX, MainDragOffsetY
++    
++    ; Stop tracking immediately if the user releases the left click
++    if !GetKeyState("LButton", "P") {
++        SetTimer(, 0)
+         return
+     }
+-
+-    ; if SpecialKCheck() = false {
+-    ;     ShowNotif("error", "Resolution Resizing Error", "Special K is not enabled.")
+-    ;     return
+-    ; }
+-
+-    resParts := StrSplit(SelectedReso, "x", " ")
+-
+-    TargetWidth := Integer(resParts[1])
+-    TargetHeight := Integer(resParts[2])
+-
+-    if !WindowedMode {
+-
+-        WindowedMode := !WindowedMode ; Toggle the true/false state
+-        
+-        ; Calculate coordinates to center the window on the primary monitor
+-        ; TargetX := (A_ScreenWidth - TargetWidth) // 2
+-        TargetX := (A_ScreenWidth) - (TargetWidth // 3)
+-        ;TargetY := (A_ScreenHeight - TargetHeight) // 2
+-        TargetY := (A_ScreenHeight - TargetHeight)
+-        
+-        ; Reposition and apply resolution boundaries
+-        WinMove(TargetX, TargetY, TargetWidth, TargetHeight, GameTitle)
+-
+-        ctrl.Opt("c3B82F6")
+-        ShowNotif("info", "Windowed Mode", "Press Alt + Left Click to hold and drag the game window.")
+-    }
+-    else {
+-        WindowedMode := !WindowedMode ; Toggle the true/false state
+-
+-        ; --- STEP 3: Stretch the window to fill your entire monitor space ---
+-        WinMove(0, 0, A_ScreenWidth, A_ScreenHeight, GameTitle)
+-
+-        ctrl.Opt("c94A3B8")
+-        ShowNotif("info", "Fullscreen Mode", "Press 🗗 button to enable windowed mode.")
+-
+-        WinSetAlwaysOnTop(0, GameTitle)
+-        IsGameAlwaysOnTop := false
+-        AlwaysOnTopBtn.Opt("c94A3B8")
+-    }
+-}
+-
+-; ToggleBackgroundLock() {
+-;     global ForceBackgroundMode
+-;     ForceBackgroundMode := !ForceBackgroundMode
+     
+-;     if (ForceBackgroundMode) {
+-;         TrayTip("Background Lock ON", "The game is now locked out of focus.")
+-;         SetTimer(AnchorFocusToDesktop, 50) ; Check focus every 50 milliseconds
+-;     } else {
+-;         TrayTip("Background Lock OFF", "Game focus behavior returned to normal.")
+-;         SetTimer(AnchorFocusToDesktop, 0) ; Turn off the loop
+-;     }
+-; }
+-
+-; AnchorFocusToDesktop() {
+-;     global GameTitle
+-    
+-;     ; If Windows tries to force the game to become active...
+-;     if WinActive(GameTitle) {
+-;         ; Immediately pass focus to the Windows Desktop shell layers instead!
+-;         ; This satisfies Windows' focus rule without activating the game.
+-;         if WinExist("ahk_class WorkerW")
+-;             WinActivate("ahk_class WorkerW")
+-;         else if WinExist("ahk_class Progman")
+-;             WinActivate("ahk_class Progman")
+-;     }
+-; }
++    CoordMode("Mouse", "Screen")
++    MouseGetPos(&mouseX, &mouseY)
++   
++    try MainGUI.Move(mouseX - MainDragOffsetX, mouseY - MainDragOffsetY)
++}
+ 
+-ToggleWindowLock(ctrl) {
+-    global IsGameLocked, GameTitle
++DragSpinGUI() {
++    global SpinGUI, SpinDragOffsetX, SpinDragOffsetY
+     
+-    if !WinExist(GameTitle) {
+-        ShowNotif("error","Lock Error", "Game window could not be found.")
++    ; Safely terminate thread callback if user releases left click
++    if !GetKeyState("LButton", "P") {
++        SetTimer(, 0)
+         return
+     }
+     
+-    IsGameLocked := !IsGameLocked
++    CoordMode("Mouse", "Screen")
++    MouseGetPos(&mouseX, &mouseY)
+     
+-    if (IsGameLocked) {
+-        ; 1. Tell Windows to disable the window. 
+-        ; It remains completely visible, but becomes completely immune to focus vacuuming and clicks.
+-        WinSetEnabled(false, GameTitle)
+-        
+-        ; 2. Instantly pass focus to the desktop wallpaper layer to clear the screen
+-        if WinExist("ahk_class WorkerW")
+-            WinActivate("ahk_class WorkerW")
+-        else if WinExist("ahk_class Progman")
+-            WinActivate("ahk_class Progman")
+-        
+-        ctrl.Opt("cF59E0B")
+-        ShowNotif("info", "Background Lock ON", "Game is locked open but completely inactive.")
+-    } else {
+-        ; 3. Re-enable the window so it can accept normal clicks and focus again
+-        WinSetEnabled(true, GameTitle)
+-        
+-        ; Bring it back to the front
+-        WinActivate(GameTitle) 
+-        
+-        ctrl.Opt("c94A3B8")
+-        ShowNotif("info", "Background Lock OFF", "Game control restored to normal.")
+-    }
++    ; Dynamic viewport repositioning matrix
++    try SpinGUI.Move(mouseX - SpinDragOffsetX, mouseY - SpinDragOffsetY)
+ }
+ 
+-AlwaysOnTopEnable(ctrl) {
+-    global IsGameAlwaysOnTop, GameTitle, WindowedMode
+-    
+-    if !WinExist(GameTitle) {
+-        ShowNotif("error","Always On Top", "Game window could not be found.")
+-        return
+-    }
++DragMiniGui() {
++    global MiniGui, MiniDragOffsetX, MiniDragOffsetY
+     
+-    if !WindowedMode {
+-        ShowNotif("error","Always On Top", "Always On Top mode is disabled on Fullscreen mode.")
++    ; Safely terminate thread callback if user releases left click
++    if !GetKeyState("LButton", "P") {
++        SetTimer(, 0)
+         return
+     }
+     
+-    IsGameAlwaysOnTop := !IsGameAlwaysOnTop
++    CoordMode("Mouse", "Screen")
++    MouseGetPos(&mouseX, &mouseY)
+     
+-    if (IsGameAlwaysOnTop) {
+-        WinSetAlwaysOnTop(1, GameTitle)
+-        ctrl.Opt("cF7507F")
+-        ShowNotif("info", "Always On Top ON", "Game is set to be Always On Top other windows.")
+-    } else {
+-        WinSetAlwaysOnTop(0, GameTitle)
+-        ctrl.Opt("c94A3B8")
+-        ShowNotif("info", "Always On Top OFF", "Game is set to be normal.")
+-    }
++    ; Dynamic viewport repositioning matrix for the mini compact interface
++    try MiniGui.Move(mouseX - MiniDragOffsetX, mouseY - MiniDragOffsetY)
+ }
+ 
+ MoveWindow() {
+@@ -984,6 +929,25 @@ MoveWindow() {
+     }
+ }
+ 
++CheckWindowed() {
++    global GameTitle, MonWidth, MonHeight
++    
++    if !WinExist(GameTitle)
++        return false
++
++    ; 1. Refresh your monitor metrics to get the target screen's width/height
++    UpdateMonitorMetrics() 
++    
++    ; 2. Fetch the actual current width and height of the game window
++    WinGetPos(, , &gameWidth, &gameHeight, GameTitle)
++    
++    ; 3. If it's smaller than the monitor's full canvas, it is in Windowed Mode
++    if (gameWidth < MonWidth || gameHeight < MonHeight) {
++        return true  ; Yes, it is Windowed
++    }
++    
++    return false ; No, it matches screen size (Borderless Fullscreen)
++}
+ 
+ ; ══════════════════════════════════════════════
+ ;  MISC SETTINGS
+@@ -1172,17 +1136,37 @@ AutoLocateGameDir() {
+     return "" 
+ }
+ 
+-SpoofWindowFocus() {
+-    if WinExist(GameTitle) {
+-        ; Only spoof if the game is currently running in the background
+-        if !WinActive(GameTitle) {
+-            gameHwnd := WinExist(GameTitle)
++; SpoofWindowFocus() {
++;     if WinExist(GameTitle) {
++;         ; Only spoof if the game is currently running in the background
++;         if !WinActive(GameTitle) {
++;             gameHwnd := WinExist(GameTitle)
+             
+-            ; 0x0006 = WM_ACTIVATE | wParam = 1 (WA_ACTIVE)
+-            PostMessage(0x0006, 1, 0, , "ahk_id " gameHwnd)
++;             ; 0x0006 = WM_ACTIVATE | wParam = 1 (WA_ACTIVE)
++;             PostMessage(0x0006, 1, 0, , "ahk_id " gameHwnd)
+             
+-            ; 0x001C = WM_ACTIVATEAPP | wParam = 1 (True)
+-            PostMessage(0x001C, 1, 0, , "ahk_id " gameHwnd)
++;             ; 0x001C = WM_ACTIVATEAPP | wParam = 1 (True)
++;             PostMessage(0x001C, 1, 0, , "ahk_id " gameHwnd)
++;         }
++;     }
++; }
++
++; Register a Shell Hook to monitor window changes instantly
++DllCall("RegisterShellHookWindow", "Ptr", A_ScriptHwnd)
++MsgNum := DllCall("RegisterWindowMessage", "Str", "SHELLHOOK")
++OnMessage(MsgNum, WindowChangedEvent)
++
++WindowChangedEvent(wParam, lParam, *) {
++    ; 4 = HSHELL_WINDOWACTIVATED | 32772 = HSHELL_RUDEGRIDACTIVATED
++    ; These fire the exact millisecond any window gains focus
++    if (wParam == 4 || wParam == 32772) {
++        if WinExist(GameTitle) && !WinActive(GameTitle) {
++            gameHwnd := WinExist(GameTitle)
++            
++            ; Spam all focus messages instantly before the game can process the pause
++            PostMessage(0x0006, 1, 0, , "ahk_id " gameHwnd)      ; WM_ACTIVATE
++            PostMessage(0x001C, 1, 0, , "ahk_id " gameHwnd)      ; WM_ACTIVATEAPP
++            PostMessage(0x0086, 1, 0, , "ahk_id " gameHwnd)      ; WM_NCACTIVATE
+         }
+     }
+ }
+@@ -1213,40 +1197,4 @@ ReadMacroIni(Section, Key, DefaultValue := "") {
+     }
+     
+     return DefaultValue ; Returns this if no file or key was found
+-}
+-
+-VerifyAuction(timeoutMs := 5000) {
+-    global ActiveMode, MasterMode, MasterStart, CurrentMultiplier, GameTitle
+-    
+-    timeoutMs *= CurrentMultiplier
+-    StartTime := A_TickCount
+-    
+-    Process("Safety Scan: 'Create Auction' menu...")
+-
+-    Loop {
+-        ; 1. Standard emergency stops
+-        if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
+-            return false
+-            
+-        if !WinExist(GameTitle)
+-            return false
+-
+-        ; 2. Scan the dangerous UI area
+-        ocrText := ScanOCR(0.403, 0.373, 0.598 - 0.403, 0.425 - 0.373)
+-
+-        ; 3. TRIPWIRE: If the phrase appears, IMMEDIATELY abort the macro
+-        if InStr(ocrText, "Create Auction") {
+-            Process("CRITICAL: 'Create Auction' detected! Aborting loop.")
+-            ShowNotif("error", "Accidental Sell Blocked", "Macro intercepted on a selling screen. Stopped safely.")
+-            return false ; Tell the main script to STOP
+-        }
+-
+-        ; 4. SAFE ZONE: If 5 seconds pass and the tripwire was never hit, we are safe
+-        if (A_TickCount - StartTime > timeoutMs) {
+-            Process("Safety Check Passed: No forbidden text found.")
+-            return true ; Tell the main script it's safe to keep going
+-        }
+-
+-        Sleep(400) ; Low CPU overhead throttle
+-    }
+ }
+\ No newline at end of file
+diff --git a/Modules/MainGUI.ahk b/Modules/MainGUI.ahk
+index 63597d1..1a1e753 100644
+--- a/Modules/MainGUI.ahk
++++ b/Modules/MainGUI.ahk
+@@ -3,47 +3,16 @@
+ ; ║        Cyber Noir Edition v1.8.0        ║
+ ; ╚═════════════════════════════════════════╝
+ 
+-; ══════════════════════════════════════════════
+-;  GLOBAL UI HANDLES
+-; ══════════════════════════════════════════════
+-global PointsCount_UI   := ""
+-global CarCount_UI      := ""
+-global SWheelCount_UI   := ""
+-global WheelCount_UI    := ""
+-global CreditCount_UI   := ""
+-global CodeTune_UI      := ""
+-global CodeEventLab_UI  := ""
+-global TotalRunTime_UI  := ""
+-global RaceRunTime_UI   := ""
+-global BuyRunTime_UI    := ""
+-global UnlockRunTime_UI := ""
+-global CarSelect_UI     := ""
+-global CarsLabel_UI     := ""
+-global PointsLabel_UI   := ""
+-global TimeLabel_UI     := ""
+-global SectorLabel_UI   := ""
+-global PixelCheck_UI    := ""
+-global PremiumCheck_UI  := ""
+-global EventLabSelect_UI    := ""
+-global SectorCount_UI   := ""
+-global SpinRunTime_UI   := ""
+-global SpinOpenCount_UI := ""
+-global SpinLeftCount_UI := ""
+-global MonitorSelect_UI := ""
+-global ResoSelect_UI    := ""
+-global SKCheck_UI       := ""
+-global DarkMode         := true 
++#Requires AutoHotkey v2.0
+ 
+ ; ══════════════════════════════════════════════
+-;  RESOLUTION-RELATIVE MATRIX INITIALIZATION
++;  GLOBAL UI HANDLES
+ ; ══════════════════════════════════════════════
+-MonitorGetWorkArea(, &mLeft, &mTop, &mRight, &mBottom)
+-Global MonWidth   := mRight - mLeft
+-Global MonHeight  := mBottom - mTop
++; Declare foundational objects at the root execution scope
++Global MainGUI := 0, SpinGUI := 0, DarkMode := true
+ 
+-Global ScaleX     := MonWidth / 2560
+-Global ScaleY     := MonHeight / 1440
+-Global FontScale  := ScaleX / (A_ScreenDPI / 96)
++; Track structures globally for runtime cross-talk
++Global SliderCfg := {}, SliderKnob := "", SliderTrack := "", SpeedLabel_UI := "", DelaySlider_UI := {}
+ 
+ ; ══════════════════════════════════════════════
+ ;  PALETTE COMPOSER
+@@ -133,7 +102,7 @@ SetFixedFont(guiObj, pointSize, options := "", fontName := "Segoe UI") {
+ ; ══════════════════════════════════════════════
+ ToggleTheme() {
+     global DarkMode, MainGUI, SkillPtsCount_In, SkillPtsWant_In, CarCount_In, ActiveMode, LoopCount_In
+-    global SpinGUI ; Declared to inspect and manipulate the spin panel state
++    global SpinGUI 
+     
+     saved := [SkillPtsCount_In.Value, SkillPtsWant_In.Value, CarCount_In.Value, LoopCount_In.Value]
+ 
+@@ -144,26 +113,24 @@ ToggleTheme() {
+         Sleep(1250)
+     }
+ 
+-    ; ── Check if Spin Panel is active before wiping the environment ──
+     spinWasOpen := false
+     try {
+         if IsSet(SpinGUI) && SpinGUI && WinExist("ahk_id " SpinGUI.Hwnd) {
+             spinWasOpen := true
+             SpinGUI.Destroy()
+-            SpinGUI := 0 ; Wipe reference to avoid windowless GUI crashes
++            SpinGUI := 0 
+         }
+     } catch {
+-        ; Discard errors if SpinGUI was in a corrupted windowless state
++        ; Discard windowless errors
+     }
+ 
+     DarkMode := !DarkMode
+     MainGUI.Destroy()
+-    BuildGui(saved)
++    BuildMainGui(saved)
+     
+-    ; ── Re-spawn the Spin Panel using the new theme's palette ──
+     if (spinWasOpen) {
+         try {
+-            OpenSpinPanel() ; Rebuilds and drops it perfectly in the middle of MainGUI
++            OpenSpinPanel() 
+         }
+     }
+ }
+@@ -171,21 +138,9 @@ ToggleTheme() {
+ ; ══════════════════════════════════════════════
+ ;  INTERFACE GENERATION ENGINE
+ ; ══════════════════════════════════════════════
+-BuildGui(savedVals := "") {
+-    global MainGUI, StatusText
+-    global PointsCount_UI, CarCount_UI, SWheelCount_UI, WheelCount_UI, CreditCount_UI
+-    global TotalRunTime_UI, RaceRunTime_UI, BuyRunTime_UI, UnlockRunTime_UI, SectorCount_UI
+-    global PointsLabel_UI, TimeLabel_UI, CarsLabel_UI, SectorLabel_UI
+-    global EventLabSelect_UI, DelaySlider_UI, SpeedLabel_UI, MonitorSelect_UI, SKCheck_UI
+-    global Key_UI, Process_UI, CodeTune_UI, CodeEventLab_UI, CarSelect_UI, ResoSelect_UI
+-    global SkillPtsCount_In, SkillPtsWant_In, CarCount_In, LoopCount_In
+-    global AveragePoints, MaxPoints, PointsTotal, PointsGain, TimeTotal
+-    global ActiveMode, DarkMode, cActive, cHighlight, cIdle, cTextDim, cPaused, cStat
+-    global CodeEventLab, CodeTune, SpinMode, UserTier, CurrentMultiplier
+-    global CarList, EventLabList
+-    global ScaleX, ScaleY
+-    
+-    global SliderCfg, SliderKnob, SliderTrack
++BuildMainGui(savedVals := "") {
++    ; Elevates all internal assignments to global scope automatically
++    global 
+ 
+     p          := GetPalette()
+     cActive    := p["cActive"]
+@@ -203,7 +158,8 @@ BuildGui(savedVals := "") {
+     ; ── Custom Window Controls ──
+     SetFixedFont(MainGUI, 10, "bold")
+     CustomMin := MainGUI.Add("Text", "x" Round(225*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "─")
+-    CustomMin.OnEvent("Click", (*) => MainGUI.Minimize())
++    ; FIXED: Replaced non-existent internal .Minimize() method with safe Win API control
++    CustomMin.OnEvent("Click", (*) => WinMinimize(MainGUI.Hwnd))
+ 
+     CustomX := MainGUI.Add("Text", "x" Round(245*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "✕")
+     CustomX.OnEvent("Click", (*) => ExitApp())
+@@ -220,7 +176,7 @@ BuildGui(savedVals := "") {
+ 
+     ; ── Tab Control Engine ──
+     tabW := Round(260 * ScaleX)
+-    tabH := Round(485 * ScaleY) ; Expanded slightly to accommodate the spin panel button smoothly
++    tabH := Round(485 * ScaleY) 
+     TabControl := MainGUI.Add("Tab2", "x" Round(5*ScaleX) " y+" Round(15*ScaleY) " w" tabW " h" tabH " +Buttons +0x400 c" p["accent"], ["Input", "Stats"])
+     
+     itemW := Floor((tabW - 12) / 2)
+@@ -231,7 +187,6 @@ BuildGui(savedVals := "") {
+     ;  TAB 1 — INPUT
+     ; ══════════════════════════════════════════
+     TabControl.UseTab(1)
+-
+     MainGUI.Add("Text", "x0 y+" Round(5*ScaleY) " w" Round(270*ScaleX) " h" Round(5*ScaleY) " BackgroundTrans c" p["footer"], "")
+ 
+     ; ── Numeric Inputs ──
+@@ -318,15 +273,13 @@ BuildGui(savedVals := "") {
+     SliderTrack := MainGUI.Add("Text", "x" SliderCfg.TrackX " y" SliderCfg.TrackY " w" SliderCfg.TrackW " h" SliderCfg.TrackH " +0x100 Background" p["divider"])
+     SliderKnob  := MainGUI.Add("Text", "x" startKnobX " y" knobY " w" SliderCfg.KnobW " h" SliderCfg.KnobH " +0x100 Background" p["accent"])
+     MainGUI.Add("Text", "x" Round(230*ScaleX) " y" (SliderCfg.TrackY - Round(6*ScaleY)) " w" Round(25*ScaleX) " Left c" p["textDim"], "5x")
+-
++    
+     ; ── Action Buttons ──
+     SetFixedFont(MainGUI, 9, "bold", "Semibold")
+     RaceBtn   := MainGUI.Add("Text", "x" Round(14*ScaleX) " y" Round(410*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🏁   RACE      \")
+     BuyBtn    := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(119*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🚗   BUY     [")
+     UnlockBtn := MainGUI.Add("Text", "x" Round(137*ScaleX) " yp w" Round(119*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🛞   UNLOCK     ]")
+     AllBtn    := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "⟲   INIT SEQUENCE     /")
+-    
+-    ; NEW: Dedicated Panel Launch Trigger
+     OpenSpinWindowBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["accent2"] " c" p["text"], "🎰   OPEN SPIN INTERFACE")
+ 
+     RaceBtn.OnEvent("Click",    (*) => StartRace())
+@@ -340,7 +293,6 @@ BuildGui(savedVals := "") {
+     ; ══════════════════════════════════════════
+     TabControl.UseTab(2)
+ 
+-    ; ── Targets ──
+     SetFixedFont(MainGUI, 9, "bold")
+     MainGUI.Add("Text", "x" Round(14*ScaleX) " y" Round(180*ScaleY) " w" Round(242*ScaleX) " Center BackgroundTrans c" p["header"],  "TARGETS")
+     MainGUI.Add("Text", "x" Round(14*ScaleX) " y+0 w" Round(242*ScaleX) " Center BackgroundTrans c" p["divider"], "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+@@ -443,7 +395,6 @@ BuildGui(savedVals := "") {
+     ; ── Cyber-Noir Styled Toggle Trigger ────────────────
+     SetFixedFont(MainGUI, 8, "bold", "Semibold")
+     ToggleBtn := MainGUI.Add("Text", "x" Round(65*ScaleX) " y+" Round(15*ScaleY) " w" Round(140*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText"], "⚙️   OPTIONS   ⏷")
+-    ; ToggleBtn.Enabled := false
+ 
+     ; ── Collapsible Options Section ─────
+     
+@@ -454,7 +405,7 @@ BuildGui(savedVals := "") {
+     OptionsControls.Push(ResoSelect_UI := MainGUI.Add("Text", "x" Round(75*ScaleX) " y+" Round(12*ScaleY) " w" Round(120*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["editBg"] " c" p["text"]))
+     ResoSelect_UI.DefineProp("Value", {
+         get: (this) => this.HasOwnProp("ctrlIndex") ? this.ctrlIndex : 1,
+-        set: (this, val) => (this.ctrlIndex := val, ControlSetText(ResoList[val] "   ▼", this.Hwnd, this.Gui.Hwnd))
++        set: (this, val) => (this.ctrlIndex := val, ControlSetText("     " ResoList[val] "   ▼", this.Hwnd, this.Gui.Hwnd))
+     })
+     ResoSelect_UI.DefineProp("Text", {
+         get: (this) => ResoList[this.Value],
+@@ -481,18 +432,12 @@ BuildGui(savedVals := "") {
+     ; Read current status to set the correct initialization style
+     isKEnabled := SpecialKCheck() 
+     isGameRunning := ProcessExist(GameExe)
+-
+-    ; Dynamic styling based on status matrix
+     initColor := isGameRunning ? p["textDim"] : (isKEnabled ? p["text"] : p["textDim"])
+     initText  := isGameRunning ? "🔒 SPECIAL K (GAME RUNNING)" : (isKEnabled ? "▰  SPECIAL K: ACTIVE" : "▱  SPECIAL K: INACTIVE")
+ 
+     SetFixedFont(MainGUI, 9, "norm", "Light")
+-    ; Created as a flat text toggle styled identically to your custom layout
+     SpecialKCheck_UI := MainGUI.Add("Text", "x" Round(20*ScaleX) " y+" Round(8*ScaleY) " w" Round(230*ScaleX) " h" Round(20*ScaleY) " Center 0x200 c" initColor, initText)
+-    
+-    ; Store the boolean state directly on the object handle for clean reference tracking
+     SpecialKCheck_UI.State := isKEnabled 
+-    
+     OptionsControls.Push(SpecialKCheck_UI)
+     SpecialKCheck_UI.OnEvent("Click", SpecialKToggle)
+ 
+@@ -547,15 +492,8 @@ BuildGui(savedVals := "") {
+ 
+     MainGUI.OnEvent("Close", (*) => ExitApp())
+     MainGUI.OnEvent("Size",  MainGUI_SizeChange)
+-
+-    targetMon := GetGameMonitor()
+-
+-    MonitorGet(targetMon, &Left, &Top, &Right, &Bottom)
+-    monWidth  := Right  - Left
+-    monHeight := Bottom - Top
+     
+-    ; MainGUI.Move(Left + (monWidth // 2) + ((monWidth // 2) - w) // 2, Top + (monHeight - compactH) // 2, w, compactH)
+-    MainGUI.Move(Left + monWidth - w - Round(15*ScaleX), Top + Round(15*ScaleX), w, compactH)
++    MainGUI.Move(MonLeft + MonWidth - w - Round(15*ScaleX), MonTop + Round(15*ScaleX), w, compactH)
+     MainGUI.Show()
+ }
+ 
+@@ -566,24 +504,23 @@ OpenSpinPanel(*) {
+     global SpinGUI, SpinRunTime_UI, SpinOpenCount_UI, SpinLeftCount_UI, SpinMode, MainGUI, ActiveMode
+     global ScaleX, ScaleY
+     
+-    ; Protected duplicate check to prevent "Gui has no window" crashes
+     try {
+         if IsSet(SpinGUI) && SpinGUI && WinExist("ahk_id " SpinGUI.Hwnd) {
+             WinActivate("ahk_id " SpinGUI.Hwnd)
+             return
+         }
+     } catch {
+-        ; Catch and handle windowless references if previously closed
++        ; Handle edge-case windowless errors
+     }
+ 
+     p := GetPalette()
+     SpinGUI := Gui("+AlwaysOnTop -MaximizeBox -DPIScale -Caption +Border", "MHI | SPIN MODULE")
+     SpinGUI.BackColor := p["bg"]
+ 
+-    ; ── Custom Window Controls (Matched to Main GUI) ──
+     SetFixedFont(SpinGUI, 10, "bold")
+     SpinMin := SpinGUI.Add("Text", "x" Round(205*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "─")
+-    SpinMin.OnEvent("Click", (*) => SpinGUI.Minimize())
++    ; FIXED: Replaced non-existent internal method with safe native call
++    SpinMin.OnEvent("Click", (*) => WinMinimize(SpinGUI.Hwnd))
+ 
+     SpinX := SpinGUI.Add("Text", "x" Round(225*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "✕")
+ 
+@@ -595,7 +532,6 @@ OpenSpinPanel(*) {
+         SpinGUI.Destroy()
+         SpinGUI := 0
+     }
+-    
+     SpinX.OnEvent("Click", OnSpinClose)
+ 
+     ; ── Interface Content ──
+@@ -623,18 +559,13 @@ OpenSpinPanel(*) {
+     SpinBtn := SpinGUI.Add("Text", "x" Round(15*ScaleX) " y+10 w" Round(220*ScaleX) " h" Round(34*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🎲   RUN WHEELSPIN   =")
+     SpinBtn.OnEvent("Click", (*) => StartSpin())
+ 
+-    ; ── Midpoint Placement Matrix ──
+     sW := Round(250 * ScaleX)
+     sH := Round(230 * ScaleY)
+     
+-    ; Query the main window dimensions dynamically
+     MainGUI.GetPos(&mX, &mY, &mW, &mH)
+-    
+-    ; Math: Center of Main GUI minus half the width/height of the Spin GUI
+     sX := mX + (mW // 2) - (sW // 2)
+     sY := mY + (mH // 2) - (sH // 2)
+     
+-    ; Spawns precisely centered inside the main GUI's active overlay space
+     SpinGUI.Show("x" sX " y" sY " w" sW " h" sH)
+ }
+ 
+@@ -664,50 +595,20 @@ DragSliderTimer() {
+     }
+     
+     SliderKnob.Move(newX)
+-    
+     currentProgress := newX - minX
+     maxProgress := maxX - minX
+     
+     rawVal := SliderCfg.MinVal + ((currentProgress / maxProgress) * (SliderCfg.MaxVal - SliderCfg.MinVal))
+     currentValue := Round(rawVal)
+-    
+     DelaySlider_UI.Value := currentValue
+     
++    ; FIXED: Target the text property for reliability on Text layout objects
+     if IsSet(SpeedLabel_UI)
+-        SpeedLabel_UI.Value := "Delay Multiplier: " currentValue "x"
++        SpeedLabel_UI.Text := "Delay Multiplier: " currentValue "x"
+     
+     try UpdateSpeed(DelaySlider_UI, "")
+ }
+ 
+-DragMainGUI() {
+-    global MainGUI, MainDragOffsetX, MainDragOffsetY
+-    
+-    if !GetKeyState("LButton", "P") {
+-        SetTimer(, 0)
+-        return
+-    }
+-    
+-    CoordMode("Mouse", "Screen")
+-    MouseGetPos(&mouseX, &mouseY)
+-    MainGUI.Move(mouseX - MainDragOffsetX, mouseY - MainDragOffsetY)
+-}
+-
+-DragSpinGUI() {
+-    global SpinGUI, SpinDragOffsetX, SpinDragOffsetY
+-    
+-    ; Safely terminate thread callback if user releases left click
+-    if !GetKeyState("LButton", "P") {
+-        SetTimer(, 0)
+-        return
+-    }
+-    
+-    CoordMode("Mouse", "Screen")
+-    MouseGetPos(&mouseX, &mouseY)
+-    
+-    ; Dynamic viewport repositioning matrix
+-    try SpinGUI.Move(mouseX - SpinDragOffsetX, mouseY - SpinDragOffsetY)
+-}
+-
+ ; ══════════════════════════════════════════════
+ ;  DROPDOWN EMULATION CONTROLLERS
+ ; ══════════════════════════════════════════════
+@@ -754,10 +655,4 @@ MenuSelectReso(index, *) {
+     global ResoSelect_UI
+     ResoSelect_UI.Value := index 
+     try UpdateReso(ResoSelect_UI, "")
+-}
+-
+-; ══════════════════════════════════════════════
+-;  INITIALIZATION
+-; ══════════════════════════════════════════════
+-OnMessage(0x0201, WM_LBUTTONDOWN)
+-BuildGui()
+\ No newline at end of file
++}
+\ No newline at end of file
+diff --git a/Modules/MiniGUI.ahk b/Modules/MiniGUI.ahk
+index 563bd9f..080c01a 100644
+--- a/Modules/MiniGUI.ahk
++++ b/Modules/MiniGUI.ahk
+@@ -4,127 +4,108 @@
+ ; ╚═════════════════════════════════════════╝
+ 
+ ; ══════════════════════════════════════════════
+-;  RESOLUTION-RELATIVE MATRIX CONFIGURATION
++;  GUI CONSTRUCTION BLOCK
+ ; ══════════════════════════════════════════════
+-Global MiniGui             := Gui("+AlwaysOnTop -Caption +ToolWindow -DPIScale")
+-Global p                   := GetPalette()
+-Global RestoreBtn, PauseBtn, StopBtn
+-Global RaceControls := [], BuyControls := [], UnlockControls := []
++BuildMiniGui() {
+ 
+-; 1. Fetch target game monitor dimensions in raw physical pixels
+-gameMonitorIndex := GetGameMonitor()
+-MonitorGet(gameMonitorIndex, &mLeft, &mTop, &mRight, &mBottom)
+-Global MonWidth            := mRight - mLeft
+-Global MonHeight           := mBottom - mTop
++    Global
++    Global RaceControls := [], BuyControls := [], UnlockControls := []
+ 
+-; 2. Define Ratios relative to 1440p baseline workspace (2560x1440)
+-Global ScaleX              := MonWidth / 2560
+-Global ScaleY              := MonHeight / 1440
+-
+-; 3. Calculate Font Matrix (Neutralizes Windows OS DPI, scales via Display Area)
+-DpiScale                   := A_ScreenDPI / 96
+-Global FontScale           := ScaleX / DpiScale
+-
+-; 4. Resolution-Relative UI Bounding Boxes
+-Global TargetWidgetWidth   := Round(230 * ScaleX)
+-Global CurrentWidgetHeight := Round(225 * ScaleY) 
+-WidgetPadding              := Round(15 * ScaleX)
+-StartY                     := Round(115 * ScaleY)
+-
+-; Deep obsidian canvas background
+-MiniGui.BackColor          := "111216"
+-
+-; Left accent status bar (Electric Neon Cyan)
+-Global LeftAccentBar       := MiniGui.Add("Progress", "x0 y0 w" Round(4 * ScaleX) " h" CurrentWidgetHeight " Background00D2FF")
+-
+-; --- HEADER SECTION ---
+-MiniGui.SetFont("s" (8 * FontScale) " bold c00D2FF", "Segoe UI")
+-MiniGui.Add("Text", "x" Round(15*ScaleX) " y" Round(12*ScaleY) " w" Round(110*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "⚙️ FH6 MACRO ")
+-
+-MiniGui.SetFont("s" (10 * FontScale) " bold")
+-
+-RestoreBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c64748B", "⛶")
+-RestoreBtn.OnEvent("Click", RestoreMainWindow)
++    MiniGui := Gui("+AlwaysOnTop -Caption +ToolWindow -DPIScale")
++    
++    ; Resolution-Relative UI Bounding Boxes
++    TargetWidgetWidth   := Round(230 * ScaleX)
++    CurrentWidgetHeight := Round(225 * ScaleY) 
++    WidgetPadding       := Round(15 * ScaleX)
++    StartY              := Round(115 * ScaleY)
+ 
+-ReloadBtn := MiniGui.Add("Text", "x" Round(173*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "⭮")
+-ReloadBtn.OnEvent("Click", (*) => Reload())
++    ; Deep obsidian canvas background
++    MiniGui.BackColor          := "111216"
+ 
+-LockBtn := MiniGui.Add("Text", "x" Round(151*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "🔒")
+-LockBtn.OnEvent("Click", (ctrl, *) => ToggleWindowLock(ctrl))
++    ; Left accent status bar (Electric Neon Cyan)
++    LeftAccentBar := MiniGui.Add("Progress", "x0 y0 w" Round(4 * ScaleX) " h" CurrentWidgetHeight " Background00D2FF")
+ 
+-global AlwaysOnTopBtn := MiniGui.Add("Text", "x" Round(129*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "📌")
+-AlwaysOnTopBtn.OnEvent("Click", (ctrl, *) => AlwaysOnTopEnable(ctrl))
++    ; --- HEADER SECTION ---
++    MiniGui.SetFont("s" (8 * FontScale) " bold c00D2FF", "Segoe UI")
++    MiniGui.Add("Text", "x" Round(15*ScaleX) " y" Round(12*ScaleY) " w" Round(110*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "⚙️ FH6 MACRO ")
+ 
+-ResoSetBtn := MiniGui.Add("Text", "x" Round(107*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "🗗")
+-ResoSetBtn.OnEvent("Click", (ctrl, *) => SetGameResolution(ctrl))
++    MiniGui.SetFont("s" (10 * FontScale) " bold")
++    RestoreBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c64748B", "⛶")
++    RestoreBtn.OnEvent("Click", RestoreMainWindow)
+ 
+-InitStartBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(70*ScaleY) " w" Round(18*ScaleX) " h" Round(18*ScaleY) " Center Background22252E c94A3B8", "⬤")
+-InitStartBtn.OnEvent("Click", (ctrl, *) => MiniInitStartMacro(ctrl))
++    ReloadBtn := MiniGui.Add("Text", "x" Round(173*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "⭮")
++    ReloadBtn.OnEvent("Click", (*) => Reload())
+ 
+-; Flat Premium Action Buttons (Header Control Bar)
+-MiniGui.SetFont("s" (9 * FontScale) " bold")
++    LockBtn := MiniGui.Add("Text", "x" Round(151*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameLocked ? "cF59E0B" : "c94A3B8"), "🔒")
++    LockBtn.OnEvent("Click", (ctrl, *) => ToggleWindowLock(ctrl))
+ 
+-global PauseBtn := MiniGui.Add("Text", "x" Round(170*ScaleX) " y" StartY " w" Round(18*ScaleX) " h" Round(18*ScaleY) " Center Background22252E cFFD166","❚❚")
+-PauseBtn.OnEvent("Click", (ctrl, *) => MiniTogglePause(ctrl))
++    AlwaysOnTopBtn := MiniGui.Add("Text", "x" Round(129*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameWindowed ? "cF7507F" : "c94A3B8"), "📌")
++    AlwaysOnTopBtn.OnEvent("Click", (ctrl, *) => AlwaysOnTopEnable(ctrl))
+ 
+-global StopBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" StartY " w" Round(18*ScaleX) " h" Round(18*ScaleY) " Center Background22252E cFF5A5A", "⏹")
+-StopBtn.OnEvent("Click", (ctrl, *) => MiniStopMacro(ctrl))
++    ResoSetBtn := MiniGui.Add("Text", "x" Round(107*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameAlwaysOnTop ? "c3B82F6" : "c94A3B8"), "🗗")
++    ResoSetBtn.OnEvent("Click", (ctrl, *) => SetGameResolution(ctrl))
+ 
+-; --- SYSTEM STATUS SECTION (Always Visible) ---
+-MiniGui.SetFont("s" (9 * FontScale) " norm c8A99AD", "Segoe UI")
+-Global MiniTotalRunTime_UI := MiniGui.Add("Text", "x" Round(15*ScaleX) " y35" " w" Round(180*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🕓  00:00")
+-Global MiniKey_UI          := MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(2*ScaleY) " w" Round(180*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "⌨  [   ]")
+-Global MiniProcess_UI      := MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(2*ScaleY) " w" Round(180*ScaleX) " h" Round(30*ScaleY) " BackgroundTrans", "⚙️  Waiting...")
++    InitStartBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(70*ScaleY) " w" Round(18*ScaleX) " h" Round(18*ScaleY) " Center Background22252E c94A3B8", "⬤")
++    InitStartBtn.OnEvent("Click", (ctrl, *) => MiniInitStartMacro(ctrl))
+ 
+-; Premium subtle dark divider line
+-MiniGui.Add("Progress", "x" Round(15*ScaleX) " y+" Round(6*ScaleY) " w" Round(190*ScaleX) " h" Round(1*ScaleY) " Background22252E")
++    ; Flat Premium Action Buttons (Header Control Bar)
++    MiniGui.SetFont("s" (9 * FontScale) " bold")
++    PauseBtn := MiniGui.Add("Text", "x" Round(173*ScaleX) " y" StartY " w" Round(18*ScaleX) " h" Round(18*ScaleY) " Center Background22252E cFFD166","❚❚")
++    PauseBtn.OnEvent("Click", (ctrl, *) => MiniTogglePause(ctrl))
+ 
+-; --- ADAPTIVE SECTION 1: RACE TELEMETRY ---
+-MiniGui.SetFont("s" (7 * FontScale) " bold c566273", "Segoe UI")
+-RaceControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y" StartY " w" Round(190*ScaleX) " h" Round(12*ScaleY) " BackgroundTrans c00D2FF", "◼ RACE PROGRESS"))
++    StopBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" StartY " w" Round(18*ScaleX) " h" Round(18*ScaleY) " Center Background22252E cFF5A5A", "⏹")
++    StopBtn.OnEvent("Click", (ctrl, *) => MiniStopMacro(ctrl))
+ 
+-MiniGui.SetFont("s" (9 * FontScale) " norm c8A99AD", "Segoe UI")
+-RaceControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(6*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🕓  Race Runtime"))
+-RaceControls.Push(MiniRaceRunTime_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "00:00"))
++    ; --- SYSTEM STATUS SECTION ---
++    MiniGui.SetFont("s" (9 * FontScale) " norm c8A99AD", "Segoe UI")
++    MiniTotalRunTime_UI := MiniGui.Add("Text", "x" Round(15*ScaleX) " y35" " w" Round(180*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🕓  00:00")
++    MiniKey_UI          := MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(2*ScaleY) " w" Round(180*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "⌨  [   ]")
++    MiniProcess_UI      := MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(2*ScaleY) " w" Round(180*ScaleX) " h" Round(30*ScaleY) " BackgroundTrans", "⚙️  Waiting...")
+ 
+-RaceControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "💡  Points Gained"))
+-RaceControls.Push(MiniPointsCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
++    MiniGui.Add("Progress", "x" Round(15*ScaleX) " y+" Round(6*ScaleY) " w" Round(190*ScaleX) " h" Round(1*ScaleY) " Background22252E")
+ 
+-RaceControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🏁  Sectors Cleared"))
+-RaceControls.Push(MiniSectorCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
++    ; --- ADAPTIVE SECTION 1: RACE TELEMETRY ---
++    MiniGui.SetFont("s" (7 * FontScale) " bold c566273", "Segoe UI")
++    RaceControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y" StartY " w" Round(190*ScaleX) " h" Round(12*ScaleY) " BackgroundTrans c00D2FF", "◼ RACE PROGRESS"))
+ 
++    MiniGui.SetFont("s" (9 * FontScale) " norm c8A99AD", "Segoe UI")
++    RaceControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(6*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🕓  Race Runtime"))
++    RaceControls.Push(MiniRaceRunTime_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "00:00"))
+ 
+-; --- ADAPTIVE SECTION 2: CAR PURCHASE ---
+-MiniGui.SetFont("s" (7 * FontScale) " bold c566273", "Segoe UI")
+-BuyControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y" StartY " w" Round(190*ScaleX) " h" Round(12*ScaleY) " BackgroundTrans c00D2FF", "◼ CAR PURCHASE"))
++    RaceControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "💡  Points Gained"))
++    RaceControls.Push(MiniPointsCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
+ 
+-MiniGui.SetFont("s" (9 * FontScale) " norm c8A99AD", "Segoe UI")
+-BuyControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(6*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🕓  Buy Runtime"))
+-BuyControls.Push(MiniBuyRunTime_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "00:00"))
++    RaceControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🏁  Sectors Cleared"))
++    RaceControls.Push(MiniSectorCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
+ 
+-BuyControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "📦  Cars Purchased"))
+-BuyControls.Push(MiniCarCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
++    ; --- ADAPTIVE SECTION 2: CAR PURCHASE ---
++    MiniGui.SetFont("s" (7 * FontScale) " bold c566273", "Segoe UI")
++    BuyControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y" StartY " w" Round(190*ScaleX) " h" Round(12*ScaleY) " BackgroundTrans c00D2FF", "◼ CAR PURCHASE"))
+ 
++    MiniGui.SetFont("s" (9 * FontScale) " norm c8A99AD", "Segoe UI")
++    BuyControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(6*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🕓  Buy Runtime"))
++    BuyControls.Push(MiniBuyRunTime_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "00:00"))
+ 
+-; --- ADAPTIVE SECTION 3: REWARDS UNLOCK ---
+-MiniGui.SetFont("s" (7 * FontScale) " bold c566273", "Segoe UI")
+-UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y" StartY " w" Round(190*ScaleX) " h" Round(12*ScaleY) " BackgroundTrans c00D2FF", "◼ REWARDS UNLOCK"))
++    BuyControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "📦  Cars Purchased"))
++    BuyControls.Push(MiniCarCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
+ 
+-MiniGui.SetFont("s" (9 * FontScale) " norm c8A99AD", "Segoe UI")
+-UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(6*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🕓  Unlock Runtime"))
+-UnlockControls.Push(MiniUnlockRunTime_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "00:00"))
++    ; --- ADAPTIVE SECTION 3: REWARDS UNLOCK ---
++    MiniGui.SetFont("s" (7 * FontScale) " bold c566273", "Segoe UI")
++    UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y" StartY " w" Round(190*ScaleX) " h" Round(12*ScaleY) " BackgroundTrans c00D2FF", "◼ REWARDS UNLOCK"))
+ 
+-UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🌟  Super Wheelspins"))
+-UnlockControls.Push(MiniSWheelCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
++    MiniGui.SetFont("s" (9 * FontScale) " norm c8A99AD", "Segoe UI")
++    UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(6*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🕓  Unlock Runtime"))
++    UnlockControls.Push(MiniUnlockRunTime_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "00:00"))
+ 
+-UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🛞  Regular Wheelspins"))
+-UnlockControls.Push(MiniWheelCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
++    UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🌟  Super Wheelspins"))
++    UnlockControls.Push(MiniSWheelCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
+ 
+-UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "💲  Credits Earned"))
+-UnlockControls.Push(MiniCreditCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(145*ScaleX) " yp w" Round(70*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0 CR"))
++    UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "🛞  Regular Wheelspins"))
++    UnlockControls.Push(MiniWheelCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(155*ScaleX) " yp w" Round(60*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0"))
+ 
+-;SetInitial UI state safely
+-UpdateMiniWidgetMode("")
++    UnlockControls.Push(MiniGui.Add("Text", "x" Round(15*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans", "💲  Credits Earned"))
++    UnlockControls.Push(MiniCreditCount_UI := _LinkNoirTelemetry(MiniGui.Add("Text", "x" Round(145*ScaleX) " yp w" Round(70*ScaleX) " h" Round(16*ScaleY) " Right BackgroundTrans cF3F4F6"), "0 CR"))
++}
+ 
+ ; ══════════════════════════════════════════════
+ ;  ADAPTIVE VISIBILITY & FRAME RESIZE ENGINE
+@@ -199,70 +180,48 @@ MiniStopMacro(ctrl) {
+     
+     if !ActiveMode || (!MasterMode && MasterStart) {
+         ctrl.Opt("c94A3B8")
+-        PauseBtn.Opt("c94A3B8")
+-        PauseBtn.Value := "❚❚"
+     }
+ }
+ 
+ MiniInitStartMacro(ctrl) {
+-    global MasterMode, ActiveMode, PauseBtn
+ 
+     ctrl.Opt("c22C55E")
+-    PauseBtn.Opt("cFFD166")
+-    PauseBtn.Value := "❚❚"
+-    StopBtn.Opt("cFF5A5A")
+-
+     ToggleAll()
+-
+     ctrl.Opt("c94A3B8")
+-    PauseBtn.Opt("c94A3B8")
+-    PauseBtn.Value := "❚❚"
+-    StopBtn.Opt("c94A3B8")
+ }
+ 
+ ; ══════════════════════════════════════════════
+ ;  SIZE CHANGE TRIGGER (Dynamic Top-Right Screen Snap)
+ ; ══════════════════════════════════════════════
+ MainGUI_SizeChange(thisGui, minMax, *) {
+-    global TargetWidgetWidth, CurrentWidgetHeight, WidgetPadding
++    global TargetWidgetWidth, CurrentWidgetHeight, WidgetPadding, MonRight, MonTop
+     
+     if (minMax == -1) {
+         thisGui.Hide()
+         
+-        gameMonitorIndex := GetGameMonitor()
+-        MonitorGet(gameMonitorIndex, &mLeft, &mTop, &mRight, &mBottom)
++        ; Sync display bounds dynamically in case game shifted screens
++        UpdateMonitorMetrics()
+         
+-        miniX := mRight - TargetWidgetWidth - WidgetPadding
+-        miniY := mTop + WidgetPadding
++        ; Align using precise work area boundaries (MonRight & MonTop)
++        miniX := MonRight - TargetWidgetWidth - WidgetPadding
++        miniY := MonTop + WidgetPadding
+         
+         MiniGui.Show("x" miniX " y" miniY " w" TargetWidgetWidth " h" CurrentWidgetHeight " NoActivate")
+         WinSetTransparent(180, MiniGui.Hwnd)
+     }
+ }
+ 
+-DragMiniGui() {
+-    global MiniGui, DragOffsetX, DragOffsetY
+-    
+-    if !GetKeyState("LButton", "P") {
+-        SetTimer(, 0)
+-        return
+-    }
+-    
+-    CoordMode("Mouse", "Screen")
+-    MouseGetPos(&mouseX, &mouseY)
+-    
+-    MiniGui.Move(mouseX - DragOffsetX, mouseY - DragOffsetY)
+-}
+-
+ RestoreMainWindow(*) {
+     MiniGui.Hide()
+     MainGUI.Show()
+ }
+ 
+-; ══════════════════════════════════════════════
+-;  NOTIFICATION TOAST (Relative Resolution Scale Engine)
+-; ══════════════════════════════════════════════
++; ════════════════════
++;  NOTIFICATION TOAST
++; ════════════════════
+ ShowNotif(type, title, message := "") {
++    global ScaleX, ScaleY, FontScale, MonRight, MonBottom
++
+     switch StrLower(type) {
+         case "success":
+             accentColor := "33FF66"
+@@ -278,52 +237,36 @@ ShowNotif(type, title, message := "") {
+             duration    := -8000
+     }
+ 
+-    ; ── INTERSECT DETECTION ROUTING ──
+-    ; Calls formula to pull the best monitor index
+-    targetMon := GetGameMonitor()
++    UpdateMonitorMetrics()
+ 
+-    ; Fetch bounding limits for the specific display containing the game
+-    MonitorGet(targetMon, &mLeft, &mTop, &mRight, &mBottom)
+-    mWidth  := mRight - mLeft
+-    mHeight := mBottom - mTop
+-    
+-    ; Local scaling factors calculated against the game screen's real footprint
+-    sX     := mWidth / 2560
+-    sY     := mHeight / 1440
+-    fScale := sX / (A_ScreenDPI / 96)
+-
+-    ; Removed +E0x20 to make the notification interactive/clickable
+     Notif := Gui("+AlwaysOnTop -Caption +ToolWindow -DPIScale")
+     Notif.BackColor := "181A1F"
+-    Notif.Add("Progress", "x0 y0 w" Round(6*sX) " h" Round(70*sY) " Background" accentColor)
++    Notif.Add("Progress", "x0 y0 w" Round(6*ScaleX) " h" Round(70*ScaleY) " Background" accentColor)
+     
+-    ; Notification Title (Width narrowed to 235*sX to clear room for the X button)
+-    Notif.SetFont("s" (10 * fScale) " bold c" accentColor, "Segoe UI")
+-    Notif.Add("Text", "x" Round(15*sX) " y" Round(10*sY) " w" Round(235*sX) " BackgroundTrans", icon title)
++    Notif.SetFont("s" (10 * FontScale) " bold c" accentColor, "Segoe UI")
++    Notif.Add("Text", "x" Round(15*ScaleX) " y" Round(10*ScaleY) " w" Round(235*ScaleX) " BackgroundTrans", icon title)
+     
+-    ; Notification Body Message
+-    Notif.SetFont("s" (9 * fScale) " norm cEEEEEE", "Segoe UI")
+-    Notif.Add("Text", "x" Round(15*sX) " y+" Round(5*sY) " w" Round(235*sX) " h" Round(35*sY) " BackgroundTrans", message)
++    Notif.SetFont("s" (9 * FontScale) " norm cEEEEEE", "Segoe UI")
++    Notif.Add("Text", "x" Round(15*ScaleX) " y+" Round(5*ScaleY) " w" Round(235*ScaleX) " h" Round(35*ScaleY) " BackgroundTrans", message)
+ 
+-    ; ── CLOSE BUTTON ("X") ──
+-    Notif.SetFont("s" (11 * fScale) " norm c888888", "Segoe UI")
+-    closeBtn := Notif.Add("Text", "x" Round(255*sX) " y" Round(8*sY) " w" Round(15*sX) " h" Round(15*sY) " Center BackgroundTrans", "×")
++    Notif.SetFont("s" (11 * FontScale) " norm c888888", "Segoe UI")
++    closeBtn := Notif.Add("Text", "x" Round(255*ScaleX) " y" Round(8*ScaleY) " w" Round(15*ScaleX) " h" Round(15*ScaleY) " Center BackgroundTrans", "×")
+     closeBtn.OnEvent("Click", (*) => Notif.Destroy())
+ 
+-    tWidth  := Round(280 * sX)
+-    tHeight := Round(70 * sY)
++    tWidth  := Round(280 * ScaleX)
++    tHeight := Round(70 * ScaleY)
+     Notif.Show("w" tWidth " h" tHeight " Hide")
+     
+-    ; Pins the notification precisely inside the workspace boundaries of that display
+-    notifX := mRight - tWidth - Round(10 * sX)
+-    notifY := mBottom - tHeight - Round(10 * sY)
++    ; Uses MonRight and MonBottom to avoid clipping behind the taskbar layout
++    notifX := MonRight - tWidth - Round(10 * ScaleX)
++    notifY := MonBottom - tHeight - Round(10 * ScaleY)
+ 
+     WinMove(notifX, notifY,,, Notif.Hwnd)
+     Notif.Show("NoActivate")
+     SetTimer(() => Notif.Destroy(), duration)
+ }
+ 
+-global OverlayGui       := ""
++global OverlayGui        := ""
+ global OverlayGuiEnabled := false
+ 
+ ToggleDetectionZone() {
+@@ -332,7 +275,6 @@ ToggleDetectionZone() {
+     if !OverlayGuiEnabled {
+         OverlayGuiEnabled := !OverlayGuiEnabled
+ 
+-        ; 1. Get the game's unique operating system ID (HWND)
+         gameHwnd := WinExist(GameTitle)
+         if !gameHwnd
+             return
+@@ -340,14 +282,11 @@ ToggleDetectionZone() {
+         if (OverlayGui) 
+             return
+ 
+-        ; 2. TRICK 1: Add "+Owner" followed immediately by the game's HWND.
+-        ; This explicitly chains the overlay's rendering layer to sit in front of the game.
+         OverlayGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +Owner" gameHwnd)
+         
+         OverlayGui.BackColor := "Red" 
+         WinSetTransparent(5, OverlayGui.Hwnd) 
+ 
+-        ; Start tracking loop
+         SetTimer(UpdateOverlayPosition, 50)
+     } else if OverlayGuiEnabled {
+         OverlayGuiEnabled := !OverlayGuiEnabled
+@@ -380,8 +319,135 @@ UpdateOverlayPosition() {
+ 
+     OverlayGui.Show("X" targetX " Y" targetY " W" targetW " H" targetH " NoActivate")
+     
+-    ; 3. TRICK 2: Use a low-level Windows API call to forcefully jump the overlay 
+-    ; to the absolute top of the stack, preventing the active game from reclaiming the lead.
+-    ; HWND_TOPMOST = -1 | SWP_NOSIZE (0x0001) | SWP_NOMOVE (0x0002) = 0x0003
+     DllCall("SetWindowPos", "Ptr", OverlayGui.Hwnd, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0x0003)
+-}
+\ No newline at end of file
++}
++
++; ══════════════════════════════════════════════
++;  GAME WINDOW MANIPULATION
++; ══════════════════════════════════════════════
++
++SetGameResolution(ctrl) {
++    global IsGameWindowed, GameTitle, SelectedReso
++    global IsGameAlwaysOnTop, AlwaysOnTopBtn
++    global MonWidth, MonHeight, MonLeft, MonTop
++
++    ; 1. Verify target window exists before executing sizing logic
++    if !WinExist(GameTitle) {
++        ShowNotif("error", "Resolution Resizing Error", "Game window could not be found.")
++        return
++    }
++
++    ; 2. Dynamically refresh layout dimensions for the designated target monitor
++    UpdateMonitorMetrics()
++
++    ; 3. Parse resolution string securely
++    resParts := StrSplit(SelectedReso, "x", " ")
++
++    TargetWidth  := Integer(resParts[1])
++    TargetHeight := Integer(resParts[2])
++
++    IsGameWindowed := !IsGameWindowed 
++
++    if IsGameWindowed {
++        ; ─── ENTER WINDOWED MODE ───
++
++        ; Strip title bar and window borders so the game canvas aligns perfectly with monitor pixels
++        WinSetStyle("-0x00C00000 -0x00040000", GameTitle) ; -WS_CAPTION -WS_THICKFRAME
++
++        TargetX := (MonLeft + MonWidth) - (TargetWidth // 3)
++        TargetY := (MonTop + MonHeight) - TargetHeight
++        
++        ; Apply positioning metrics
++        WinMove(TargetX, TargetY, TargetWidth, TargetHeight, GameTitle)
++
++        ; Update control color scheme and force immediate UI redraw
++        ctrl.Opt("c3B82F6")
++        ctrl.Redraw()
++        
++        ShowNotif("info", "Windowed Mode", "Press Alt + Left Click to hold and drag the game window.")
++    }
++    else {
++        ; ─── ENTER BORDERLESS FULLSCREEN MODE ───
++
++        ; Strip title bar and window borders so the game canvas aligns perfectly with monitor pixels
++        WinSetStyle("-0x00C00000 -0x00040000", GameTitle) ; -WS_CAPTION -WS_THICKFRAME
++
++        ; Stretch the clean borderless canvas to fill the precise coordinates of your SELECTED monitor
++        WinMove(MonLeft, MonTop, MonWidth, MonHeight, GameTitle)
++
++        ; Reset AlwaysOnTop flags to prevent rendering conflicts over the macro overlay
++        WinSetAlwaysOnTop(0, GameTitle)
++        IsGameAlwaysOnTop := false
++        
++        ; Update UI controls and redraw layout elements
++        ctrl.Opt("c94A3B8")
++        ctrl.Redraw()
++        if IsSet(AlwaysOnTopBtn) && AlwaysOnTopBtn {
++            AlwaysOnTopBtn.Opt("c94A3B8")
++            AlwaysOnTopBtn.Redraw()
++        }
++
++        ShowNotif("info", "Fullscreen Mode", "Press 🗗 button to enable windowed mode.")
++    }
++}
++
++ToggleWindowLock(ctrl) {
++    global IsGameLocked, GameTitle
++    
++    if !WinExist(GameTitle) {
++        ShowNotif("error","Lock Error", "Game window could not be found.")
++        return
++    }
++    
++    IsGameLocked := !IsGameLocked
++    
++    if (IsGameLocked) {
++        ; 1. Tell Windows to disable the window. 
++        ; It remains completely visible, but becomes completely immune to focus vacuuming and clicks.
++        WinSetEnabled(false, GameTitle)
++        
++        ; 2. Instantly pass focus to the desktop wallpaper layer to clear the screen
++        if WinExist("ahk_class WorkerW")
++            WinActivate("ahk_class WorkerW")
++        else if WinExist("ahk_class Progman")
++            WinActivate("ahk_class Progman")
++        
++        ctrl.Opt("cF59E0B")
++        ShowNotif("info", "Background Lock ON", "Game is locked open but completely inactive.")
++    } else {
++        ; 3. Re-enable the window so it can accept normal clicks and focus again
++        WinSetEnabled(true, GameTitle)
++        
++        ; Bring it back to the front
++        WinActivate(GameTitle) 
++        
++        ctrl.Opt("c94A3B8")
++        ShowNotif("info", "Background Lock OFF", "Game control restored to normal.")
++    }
++}
++
++AlwaysOnTopEnable(ctrl) {
++    global IsGameAlwaysOnTop, GameTitle, IsGameWindowed
++    
++    if !WinExist(GameTitle) {
++        ShowNotif("error","Always On Top", "Game window could not be found.")
++        return
++    }
++    
++    if !IsGameWindowed {
++        ShowNotif("error","Always On Top", "Always On Top mode is disabled on Fullscreen mode.")
++        return
++    }
++    
++    IsGameAlwaysOnTop := !IsGameAlwaysOnTop
++    
++    if (IsGameAlwaysOnTop) {
++        WinSetAlwaysOnTop(1, GameTitle)
++        ctrl.Opt("cF7507F")
++        ShowNotif("info", "Always On Top ON", "Game is set to be Always On Top other windows.")
++    } else {
++        WinSetAlwaysOnTop(0, GameTitle)
++        ctrl.Opt("c94A3B8")
++        ShowNotif("info", "Always On Top OFF", "Game is set to be normal.")
++    }
++}
+diff --git a/Modules/Task_Race.ahk b/Modules/Task_Race.ahk
+index b73ca17..e4d5dff 100644
+--- a/Modules/Task_Race.ahk
++++ b/Modules/Task_Race.ahk
+@@ -52,13 +52,13 @@ RaceLoop() {
+     SectorCount     := 0
+     FailedTurn      := 0
+     NotiFreqInterv  := 5
+-
+     ; Local helper to cleanly check if the macro should stop
+     CheckAbort() => (ActiveMode != "Race" || (!MasterMode && MasterStart))
+ 
+     While (ActiveMode = "Race") {
+         RaceStart := true
+         
++        PressKey("up") ; Stop idling
+         Sleep(1000)
+         PressKey("Esc") ; Return to Free Roam
+ 
+@@ -239,7 +239,7 @@ RaceLoop() {
+ 
+                 if (Mod(SectorCount, 50) = 0) {
+ 
+-                    if !WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 20000, , true, , "Leaderboard failed to load! `nRestarting event...") {
++                    if !WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 30000, , true, , "Leaderboard failed to load! `nRestarting event...") {
+                         Process("Sync Error: EventLab leaderboard failed to load!")
+ 
+                         Process("Restarting the Event...", 2000)
+@@ -247,9 +247,6 @@ RaceLoop() {
+                         PressKey("Left") ; Navigate to Restart
+                         PressKey("Enter") ; Restart Event
+                         PressKey("Enter") ; Confirm Restart
+-
+-                        SectorCount -= 5
+-                        PointsCount -= 49
+                         
+                         if !WaitForPixel("Waiting for next round to load...", 0.174, 0.683, "0xFFFFFF", "", 20000) {
+                             Process("Sync Error: EventLab next round failed to load!")
+@@ -298,7 +295,6 @@ RaceLoop() {
+         SkillPtsRaceScan(0.280, 0.698, (0.437-0.280), (0.756-0.698))
+         ;SkillPtsRaceScan(0.283, 0.708, 0.060, 0.041)
+ 
+-
+         PressKey("PgDn") ; Navigate to My Horizon Menu
+         PressKey("Enter") ; Select Return Home
+         PressKey("Enter") ; Confirm Travel to Home
+diff --git a/Modules/Task_Unlock.ahk b/Modules/Task_Unlock.ahk
+index e5daa4b..27d1bed 100644
+--- a/Modules/Task_Unlock.ahk
++++ b/Modules/Task_Unlock.ahk
+@@ -161,32 +161,20 @@ UnlockLoop() {
+         }
+ 
+         Process("Choosing First Car...")
+-        PressKey("Enter") ; Select First Car
++        PressKey("Enter", 800) ; Select First Car
+         PressKey("Down") ; Navigate to Get in Car
+-        PressKey("Enter", 5000) ; Select Get in Car
++        PressKey("Enter", 800) ; Select Get in Car
+ 
+-        if !VerifyAuction(2000)
++        if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 500) {
++            Process("Sync Error: Unable to get in car!")
+             break
++        }
+ 
+         if CheckAbort()
+             break
+ 
+-        Process("Scanning the right car...")
+-        scannedCar := ScanOCR(0.080, 0.040, (0.290-0.080), (0.070-0.040), 1000)
+-
+-        if  SelectedCar = CarList[1] && !InStr(scannedCar, "1998 Subaru", 0) {
+-            ShowNotif("error", "Reward Unlock", "The first car is not 1998 Subaru!`nEmergency break!")
+-            CarMismatch := true
+-            break
+-        } else if SelectedCar = CarList[2] && !InStr(scannedCar, "2024 Lamborghini", 0) {
+-            ShowNotif("error", "Reward Unlock", "The first car is not 2021 Lamborghini!`nEmergency break!")
+-            CarMismatch := true
++        if VerifyCar() = false
+             break
+-        } else if SelectedCar = CarList[3] && !InStr(scannedCar, "1999 Dodge", 0) {
+-            ShowNotif("error", "Reward Unlock", "The first car is not 1999 Dodge!`nEmergency break!")
+-            CarMismatch := true
+-            break
+-        }
+ 
+         PressKey("Esc", 1500) ; Navigate to Auction House Menu
+         PressKey("Esc", 1500) ; Navigate to Buy & Sell Menu
+@@ -318,14 +306,11 @@ UnlockLoop() {
+     
+             Process("Choosing Next Car...")
+             PressKey("Down") ; Navigate to Next Car
+-            PressKey("Enter") ; Select Next Car
++            PressKey("Enter", 800) ; Select Next Car
+             PressKey("Down") ; Navigate to Get in Car 
+-            PressKey("Enter") ; Select Get in Car
+-
+-            if !VerifyAuction(2000)
+-                break
++            PressKey("Enter", 800) ; Select Get in Car  \\ check whether Get in Car is selected / black or not
+ 
+-            if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 100) {
++            if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 500) {
+                 Process("Sync Error: Unable to get in car!")
+                 break
+             }
+@@ -333,22 +318,8 @@ UnlockLoop() {
+             if CheckAbort()
+                 break
+ 
+-            Process("Scanning the right car...")
+-            scannedCar := ScanOCR(0.080, 0.040, (0.290-0.080), (0.070-0.040), 1000)
+-
+-            if  SelectedCar = CarList[1] && !InStr(scannedCar, "1998 Subaru", 0) {
+-                ShowNotif("error", "Reward Unlock", "The current car is not 1998 Subaru!`nEmergency break!")
+-                CarMismatch := true
+-                break
+-            } else if SelectedCar = CarList[2] && !InStr(scannedCar, "2024 Lamborghini", 0) {
+-                ShowNotif("error", "Reward Unlock", "The current car is not 2021 Lamborghini!`nEmergency break!")
+-                CarMismatch := true
++            if VerifyCar() = false
+                 break
+-            } else if SelectedCar = CarList[3] && !InStr(scannedCar, "1999 Dodge", 0) {
+-                ShowNotif("error", "Reward Unlock", "The current car is not 1999 Dodge!`nEmergency break!")
+-                CarMismatch := true
+-                break
+-            }
+ 
+             if CheckAbort()
+                 break
+@@ -397,4 +368,57 @@ UnlockLoop() {
+ 
+         break ;
+     }
++}
++
++VerifyAuction(timeoutMs := 5000) {
++    global ActiveMode, MasterMode, MasterStart, CurrentMultiplier, GameTitle
++    
++    timeoutMs *= CurrentMultiplier
++    StartTime := A_TickCount
++    
++    Process("Safety Scan: 'Create Auction' menu...")
++
++    Loop {
++        ; 1. Standard emergency stops
++        if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
++            return false
++            
++        if !WinExist(GameTitle)
++            return false
++
++        ; 2. Scan the dangerous UI area
++        ocrText := ScanOCR(0.403, 0.373, 0.598 - 0.403, 0.425 - 0.373)
++
++        ; 3. TRIPWIRE: If the phrase appears, IMMEDIATELY abort the macro
++        if InStr(ocrText, "Create Auction") {
++            Process("CRITICAL: 'Create Auction' detected! Aborting loop.")
++            ShowNotif("error", "Accidental Sell Blocked", "Macro intercepted on a selling screen. Stopped safely.")
++            return false ; Tell the main script to STOP
++        }
++
++        ; 4. SAFE ZONE: If 5 seconds pass and the tripwire was never hit, we are safe
++        if (A_TickCount - StartTime > timeoutMs) {
++            Process("Safety Check Passed: No forbidden text found.")
++            return true ; Tell the main script it's safe to keep going
++        }
++
++        Sleep(400) ; Low CPU overhead throttle
++    }
++}
++
++VerifyCar() {
++    global SelectedCar, CarData, CarMismatch
++
++    Process("Scanning the right car...")
++    scannedCar := ScanOCR(0.080, 0.040, (0.290-0.080), (0.070-0.040), 1000)
++
++    if CarData.Has(SelectedCar) {
++        AltName := CarData[SelectedCar].AltName
++
++        if !InStr(scannedCar, AltName, 0) {
++            ShowNotif("error", "Reward Unlock", "The current car is not " AltName "!`nEmergency break!")
++            CarMismatch := true
++            return false
++        }
++    }
+ }
+\ No newline at end of file

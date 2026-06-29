@@ -52,13 +52,13 @@ RaceLoop() {
     SectorCount     := 0
     FailedTurn      := 0
     NotiFreqInterv  := 5
-
     ; Local helper to cleanly check if the macro should stop
     CheckAbort() => (ActiveMode != "Race" || (!MasterMode && MasterStart))
 
     While (ActiveMode = "Race") {
         RaceStart := true
         
+        PressKey("up") ; Stop idling
         Sleep(1000)
         PressKey("Esc") ; Return to Free Roam
 
@@ -239,7 +239,7 @@ RaceLoop() {
 
                 if (Mod(SectorCount, 50) = 0) {
 
-                    if !WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 20000, , true, , "Leaderboard failed to load! `nRestarting event...") {
+                    if !WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 30000, , true, , "Leaderboard failed to load! `nRestarting event...") {
                         Process("Sync Error: EventLab leaderboard failed to load!")
 
                         Process("Restarting the Event...", 2000)
@@ -247,9 +247,6 @@ RaceLoop() {
                         PressKey("Left") ; Navigate to Restart
                         PressKey("Enter") ; Restart Event
                         PressKey("Enter") ; Confirm Restart
-
-                        SectorCount -= 5
-                        PointsCount -= 49
                         
                         if !WaitForPixel("Waiting for next round to load...", 0.174, 0.683, "0xFFFFFF", "", 20000) {
                             Process("Sync Error: EventLab next round failed to load!")
@@ -297,7 +294,6 @@ RaceLoop() {
         Process("Scanning Skill Points")
         SkillPtsRaceScan(0.280, 0.698, (0.437-0.280), (0.756-0.698))
         ;SkillPtsRaceScan(0.283, 0.708, 0.060, 0.041)
-
 
         PressKey("PgDn") ; Navigate to My Horizon Menu
         PressKey("Enter") ; Select Return Home

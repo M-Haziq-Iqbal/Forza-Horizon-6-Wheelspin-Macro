@@ -11,10 +11,11 @@ global GameTitle        := "ahk_exe " GameExe
 global MacroIni         := "mhiacro.ini"
 global GameDir          := FindGameDirFromProfiles()
 global GameMonitor      := 1
+global GameHwnd         := 0  ; Initializes the permanent window pointer handle
 
-global WindowedMode         := false
-global IsGameLocked         := false
-global IsGameAlwaysOnTop    := false
+global IsGameWindowed       := CheckWindowed()
+global IsGameLocked         := WinGetStyle(GameTitle) & 0x08000000 ? true : false
+global IsGameAlwaysOnTop    := WinGetExStyle(GameTitle) & 0x8 ? true : false
 
 ; ══════════════════════════════════════════════
 ;  EVENTLAB PRESETS & DATA SOURCING
@@ -63,13 +64,16 @@ global SelectedReso     := _iniReso ? _iniReso : ResoList[1]
 global CarList          := ["Subaru Impreza 22B-STi", "Lamborghini Revuelto", "Dodge Viper GTS ACR"]
 global CarData          := Map(
     "Subaru Impreza 22B-STi", {
-        SkillPtsCost: 30
+        SkillPtsCost: 30,
+        AltName: "1998 Subaru"
     },
     "Lamborghini Revuelto", {
-        SkillPtsCost: 39
+        SkillPtsCost: 39,
+        AltName: "2024 Lamborghini"
     },
     "Dodge Viper GTS ACR", {
-        SkillPtsCost: 30
+        SkillPtsCost: 30,
+        AltName: "1999 Dodge"
     }
 )
 _iniCar                 := ReadMacroIni("Settings", "Car", "")

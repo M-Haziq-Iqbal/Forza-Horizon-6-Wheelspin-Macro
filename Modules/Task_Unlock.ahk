@@ -161,32 +161,20 @@ UnlockLoop() {
         }
 
         Process("Choosing First Car...")
-        PressKey("Enter") ; Select First Car
+        PressKey("Enter", 800) ; Select First Car
         PressKey("Down") ; Navigate to Get in Car
-        PressKey("Enter", 5000) ; Select Get in Car
+        PressKey("Enter", 800) ; Select Get in Car
 
-        if !VerifyAuction(2000)
+        if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 500) {
+            Process("Sync Error: Unable to get in car!")
             break
+        }
 
         if CheckAbort()
             break
 
-        Process("Scanning the right car...")
-        scannedCar := ScanOCR(0.080, 0.040, (0.290-0.080), (0.070-0.040), 1000)
-
-        if  SelectedCar = CarList[1] && !InStr(scannedCar, "1998 Subaru", 0) {
-            ShowNotif("error", "Reward Unlock", "The first car is not 1998 Subaru!`nEmergency break!")
-            CarMismatch := true
+        if VerifyCar() = false
             break
-        } else if SelectedCar = CarList[2] && !InStr(scannedCar, "2024 Lamborghini", 0) {
-            ShowNotif("error", "Reward Unlock", "The first car is not 2021 Lamborghini!`nEmergency break!")
-            CarMismatch := true
-            break
-        } else if SelectedCar = CarList[3] && !InStr(scannedCar, "1999 Dodge", 0) {
-            ShowNotif("error", "Reward Unlock", "The first car is not 1999 Dodge!`nEmergency break!")
-            CarMismatch := true
-            break
-        }
 
         PressKey("Esc", 1500) ; Navigate to Auction House Menu
         PressKey("Esc", 1500) ; Navigate to Buy & Sell Menu
@@ -318,14 +306,11 @@ UnlockLoop() {
     
             Process("Choosing Next Car...")
             PressKey("Down") ; Navigate to Next Car
-            PressKey("Enter") ; Select Next Car
+            PressKey("Enter", 800) ; Select Next Car
             PressKey("Down") ; Navigate to Get in Car 
-            PressKey("Enter") ; Select Get in Car
+            PressKey("Enter", 800) ; Select Get in Car  \\ check whether Get in Car is selected / black or not
 
-            if !VerifyAuction(2000)
-                break
-
-            if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 100) {
+            if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 500) {
                 Process("Sync Error: Unable to get in car!")
                 break
             }
@@ -333,22 +318,8 @@ UnlockLoop() {
             if CheckAbort()
                 break
 
-            Process("Scanning the right car...")
-            scannedCar := ScanOCR(0.080, 0.040, (0.290-0.080), (0.070-0.040), 1000)
-
-            if  SelectedCar = CarList[1] && !InStr(scannedCar, "1998 Subaru", 0) {
-                ShowNotif("error", "Reward Unlock", "The current car is not 1998 Subaru!`nEmergency break!")
-                CarMismatch := true
+            if VerifyCar() = false
                 break
-            } else if SelectedCar = CarList[2] && !InStr(scannedCar, "2024 Lamborghini", 0) {
-                ShowNotif("error", "Reward Unlock", "The current car is not 2021 Lamborghini!`nEmergency break!")
-                CarMismatch := true
-                break
-            } else if SelectedCar = CarList[3] && !InStr(scannedCar, "1999 Dodge", 0) {
-                ShowNotif("error", "Reward Unlock", "The current car is not 1999 Dodge!`nEmergency break!")
-                CarMismatch := true
-                break
-            }
 
             if CheckAbort()
                 break
@@ -396,5 +367,58 @@ UnlockLoop() {
         PressKey("PgUp") ; Navigate to Campaign Menu
 
         break ;
+    }
+}
+
+VerifyAuction(timeoutMs := 5000) {
+    global ActiveMode, MasterMode, MasterStart, CurrentMultiplier, GameTitle
+    
+    timeoutMs *= CurrentMultiplier
+    StartTime := A_TickCount
+    
+    Process("Safety Scan: 'Create Auction' menu...")
+
+    Loop {
+        ; 1. Standard emergency stops
+        if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
+            return false
+            
+        if !WinExist(GameTitle)
+            return false
+
+        ; 2. Scan the dangerous UI area
+        ocrText := ScanOCR(0.403, 0.373, 0.598 - 0.403, 0.425 - 0.373)
+
+        ; 3. TRIPWIRE: If the phrase appears, IMMEDIATELY abort the macro
+        if InStr(ocrText, "Create Auction") {
+            Process("CRITICAL: 'Create Auction' detected! Aborting loop.")
+            ShowNotif("error", "Accidental Sell Blocked", "Macro intercepted on a selling screen. Stopped safely.")
+            return false ; Tell the main script to STOP
+        }
+
+        ; 4. SAFE ZONE: If 5 seconds pass and the tripwire was never hit, we are safe
+        if (A_TickCount - StartTime > timeoutMs) {
+            Process("Safety Check Passed: No forbidden text found.")
+            return true ; Tell the main script it's safe to keep going
+        }
+
+        Sleep(400) ; Low CPU overhead throttle
+    }
+}
+
+VerifyCar() {
+    global SelectedCar, CarData, CarMismatch
+
+    Process("Scanning the right car...")
+    scannedCar := ScanOCR(0.080, 0.040, (0.290-0.080), (0.070-0.040), 1000)
+
+    if CarData.Has(SelectedCar) {
+        AltName := CarData[SelectedCar].AltName
+
+        if !InStr(scannedCar, AltName, 0) {
+            ShowNotif("error", "Reward Unlock", "The current car is not " AltName "!`nEmergency break!")
+            CarMismatch := true
+            return false
+        }
     }
 }
