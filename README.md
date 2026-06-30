@@ -292,6 +292,10 @@ When running the unlock mode sequence manually, you must sort your vehicle view 
 3. Open your vehicle list grid.
 4. **CRITICAL STEP:** Use your directional arrow keys to **hover over and highlight the specific car you want the macro to start with—but do not click Enter to select it**. Leave the cursor highlighted on that vehicle slot, then trigger your script.
 
+<p align="center">
+  <img width="2559" height="1439" alt="Unlock Mode Base Position" src="https://github.com/user-attachments/assets/2e145722-efb6-4307-95b9-1039f3d9c1fc" />
+</p>
+
 #### For Standalone Spin Mode
 * Open the pause menu and navigate over to the **My Horizon** tab layout.
 * Use your controls to highlight or hover directly over your preferred wheelspin tile (Regular Wheelspin or Super Wheelspin) **without actually opening the menu selection**. Keep your dashboard panel snapped nearby to track your rewards.
