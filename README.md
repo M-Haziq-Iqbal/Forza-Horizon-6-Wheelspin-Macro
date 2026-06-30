@@ -11,19 +11,23 @@ Welcome to the ultimate progression companion for Forza Horizon 6! This is a hig
 ---
 
 ## 📑 Table of Contents
-* [Quick Start (TL;DR)](#-quick-start-tldr)
-* [System & Game Prerequisites](#-system--game-prerequisites)
-* [Key Features & Architecture](#-key-features--architecture)
-* [The Automation Modes](#-the-automation-modes)
-* [Core Automation Systems](#-core-automation-systems)
-* [The Reward Vehicle Matrix](#-the-reward-vehicle-matrix)
-* [Keyboard Controls Masterlist](#-keyboard-controls-masterlist)
-* [Step-by-Step Setup Guide](#-step-by-step-setup-guide)
-* [Troubleshooting & FAQ](#-troubleshooting--faq)
-* [Safety & Customization](#-safety--customization)
-
-
----
+* [🚀 Quick Start (TL;DR)](#-quick-start-tldr)
+* [🖥️ System & Game Prerequisites]([#%EF%B8%8F-system--game-prerequisites)
+* [📊 The Reward Vehicle Matrix](#-the-reward-vehicle-matrix)
+* [✨ Key Features & Architecture](#-key-features--architecture)
+* [🔁 The Automation Modes](#-the-automation-modes)
+* [⌨️ Keyboard Controls Masterlist](#%EF%B8%8F-keyboard-controls-masterlist)
+* [📷 Step-by-Step Setup Guide](#-step-by-step-setup-guide)
+  * [⚙️ 1. Difficulty Settings](#%EF%B8%8F-1-difficulty-settings)
+  * [📟 2. HUD & Gameplay Settings](#-2-hud--gameplay-settings)
+  * [🖥️ 3. Video & Graphics Settings](#%EF%B8%8F-3-video--graphics-settings)
+  * [🎯 4. EventLab Menu Configuration](#-4-eventlab-menu-configuration)
+  * [🚗 5. Garage Car Tuning Configuration](#-5-garage-car-tuning-configuration)
+  * [🌆 6. Special K Background Play Setup (Optional Alternative)](#-6-special-k-background-play-setup-optional-alternative)
+  * [🏁 7. Choosing Your In-Game Starting Positions](#-7-choosing-your-in-game-starting-positions)
+  * [📱 8. Controlling the GUI](#-8-controlling-the-gui)
+* [🔧 Troubleshooting & FAQ](#-troubleshooting--faq)
+* [⚠️ Safety & Customization]([#%EF%B8%8F-safety--customization)
 
 ## 🚀 Quick Start (TL;DR)
 
@@ -38,8 +42,6 @@ Welcome to the ultimate progression companion for Forza Horizon 6! This is a hig
    * `git clone https://github.com/M-Haziq-Iqbal/Forza-Horizon-6-Wheelspin-Macro.git`
 3. Extract the workspace files, ensuring the main file, dependency engines (`OCR.ahk`), and library scripts (`modules/SpecialK.ahk`) remain in the same directory layout.
 4. Double-click `main.ahk` to launch the application dashboard.
-
----
 
 ## 🖥️ System & Game Prerequisites
 
@@ -56,7 +58,17 @@ To guarantee that the macro's pixel detection and text-matching systems synchron
   <img width="2559" height="1439" alt="Background Visualization" src="https://github.com/user-attachments/assets/0c1f0345-0267-415d-9a8b-5fd261c300d3" />
 </p>
 
----
+## 📊 The Reward Vehicle Matrix
+
+Select your preferred target car on the dashboard dropdown menu depending on your progression strategy and budget:
+
+| Vehicle Choice | Base Cost | Cost with 5% Discount | Mastery Perk Rewards | Skill Points Needed | Strategy Profile |
+| --- | --- | --- | --- | --- | --- |
+| **Subaru Impreza 22B-STi Version (1998)** | 86,000 CR | 81,700 CR | 1x Super Wheelspin | 30 Points | **Budget Wheelspins:** Great low-cost choice for farming steady Super Wheelspins. |
+| **Lamborghini Revuelto (2024)** | 365,000 CR | 346,750 CR | 1x Super Wheelspin + 3x Regular Wheelspins | 39 Points | **Max Yield Fast:** Dumps heavy credits to maximize total wheelspin volume as fast as possible. |
+| **Dodge Viper GTS ACR (1999)**\* | 68,000 CR | 64,600 CR | 150,000 Cash Credits | 30 Points | **Credit Flipping:** Quickly converts your skill points back into raw cash credits. |
+
+> \* **Note on Premium Edition:** If you are running a premium edition account that alters this vehicle's placement layout inside the Journal, make sure to click the **PREMIUM** button layout on the UI dashboard to safely adjust menu tracking layers.
 
 ## ✨ Key Features & Architecture
 
@@ -93,8 +105,6 @@ This automation utility balances low-level Windows API hooks with a highly refin
 * **Centralized File Configuration Sync:** Standardizes a local persistent `.ini` file configuration framework to cache structural variable settings (custom tracks, car indices, loop multipliers, viewport configurations, licensing tiers) across reboots.
 * **Heuristic Application Path Discovery Matrix:** An autonomous background engine scanner that queries local Windows Registry keys, traces registered App Paths, and checks default system directories across multiple storage drives to locate the game executable without requiring manual path specification.
 
----
-
 ## 🔁 The Automation Modes
 
 The core macro pipeline is divided into independent operational modules that can be launched as standalone processes or chained into a continuous loop:
@@ -121,22 +131,6 @@ The core macro pipeline is divided into independent operational modules that can
 * **Purpose:** Automatically burns through your backlog of accumulated wheelspins.
 * **Logic:** Designed to be activated while hovering over your wheelspin tiles inside the game's **My Horizon** pause menu. It logs live reward statistics and respects your GUI toggle settings to automatically **KEEP** new prize vehicles or **SELL** duplicates for cash.
 
----
-
-## 📊 The Reward Vehicle Matrix
-
-Select your preferred target car on the dashboard dropdown menu depending on your progression strategy and budget:
-
-| Vehicle Choice | Base Cost | Cost with 5% Discount | Mastery Perk Rewards | Skill Points Needed | Strategy Profile |
-| --- | --- | --- | --- | --- | --- |
-| **Subaru Impreza 22B-STi Version (1998)** | 86,000 CR | 81,700 CR | 1x Super Wheelspin | 30 Points | **Budget Wheelspins:** Great low-cost choice for farming steady Super Wheelspins. |
-| **Lamborghini Revuelto (2024)** | 365,000 CR | 346,750 CR | 1x Super Wheelspin + 3x Regular Wheelspins | 39 Points | **Max Yield Fast:** Dumps heavy credits to maximize total wheelspin volume as fast as possible. |
-| **Dodge Viper GTS ACR (1999)**\* | 68,000 CR | 64,600 CR | 150,000 Cash Credits | 30 Points | **Credit Flipping:** Quickly converts your skill points back into raw cash credits. |
-
-> \* **Note on Premium Edition:** If you are running a premium edition account that alters this vehicle's placement layout inside the Journal, make sure to click the **PREMIUM** button layout on the UI dashboard to safely adjust menu tracking layers.
-
----
-
 ## ⌨️ Keyboard Controls Masterlist
 
 | Keybind | Action Performed |
@@ -150,8 +144,6 @@ Select your preferred target car on the dashboard dropdown menu depending on you
 | `F12` | Force a complete hard **Reload** of the application workspace modules |
 | `Ctrl + Shift + C` | Developer Calibration Utility: Copy normalized screen coordinates and Hex color code |
 | `Alt + Left Click` | Move the game client window around your desktop via click-and-drag |
-
----
 
 ## 📷 Step-by-Step Setup Guide
 
@@ -172,8 +164,6 @@ Verify your in-game configurations match the settings below for maximum consiste
   <img width="2559" height="1439" alt="Setting Menu" src="https://github.com/user-attachments/assets/3d48c1f9-904d-434b-8bcf-fe21cc16cffc" />
 </p>
 
----
-
 ### 📟 2. HUD & Gameplay Settings
 
 #### 🚫 Disable Skills HUD
@@ -189,8 +179,6 @@ Navigate to **Settings → HUD & Gameplay → What's Next** and turn it **OFF**.
 <p align="center">
   <img width="2456" height="1068" alt="Skills HUD Off" src="https://github.com/user-attachments/assets/c92a4501-a0f7-4af7-bc0a-ebe25ece19df"> 
 </p>
-
----
 
 ### 🖥️ 3. Video & Graphics Settings
 
@@ -224,8 +212,6 @@ Navigate to **Settings → HUD & Gameplay → What's Next** and turn it **OFF**.
   <img width="2559" height="1439" alt="Safe Area Layout" src="https://github.com/user-attachments/assets/1f8464f8-db8f-4093-8504-ba8fe5f423b0" />
 </p>
 
----
-
 ### 🎯 4. EventLab Menu Configuration
 The automated text entry share-code systems have been removed to improve speed and reliability. You must configure your track list layout manually:
 
@@ -237,8 +223,6 @@ The automated text entry share-code systems have been removed to improve speed a
   <img width="1941" height="896" alt="Favorites Layout Mapping" src="https://github.com/user-attachments/assets/c0dab41f-01bf-4975-99a9-bf48ff36028a" />
   <img width="2559" height="1439" alt="EventLab Selection Screen" src="https://github.com/user-attachments/assets/540441f0-6f5a-462e-a355-b3a47a333015" />
 </p>
-
----
 
 ### 🚗 5. Garage Car Tuning Configuration
 The script relies on a specific vehicle setup to navigate menus correctly:
@@ -257,8 +241,6 @@ Apply the appropriate upgrades and find your blueprints using these codes (which
   <img width="2559" height="1439" alt="Tuning Application Layout" src="https://github.com/user-attachments/assets/ad315cec-1740-4984-9902-8cd97be366df" />
 </p>
 
----
-
 ### 🌆 6. Special K Background Play Setup (Optional Alternative)
 The utility contains built-in automated directory checks and files to deploy **Special K Mod Wrapper Asset Managers** to handle background rendering. If your background inputs do not process smoothly by default, confirm the following steps inside the wrapper overlay:
 
@@ -271,22 +253,20 @@ The utility contains built-in automated directory checks and files to deploy **S
   <img width="2559" height="1439" alt="Special K Control Board Layout" src="https://github.com/user-attachments/assets/e8e9e749-8515-4cb0-afaa-5af52fd89e07" />
 </p>
 
----
-
 ### 🏁 7. Choosing Your In-Game Starting Positions
 
 Make sure your game client is positioned at the correct baseline menu structure before launching an automation script:
 
-#### For Full Loop / Race / Buy Modes
-* Ensure you are fully loaded into an active session (standing in your player home menu structure or out in Free Roam).
-* Confirm there are no loading screens present and that standard keyboard inputs are responsive.
+#### For Full Loop / Race / Buy / Unlock Modes
+1. Ensure you are fully loaded into an active session (standing in your player home menu, highlighting Drive selection).
+2. Confirm there are no loading screens present and that standard keyboard inputs are responsive.
 
 <p align="center">
   <img width="2559" height="1439" alt="Home Menu Base Position" src="https://github.com/user-attachments/assets/e6c585b4-264e-4a4c-8cf8-8d4ed7144ffc" />
 </p>
 
-#### For Standalone Unlock Mode
-When running the unlock mode sequence manually, you must sort your vehicle view beforehand:
+#### For Custom Unlock Mode
+When running the unlock mode sequence manually, you have the option to choose the starting car. To do so, you must sort your vehicle view beforehand:
 1. Open the **Buy & Sell** tab, navigate into the **Auction House**, and select **Start Auction**.
 2. Press `X` to adjust your listing sort configurations, select **Recently Added**, and confirm the menu layout.
 3. Open your vehicle list grid.
@@ -296,15 +276,116 @@ When running the unlock mode sequence manually, you must sort your vehicle view 
   <img width="2559" height="1439" alt="Unlock Mode Base Position" src="https://github.com/user-attachments/assets/2e145722-efb6-4307-95b9-1039f3d9c1fc" />
 </p>
 
-#### For Standalone Spin Mode
-* Open the pause menu and navigate over to the **My Horizon** tab layout.
-* Use your controls to highlight or hover directly over your preferred wheelspin tile (Regular Wheelspin or Super Wheelspin) **without actually opening the menu selection**. Keep your dashboard panel snapped nearby to track your rewards.
+#### For Spin Mode
+1. Open the pause menu and navigate over to the **My Horizon** tab layout.
+2. Use your controls to highlight or hover directly over your preferred wheelspin tile (Regular Wheelspin or Super Wheelspin) **without actually opening the menu selection**. Keep your dashboard panel snapped nearby to track your rewards.
 
 <p align="center">
   <img width="2559" height="1439" alt="My Horizon Base Selection" src="https://github.com/user-attachments/assets/3a4ce3b7-f695-4cf4-a174-64ee42cd2c29" />
 </p>
 
----
+### 📱 8. Controlling the GUI
+
+#### 🎛️ Master GUI Control Dashboard Guide
+
+The master interface serves as the centralized command center for configuring automated workflows, calibrating execution delays, balancing in-game budgets, and initializing independent farming routines.
+
+#### 1. Session Parameter Inputs (Target Matrix)
+
+<p align="center">
+  <img width="271" height="139" alt="Target Matrix" src="https://github.com/user-attachments/assets/569140dd-ca8a-43cc-a5a1-f51fb80a3cc4" />
+</p>
+
+The upper portion of the **Input** tab visible allows you to define processing boundaries before deploying a script loop:
+
+* **Current Skill Points:** Displays or allows manual override entry for your active vehicle mastery balance.
+* **Desired Skill Points:** Sets your ultimate resource ceiling target (e.g., `980`). Once reached, the automation engine cleanly finishes its active cycle and transitions out of racing states.
+* **Car Purchase:** Specifies the exact volumetric block size of inventory assets to purchase in bulk during a single standalone "Buy" routine loop.
+* **Sequence Loop:** Sets the total absolute iteration count for continuous automated cycles when running multi-stage loops.
+
+#### 2. Vehicle Selection, Edition Tier, & Delay Engine Calibration
+
+<p align="center">
+  <img width="270" height="132" alt="optimization switches" src="https://github.com/user-attachments/assets/d26e6009-6e3e-4cb0-ac42-6e69f1c4ce30" />
+</p>
+
+Directly underneath the parameter matrix are the optimization switches used to align the macro's navigation paths with your specific game profile:
+
+* **Vehicle Dropdown Menu:** Selects the precise target vehicle schema (e.g., `Subaru Impreza 22B-STi`) to ensure the underlying OCR and mastery node layouts align correctly.
+* **STANDARD / PREMIUM Toggles:** Switches between different in-game car list menu alignments. If your game edition includes DLC car layout additions that shift grid coordinates, selecting **PREMIUM** recalibrates the menu tracking layer.
+* **Delay Multiplier Slider:** Provides an analog scaling slider ranging from **0.25x to 5.0x**. If your system experiences sudden background frame drops, disk read latency, or server connection lag, slide this modifier upward to scale all internal sleep buffers safely.
+
+#### 3. Core Automation Execution Triggers
+
+<p align="center">
+  <img width="270" height="164" alt="primary control buttons" src="https://github.com/user-attachments/assets/e9de7250-2774-4ac4-aea0-9242ee451938" />
+</p>
+
+The primary control buttons launch individual automation modes or initialize the full continuous macro pipeline:
+
+* **RACE (`\`):** Launches the automated EventLab farming loop.
+* **BUY (`[`):** Executes the bulk vehicle acquisition macro sequence.
+* **UNLOCK (`]`):** Initializes the vehicle perk grid mastery loop to claim hidden wheelspin assets.
+* **INIT SEQUENCE (`/`):** Daisy-chains all core modes into a continuous, self-sustaining loop (Race → Buy → Unlock → Repeat).
+* **OPEN SPIN INTERFACE:** Spawns the embedded prize delivery panel directly within the dashboard.
+
+#### 4. Embedded Spin Controller Panel
+
+<p align="center">
+  <img width="250" height="229" alt="image" src="https://github.com/user-attachments/assets/50f7683c-0487-42b0-9b66-e5bae0fefd3e" />
+</p>
+
+Clicking the purple interface trigger transforms the center of the dashboard into an isolated bulk opening terminal.
+
+* **Live Teleview Readouts:** Tracks real-time session statistics including total **Spin Runtime**, total **Spins Opened**, and **Spins Remaining** in the active backlog queue.
+* **KEEP / SELL Optimization Buttons:** Sets the structural rule engine for duplicate prize car drops. Choosing **SELL** auto-converts duplicates back to liquid in-game credits instantly, while **KEEP** passes them into your garage structure.
+* **RUN WHEELSPIN (`=`):** Fires the automated hardware routine to continuously clear out your accumulated wheelspin cache.
+
+#### 5. Profile Selection & Quick-Copy Share Codes
+
+Located right below the running telemetry state readouts is the integrated track configuration and code utility footer:
+
+<p align="center">
+  <img width="268" height="80" alt="image" src="https://github.com/user-attachments/assets/ac521149-fb72-4565-954a-cb609af6b1ca" />
+</p>
+
+* **Track Profile Dropdown Menu:** Allows you to swap seamlessly between different pre-configured automated driving routes, such as `AMMAGEDON` or `LIQUIDPOTATO`. Selecting a track profile immediately updates the underlying path calculations, timing variables, and telemetry color nodes to match that specific layout.
+* **Dynamic Click-to-Copy Share Codes:** Features interactive, clickable text links for both the vehicle mechanics configuration (`Subaru 22B Tune Code`) and the blueprint layout (`EventLab Race Code`).
+* **Instant Clipboard Integration:** Clicking on either text link instantly copies the respective multi-digit in-game share code straight to your Windows clipboard. This completely removes the need to manually write down or type long numeric strings when searching for assets inside the game client.
+* **Automated Footer Synchronization:** The structural share codes switch and update automatically in real time based on your active selection in the track profile dropdown menu, ensuring you always copy the correct matching tune and map combinations.
+
+#### 6. Advanced System Options & Launch Utility
+
+<p align="center">
+  <img width="268" height="178" alt="image" src="https://github.com/user-attachments/assets/ed6b1cc2-b4fd-478e-a7c1-8e834574d4d2" />
+</p>
+
+Expanding the **OPTIONS** toggle dropdown at the bottom of the dashboard grants access to background management and initialization hooks:
+
+* **Resolution Configuration Dropdown:** Configures target canvas viewport sizes (e.g., `854 x 480`) for windowed rendering scaling calculations.
+* **SET GAME PATH:** Links the automation suite directly to your local installation directory for automated startup sequences.
+* **LAUNCH GAME:** Autonomously executes the target software executable while preparing local configuration settings.
+* **SPECIAL K Core Status:** Displays real-time API connection flags (e.g., `SPECIAL K (GAME RUNNING)`) to verify background play input translation wrappers are working smoothly.
+
+#### 🗲 Compact Mini GUI Overlay
+
+<p align="center">
+  <img width="238" height="202" alt="MiniGUI" src="https://github.com/user-attachments/assets/bfcc48eb-f4cb-4ae4-8d53-4143cefa6feb" />
+</p>
+
+When the main configuration dashboard is minimized, the tool shrinks into a highly responsive, floating overlay tracking live automation data and structural execution tasks in real time.
+
+The icon row positioned along the top header of Mini GUI provides low-level window hook management directly into the background engine:
+* Window Mode Transformation (🗗): Instantly commands the game window client to shift into a standardized 16:9 bordered resolution space based on selected resolution dropdown.
+* Always-On-Top Layer Lock (📌): Toggles an absolute visual priority layering state. This ensures the game window or overlay remains structurally visible without focus degradation.
+* Game Lock Engine Pipeline (🔒): Explicitly binds the unique window handle descriptor (HWND). This enables the system to continuously route input sequences into the background even while you interact with other desktop apps.
+* Environment Core Reload (⭮): Dispatches an emergency global reload command to instantly refresh script dependencies, clean stack buffers, and reset running metrics.
+* Restore Toggle (⛶): Spawns the Main GUI and hides the Mini GUI.
+
+Session Controls:
+* Init Sequence Start Button (🟢): Instantly triggers the Init Sequence loop. Cannot be used to start other independent modes.
+* Pause/Resume Button (❚❚): Gracefully parks execution threads mid-race without wiping session tracking states.
+* Hard Stop Emergency Reset (⏹): Forcibly stops hardware loops, zeroes temporary tracking variables, and resets the interface state.
 
 ## 🔧 Troubleshooting & FAQ
 
@@ -329,15 +410,11 @@ When running the unlock mode sequence manually, you must sort your vehicle view 
 #### Q: What is the "First-Time Unfocus" quirk and how do I prevent the game from auto-pausing?
 **A:** The background window execution framework has a minor quirk: if the game loses focus for the very first time while you are actively driving in Free Roam or mid-race, it triggers an automatic game pause state that breaks the macro loop. To prevent this, **always click away to your background apps while your character is resting inside a static menu structure** (such as the main pause screen or your home garage). Once unfocused there, the macro will run smoothly in the background. Do not click back and forth onto the game window once your session starts.
 
----
-
 ## ⚠️ Safety & Customization
 
 Before leaving the macro unattended for long periods, run through each mode manually for a few test cycles to verify your configuration scales perfectly with your hardware performance profile. You can modify layout structures or performance options within the modular source files, and all key parameters save cleanly inside the centralized `.ini` configuration framework for quick setups across reboots.
 
 This tool operates entirely by simulating virtual hardware keyboard inputs and **does not modify game memory blocks, inject structural payloads, or alter your local game save files**. All execution paths and monitoring profiles remain the responsibility of the end user.
-
----
 
 <br/><br/>
 
