@@ -14,8 +14,8 @@ global GameMonitor      := 1
 global GameHwnd         := 0  ; Initializes the permanent window pointer handle
 
 global IsGameWindowed       := CheckWindowed()
-global IsGameLocked         := WinGetStyle(GameTitle) & 0x08000000 ? true : false
-global IsGameAlwaysOnTop    := WinGetExStyle(GameTitle) & 0x8 ? true : false
+global IsGameLocked         := CheckLocked()
+global IsGameAlwaysOnTop    := CheckAlwaysOnTop()
 
 ; ══════════════════════════════════════════════
 ;  EVENTLAB PRESETS & DATA SOURCING

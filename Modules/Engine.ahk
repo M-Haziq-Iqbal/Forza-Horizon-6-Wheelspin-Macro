@@ -949,6 +949,30 @@ CheckWindowed() {
     return false ; No, it matches screen size (Borderless Fullscreen)
 }
 
+CheckLocked() {
+    global GameTitle
+
+    if !WinExist(GameTitle)
+        return false
+
+    if WinGetStyle(GameTitle) & 0x08000000
+        return true
+    else
+        return false
+}
+
+CheckAlwaysOnTop() {
+    global GameTitle
+    
+    if !WinExist(GameTitle)
+        return false
+
+    if WinGetExStyle(GameTitle) & 0x8
+        return true
+    else
+        return false
+}
+
 ; ══════════════════════════════════════════════
 ;  MISC SETTINGS
 ; ══════════════════════════════════════════════
