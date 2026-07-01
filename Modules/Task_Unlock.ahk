@@ -35,8 +35,10 @@ StartUnlock() {
 
         UnlockRunTime_UI.SetFont("c" cHighlight)
         SetTimer(UnlockTimerTick, 1000)
+
         UnlockLoop()
     }
+    SetTimer(EmergencyUnlockCheck, 0)
     ResetIndicators()
 }
 
@@ -160,6 +162,8 @@ UnlockLoop() {
                 break
         }
 
+        SetTimer(EmergencyUnlockCheck, 400)
+
         Process("Choosing First Car...")
         PressKey("Enter", 800) ; Select First Car
         PressKey("Down") ; Navigate to Get in Car
@@ -171,9 +175,6 @@ UnlockLoop() {
         }
 
         if CheckAbort()
-            break
-
-        if VerifyCar() = false
             break
 
         PressKey("Esc", 1500) ; Navigate to Auction House Menu
@@ -308,18 +309,12 @@ UnlockLoop() {
             PressKey("Down") ; Navigate to Next Car
             PressKey("Enter", 800) ; Select Next Car
             PressKey("Down") ; Navigate to Get in Car 
-            PressKey("Enter", 800) ; Select Get in Car  \\ check whether Get in Car is selected / black or not
+            PressKey("Enter", 800) ; Select Get in Car
 
             if !WaitForPixel("Getting in Car...", 0.067, 0.169, "0xFFFFFF", "", 10000, 500) {
                 Process("Sync Error: Unable to get in car!")
                 break
             }
-
-            if CheckAbort()
-                break
-
-            if VerifyCar() = false
-                break
 
             if CheckAbort()
                 break
@@ -420,5 +415,48 @@ VerifyCar() {
             CarMismatch := true
             return false
         }
+    }
+}
+
+EmergencyUnlockCheck() {
+    global GameTitle, ActiveMode, CarData, SelectedCar
+
+    static StatsNum := 0
+    
+    ; Only scan if the macro is actively running and the game is open
+    if (ActiveMode != "Unlock" || !WinExist(GameTitle))
+        return
+
+    ; Scan the combined danger zone for Auction or Deletion prompts
+    CarText := ScanOCR(0.364, 0.373, 0.267, 0.071)
+    if InStr(CarText, "Create Auction") {
+        ; 1. Kill the timer thread immediately
+        SetTimer(, 0)
+        
+        ; 2. Sound the alarm
+        SoundBeep(400, 500)
+        
+        ; 3. Flash a hard modal box to freeze all AHK execution paths
+        MsgBox("CRITICAL SAFETY INTERCEPT!`n`nStart Auction menu detected. Script has been reset to IDLE state to protect your account.", "MHI Emergency System", "IconX")
+        
+        ; 4. Vaporize the current thread and reset the macro back to its pristine default state
+        Reload()
+    }
+
+    MenuText := ScanOCR(0.062, 0.092, 0.148-0.062, 0.132-0.092)
+    StatsNumNew := ScanOCR(0.177, 0.457, 0.205-0.177, 0.707-0.457, , , true)
+    StatsNum := StatsNumNew = -1 ? StatsNum : StatsNumNew
+    if InStr(MenuText, "My Cars") && CarData[SelectedCar].StatsNum != StatsNum {
+        ; 1. Kill the timer thread immediately
+        SetTimer(, 0)
+        
+        ; 2. Sound the alarm
+        SoundBeep(400, 500)
+        
+        ; 3. Flash a hard modal box to freeze all AHK execution paths
+        MsgBox("CRITICAL SAFETY INTERCEPT!`n`nWrong car detected. Script has been reset to IDLE state to protect your account.", "MHI Emergency System", "IconX")
+        
+        ; 4. Vaporize the current thread and reset the macro back to its pristine default state
+        Reload()
     }
 }

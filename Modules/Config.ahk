@@ -59,21 +59,24 @@ global MaxSections      := EventLabData[EventLab].MaxSections
 ; ══════════════════════════════════════════════
 global ResoList         := ["854 x 480", "960 x 540", "1024 x 576", "1280 x 720", "1366 x 768", "1920 x 1080", "2048 x 1152", "3200 x 1800", "3840 x 2160", "5120 x 2880", "7680 x 4320"]
 _iniReso                := ReadMacroIni("Settings", "Resolution", "")
-global SelectedReso     := _iniReso ? _iniReso : ResoList[1]
+global SelectedReso     := _iniReso ? _iniReso : ResoList[3]
 
 global CarList          := ["Subaru Impreza 22B-STi", "Lamborghini Revuelto", "Dodge Viper GTS ACR"]
 global CarData          := Map(
     "Subaru Impreza 22B-STi", {
         SkillPtsCost: 30,
-        AltName: "1998 Subaru"
+        AltName: "1998 Subaru",
+        StatsNum: 594970474057
     },
     "Lamborghini Revuelto", {
         SkillPtsCost: 39,
-        AltName: "2024 Lamborghini"
+        AltName: "2024 Lamborghini",
+        StatsNum: 867299107749
     },
     "Dodge Viper GTS ACR", {
         SkillPtsCost: 30,
-        AltName: "1999 Dodge"
+        AltName: "1999 Dodge",
+        StatsNum: 694952414050
     }
 )
 _iniCar                 := ReadMacroIni("Settings", "Car", "")

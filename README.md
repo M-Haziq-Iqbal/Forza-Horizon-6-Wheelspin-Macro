@@ -155,6 +155,7 @@ Verify your in-game configurations match the settings below for maximum consiste
 | --- | --- |
 | Drivatar Difficulty | UNBEATABLE |
 | Drving Assists Preset | FULL ASSISTS |
+| Braking | ASSISTED |
 | Steering | AUTO-STEERING |
 | Traction Control | ON |
 | Stability Control | ON |
@@ -313,7 +314,7 @@ Directly underneath the parameter matrix are the optimization switches used to a
 
 * **Vehicle Dropdown Menu:** Selects the precise target vehicle schema (e.g., `Subaru Impreza 22B-STi`) to ensure the underlying OCR and mastery node layouts align correctly.
 * **STANDARD / PREMIUM Toggles:** Switches between different in-game car list menu alignments. If your game edition includes DLC car layout additions that shift grid coordinates, selecting **PREMIUM** recalibrates the menu tracking layer.
-* **Delay Multiplier Slider:** Provides an analog scaling slider ranging from **0.25x to 5.0x**. If your system experiences sudden background frame drops, disk read latency, or server connection lag, slide this modifier upward to scale all internal sleep buffers safely.
+* **Delay Multiplier Slider:** Provides an analog scaling slider ranging from **0.25x to 4.0x**. If your system experiences sudden background frame drops, disk read latency, or server connection lag, slide this modifier upward to scale all internal sleep buffers of key input safely.
 
 #### 3. Core Automation Execution Triggers
 
