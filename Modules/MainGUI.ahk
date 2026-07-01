@@ -493,7 +493,7 @@ BuildMainGui(savedVals := "") {
     MainGUI.OnEvent("Close", (*) => ExitApp())
     MainGUI.OnEvent("Size",  MainGUI_SizeChange)
     
-    MainGUI.Move(MonLeft + MonWidth - w - Round(15*ScaleX), MonTop + Round(15*ScaleX), w, compactH)
+    MainGUI.Move(MonLeft + MonWidth - w - Round(35*ScaleX), MonTop + Round(35*ScaleX), w, compactH)
     MainGUI.Show()
 }
 

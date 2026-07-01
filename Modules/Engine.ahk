@@ -928,9 +928,12 @@ FormatCommas(val) {
 OnMessage(0x0201, WM_LBUTTONDOWN)
 
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
-    global MainGUI, MiniGui, SpinGUI, RestoreBtn, PauseBtn, StopBtn
+    global RestoreBtn, PauseBtn, StopBtn
     global SliderKnob, SliderTrack
-    global MainDragOffsetX, MainDragOffsetY, SpinDragOffsetX, SpinDragOffsetY, MiniDragOffsetX, MiniDragOffsetY
+    global MainGUI, MainDragOffsetX, MainDragOffsetY
+    global SpinGUI,SpinDragOffsetX, SpinDragOffsetY
+    global MiniGui, MiniDragOffsetX, MiniDragOffsetY
+    global PreviewGui, PreviewDragOffsetX, PreviewDragOffsetY
 
     ; 1. Identify the top-level parent window safely
     rootHwnd := DllCall("User32\GetAncestor", "Ptr", hwnd, "UInt", 2, "Ptr")
@@ -1001,6 +1004,26 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
         }
         return
     }
+
+    ; 6. PREVIEW GUI ROUTING
+    if (IsSet(PreviewGui) && PreviewGui && rootHwnd == PreviewGui.Hwnd) {
+        if (hwnd == PreviewGui.Hwnd || DllCall("User32\GetParent", "Ptr", hwnd) == PreviewGui.Hwnd) {
+            ctrlClass := WinGetClass(hwnd)
+            if (ctrlClass == "AutoHotkeyGUI" || ctrlClass == "Static") {
+                ; Bypass if clicking close (✕) or minimize (─) buttons [cite: 101]
+                if (ctrlClass == "Static" && (WinGetStyle(hwnd) & 0x100))
+                    return 
+                
+                CoordMode("Mouse", "Screen")
+                MouseGetPos(&mouseX, &mouseY)
+                WinGetPos(&guiX, &guiY, , , PreviewGui.Hwnd)
+                PreviewDragOffsetX := mouseX - guiX
+                PreviewDragOffsetY := mouseY - guiY
+                SetTimer(DragPreviewGui, 10)
+            }
+        }
+        return
+    }
 }
 
 ; ══════════════════════════════════════════════
@@ -1054,6 +1077,22 @@ DragMiniGui() {
     try MiniGui.Move(mouseX - MiniDragOffsetX, mouseY - MiniDragOffsetY)
 }
 
+DragPreviewGui() {
+    global PreviewGui, PreviewDragOffsetX, PreviewDragOffsetY
+    
+    ; Safely terminate thread callback if user releases left click
+    if !GetKeyState("LButton", "P") {
+        SetTimer(, 0)
+        return
+    }
+    
+    CoordMode("Mouse", "Screen")
+    MouseGetPos(&mouseX, &mouseY)
+    
+    ; Dynamic viewport repositioning matrix for the mini compact interface
+    try PreviewGui.Move(mouseX - PreviewDragOffsetX, mouseY - PreviewDragOffsetY)
+}
+
 MoveWindow() {
     CoordMode "Mouse", "Screen"
     MouseGetPos &startX, &startY, &targetWin
@@ -1076,7 +1115,7 @@ CheckWindowed() {
     UpdateMonitorMetrics() 
     
     ; 2. Fetch the actual current width and height of the game window
-    WinGetPos(, , &gameWidth, &gameHeight, GameTitle)
+    WinGetClientPos(, , &gameWidth, &gameHeight, GameTitle)
     
     ; 3. If it's smaller than the monitor's full canvas, it is in Windowed Mode
     if (gameWidth < MonWidth || gameHeight < MonHeight) {

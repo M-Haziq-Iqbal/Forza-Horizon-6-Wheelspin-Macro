@@ -10,13 +10,14 @@ BuildMiniGui() {
 
     Global
     Global RaceControls := [], BuyControls := [], UnlockControls := []
+    global previewGui := ""
 
     MiniGui := Gui("+AlwaysOnTop -Caption +ToolWindow -DPIScale")
     
     ; Resolution-Relative UI Bounding Boxes
     TargetWidgetWidth   := Round(230 * ScaleX)
     CurrentWidgetHeight := Round(225 * ScaleY) 
-    WidgetPadding       := Round(15 * ScaleX)
+    WidgetPadding       := Round(35 * ScaleX)
     StartY              := Round(115 * ScaleY)
 
     ; Deep obsidian canvas background
@@ -36,13 +37,16 @@ BuildMiniGui() {
     ReloadBtn := MiniGui.Add("Text", "x" Round(173*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "⭮")
     ReloadBtn.OnEvent("Click", (*) => Reload())
 
-    LockBtn := MiniGui.Add("Text", "x" Round(151*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameLocked ? "cF59E0B" : "c94A3B8"), "🔒")
+    PreviewBtn := MiniGui.Add("Text", "x" Round(151*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "🎞️")
+    PreviewBtn.OnEvent("Click", (ctrl, *) => TogglePreview(ctrl))
+
+    LockBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(32*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameLocked ? "cF59E0B" : "c94A3B8"), "🔒")
     LockBtn.OnEvent("Click", (ctrl, *) => ToggleWindowLock(ctrl))
 
-    AlwaysOnTopBtn := MiniGui.Add("Text", "x" Round(129*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameWindowed ? "cF7507F" : "c94A3B8"), "📌")
+    AlwaysOnTopBtn := MiniGui.Add("Text", "x" Round(173*ScaleX) " y" Round(32*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameAlwaysOnTop ? "cF7507F" : "c94A3B8"), "📌")
     AlwaysOnTopBtn.OnEvent("Click", (ctrl, *) => AlwaysOnTopEnable(ctrl))
 
-    ResoSetBtn := MiniGui.Add("Text", "x" Round(107*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameAlwaysOnTop ? "c3B82F6" : "c94A3B8"), "🗗")
+    ResoSetBtn := MiniGui.Add("Text", "x" Round(151*ScaleX) " y" Round(32*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameWindowed ? "c3B82F6" : "c94A3B8"), "🗗")
     ResoSetBtn.OnEvent("Click", (ctrl, *) => SetGameResolution(ctrl))
 
     InitStartBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(70*ScaleY) " w" Round(18*ScaleX) " h" Round(18*ScaleY) " Center Background22252E c94A3B8", "⬤")
@@ -258,8 +262,8 @@ ShowNotif(type, title, message := "") {
     Notif.Show("w" tWidth " h" tHeight " Hide")
     
     ; Uses MonRight and MonBottom to avoid clipping behind the taskbar layout
-    notifX := MonRight - tWidth - Round(10 * ScaleX)
-    notifY := MonBottom - tHeight - Round(10 * ScaleY)
+    notifX := MonRight - tWidth - Round(15 * ScaleX)
+    notifY := MonBottom - tHeight - Round(15 * ScaleY)
 
     WinMove(notifX, notifY,,, Notif.Hwnd)
     Notif.Show("NoActivate")
@@ -450,4 +454,82 @@ AlwaysOnTopEnable(ctrl) {
         ctrl.Opt("c94A3B8")
         ShowNotif("info", "Always On Top OFF", "Game is set to be normal.")
     }
+}
+
+TogglePreview(ctrl) {
+    global GameTitle, ScaleX, ScaleY, MonRight, MonLeft, MonTop, MonBottom
+    global previewGui, MiniGui
+    static hThumbnail := 0
+
+    UpdateMonitorMetrics()
+
+    PreviewWidth := Round(230 * ScaleX)
+    PreviewHeight := Round(130 * ScaleY)
+    PreviewX := MonRight - PreviewWidth - Round(35 * ScaleX)
+    PreviewY := MonTop + Round(35 * ScaleY)
+    
+    ; If preview is already active, close and unregister it
+    if previewGui {
+        if hThumbnail {
+            DllCall("dwmapi\DwmUnregisterThumbnail", "Ptr", hThumbnail)
+            hThumbnail := 0
+        }
+        previewGui.Destroy()
+        previewGui := ""
+        ctrl.Opt("c94A3B8")
+        ctrl.Redraw()
+        return
+    }
+    ctrl.Opt("c64d0ea")
+    ctrl.Redraw()
+
+    ; Check if target game/window is running
+    targetHwnd := WinExist(GameTitle)
+    if !targetHwnd {
+        ToolTip("Target window not found!")
+        SetTimer(() => ToolTip(), -2000)
+        return
+    }
+    
+    ; 1. Create the Host GUI Window
+    previewGui := Gui("+AlwaysOnTop +ToolWindow -Caption -DPIScale", "Live Game Preview")
+    previewGui.BackColor := "Black"
+    
+    ; Setup a clean exit if the user manually closes the GUI window
+    previewGui.OnEvent("Close", (ctrl, *) => TogglePreview(ctrl))
+    
+    ; Show the GUI box without stealing focus from your current active window
+    previewGui.Show(Format("w{} h{} x{} y{} NoActivate", PreviewWidth, PreviewHeight, PreviewX, PreviewY))
+    MiniGui.Hide() ; Hide the MiniGUI to prevent it from overlapping the preview window
+    MiniGui.Show("NoActivate") ; Ensure the MiniGUI stays on top of the preview window  
+    
+    ; 2. Register the DWM Thumbnail link between the GUI and the Game
+    if DllCall("dwmapi\DwmRegisterThumbnail", "Ptr", previewGui.Hwnd, "Ptr", targetHwnd, "Ptr*", &hThumbnail := 0) != 0 {
+        MsgBox("Failed to register DWM Thumbnail API relationship.")
+        previewGui.Destroy()
+        previewGui := ""
+        return
+    }
+    
+    ; 3. Build the DWM_THUMBNAIL_PROPERTIES struct (48-byte buffer)
+    ; Layout: dwFlags(0), rcDestination(4), rcSource(20), opacity(36), fVisible(40), fSourceClientAreaOnly(44)
+    structProps := Buffer(48, 0)
+    
+    ; dwFlags: Set flags to update Destination Rect (0x1), Visibility (0x8), and ClientArea Only (0x10)
+    NumPut("UInt", 0x1 | 0x8 | 0x10, structProps, 0) 
+    
+    ; rcDestination: Maps the inside region of your AHK GUI where the game stream draws
+    NumPut("Int", 0,              structProps, 4)   ; Left
+    NumPut("Int", 0,              structProps, 8)   ; Top
+    NumPut("Int", PreviewWidth,   structProps, 12)  ; Right
+    NumPut("Int", PreviewHeight,  structProps, 16)  ; Bottom
+    
+    ; fVisible: Set to True (1)
+    NumPut("Int", 1, structProps, 40)
+    
+    ; fSourceClientAreaOnly: Set to True (1) to crop out the game's titlebar and borders
+    NumPut("Int", 1, structProps, 44)
+    
+    ; 4. Update and display the live stream
+    DllCall("dwmapi\DwmUpdateThumbnailProperties", "Ptr", hThumbnail, "Ptr", structProps)
 }

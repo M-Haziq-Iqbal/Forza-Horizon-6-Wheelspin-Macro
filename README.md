@@ -12,7 +12,7 @@ Welcome to the ultimate progression companion for Forza Horizon 6! This is a hig
 
 ## 📑 Table of Contents
 * [🚀 Quick Start (TL;DR)](#-quick-start-tldr)
-* [🖥️ System & Game Prerequisites]([#%EF%B8%8F-system--game-prerequisites)
+* [🖥️ System & Game Prerequisites](#%EF%B8%8F-system--game-prerequisites)
 * [📊 The Reward Vehicle Matrix](#-the-reward-vehicle-matrix)
 * [✨ Key Features & Architecture](#-key-features--architecture)
 * [🔁 The Automation Modes](#-the-automation-modes)
@@ -27,7 +27,9 @@ Welcome to the ultimate progression companion for Forza Horizon 6! This is a hig
   * [🏁 7. Choosing Your In-Game Starting Positions](#-7-choosing-your-in-game-starting-positions)
   * [📱 8. Controlling the GUI](#-8-controlling-the-gui)
 * [🔧 Troubleshooting & FAQ](#-troubleshooting--faq)
-* [⚠️ Safety & Customization]([#%EF%B8%8F-safety--customization)
+* [⚠️ Safety & Customization](#%EF%B8%8F-safety--customization)
+
+---
 
 ## 🚀 Quick Start (TL;DR)
 
@@ -43,6 +45,8 @@ Welcome to the ultimate progression companion for Forza Horizon 6! This is a hig
 3. Extract the workspace files, ensuring the main file, dependency engines (`OCR.ahk`), and library scripts (`modules/SpecialK.ahk`) remain in the same directory layout.
 4. Double-click `main.ahk` to launch the application dashboard.
 
+---
+
 ## 🖥️ System & Game Prerequisites
 
 To guarantee that the macro's pixel detection and text-matching systems synchronize perfectly, verify your PC configuration meets these guidelines:
@@ -54,9 +58,7 @@ To guarantee that the macro's pixel detection and text-matching systems synchron
 
 > ⚠️ **Background Play Rule:** Want to scroll Discord or watch YouTube while farming? The macro completely supports background execution! For the best background play experience, it is highly recommended to use the **Always On Top**, **Resize**, and **Lock** features through the buttons on the mini overlay interface.
 
-<p align="center">
-  <img width="2559" height="1439" alt="Background Visualization" src="https://github.com/user-attachments/assets/0c1f0345-0267-415d-9a8b-5fd261c300d3" />
-</p>
+---
 
 ## 📊 The Reward Vehicle Matrix
 
@@ -66,36 +68,46 @@ Select your preferred target car on the dashboard dropdown menu depending on you
 | --- | --- | --- | --- | --- | --- |
 | **Subaru Impreza 22B-STi Version (1998)** | 86,000 CR | 81,700 CR | 1x Super Wheelspin | 30 Points | **Budget Wheelspins:** Great low-cost choice for farming steady Super Wheelspins. |
 | **Lamborghini Revuelto (2024)** | 365,000 CR | 346,750 CR | 1x Super Wheelspin + 3x Regular Wheelspins | 39 Points | **Max Yield Fast:** Dumps heavy credits to maximize total wheelspin volume as fast as possible. |
-| **Dodge Viper GTS ACR (1999)**\* | 68,000 CR | 64,600 CR | 150,000 Cash Credits | 30 Points | **Credit Flipping:** Quickly converts your skill points back into raw cash credits. |
+| **Dodge Viper GTS ACR (1999)** | 68,000 CR | 64,600 CR | 150,000 Cash Credits | 30 Points | **Credit Flipping:** Quickly converts your skill points back into raw cash credits. |
 
 > \* **Note on Premium Edition:** If you are running a premium edition account that alters this vehicle's placement layout inside the Journal, make sure to click the **PREMIUM** button layout on the UI dashboard to safely adjust menu tracking layers.
+
+---
 
 ## ✨ Key Features & Architecture
 
 This automation utility balances low-level Windows API hooks with a highly refined, feature-rich control dashboard to ensure optimal background play performance and ease of use:
 
-### 🎮 Advanced Background Play & Window Management
+### 🎮 Advanced Hardware-Accelerated Background Processing
+* **Direct Background Composition OCR:** Fully replaced legacy foreground-dependent hooks (`OCR.FromWindow`) with an integrated low-level GDI Canvas rendering engine (`GetBackgroundOCR`). It captures background window frames via `PrintWindow` utilizing composition flag `2`, executing fast hardware crop transfers via `BitBlt` even when the game window is entirely covered or out of focus.
+* **Direct Memory Pixel Color Engine:** Refactored `WaitForPixel` and `GetPixelColor` subsystems to intercept graphics buffers directly from memory device contexts using `gdi32\GetPixel`. It translates native GDI BGR structures into an RGB conversion array utilizing native BGR-to-RGB color matrix transformation blocks.
+* **Precise Client Coordinate Calibration:** Refactored the `CheckWindowed()` calibration system to query canvas boundaries via `WinGetClientPos` instead of relying on standard application window properties (`WinGetPos`). This strips out inconsistent OS-level window borders and title bars, stabilizing background canvas evaluation tracking.
+* **Guaranteed Memory & Handle Protection:** Enforces clean memory states using structural `try...finally` resource disposition routines tracking all dynamic GDI canvas resource handlers to completely eliminate handle tracking or thread leaks across all GDI Bitmaps and Device Contexts (`DeleteObject`, `DeleteDC`, `ReleaseDC`).
+* **Color Variation Mapping:** Integrates an internal mathematical module (`BGColorCompare`) to handle minor pixel shading variation thresholds natively across the background graphic buffer.
 * **Low-Level Windows Shell Hook Integration:** Registers a dedicated system shell hook to monitor active foreground application changes across the OS thread environment. By listening directly for the exact millisecond any window shift occurs, the macro catches focus events immediately.
-* **Proactive Anti-Pause Window Spammer:** Intercepts specific focus activation signals—specifically checking for certain Windows Shell Hook event message. If the game client loses focus, the macro instantly bypasses the game engine's default window-focus suspension loop by flooding the application thread with explicit activation directives before the game can register the defocus state and pause itself.
+* **Proactive Anti-Pause Window Spammer:** Intercepts specific focus activation signals—specifically checking for certain Windows Shell Hook event messages. If the game client loses focus, the macro instantly bypasses the game engine's default window-focus suspension loop by flooding the application thread with explicit activation directives before the game can register the defocus state and pause itself.
 * **Strict Handle Pointer Targeting:** Abandons fragile text title tracking in favor of binding directly to a unique window descriptor identification token (`HWND`). This ensures background micro-automation sequences remain fully isolated from desktop focus changes, overlapping apps, or title string renames.
 
 ### 🎨 CyberNoir UI & Feature-Rich Dashboard Suite
 * **Dynamic Theme Engine:** Switch seamlessly between a customized, cyber-styled **Dark Mode** and **Light Mode** workspace layout on-the-fly.
-* **Execution Speed Control (Analog Delay Multiplier):** Features a highly adjustable analog slider supporting expanded **0.25x to 5.0x** scaling. This allows users to dynamically expand or contract script menu delay buffers and pixel detection timeouts to match their storage drive speed (SSD vs. HDD) and system throughput performance.
-* **DPI-Safe Interface Elements:** Replaced native OS slider and configuration components with an entirely custom system, fully protecting the application window from layout clipping bugs or offset rendering caused by Windows display scaling settings.
+* **Execution Speed Control (Analog Delay Multiplier):** Features a highly adjustable analog slider supporting expanded **0.25x to 4.0x** scaling. This allows users to dynamically expand or contract script menu delay buffers and pixel detection timeouts to match their storage drive speed (SSD vs. HDD) and system throughput performance.
+* **DPI-Safe Interface:** Replaced native OS slider and configuration components with an entirely custom system, fully protecting the application window from layout clipping bugs or offset rendering caused by Windows display scaling settings.
 * **Sleek Tier Toggle Buttons:** Features dedicated, stylized **STANDARD** and **PREMIUM** buttons to quickly adjust the internal menu navigation paths to align with your specific game edition layout instead of clunky old checkboxes.
-* **Wheelspin Panel Subsystem:** Wheelspins controller reside in a modular, independent sub-panel interface. This auxiliary window automatically computes its layout to spawn centered relative to the master UI, supports fluid click-and-drag re-positioning, and inherits global active styles.
+* **Wheelspin Panel Subsystem:** Wheelspins controller resides in a modular, independent sub-panel interface. This auxiliary window automatically computes its layout to spawn centered relative to the master UI, supports fluid click-and-drag re-positioning, and inherits global active styles.
 * **Integrated Keep or Sell Choice:** Built-in UI toggles for **KEEP** and **SELL** rules allow you to choose whether the macro automatically liquidates duplicate prize cars for quick cash credits or saves them to your garage backlog.
-* **Responsive MiniGUI Overlay:** Minimizing the primary dashboard shrinks the environment into a highly responsive, floating overlay widget tracking runtime, key states, credits, and wheelspins. It features state-driven icon glyphs (Flashing Green for execution, Amber for Paused, Burning Red for hard stops) alongside quick-access action toggles to trigger diagnostics, game locks, or environment resets. To achieve the best background play experience, users are highly recommended to leverage the **Always On Top**, **Resize**, and **Lock** feature configurations directly through the buttons provided on this overlay panel.
+* **Responsive MiniGUI Overlay:** Minimizing the primary dashboard shrinks the environment into a highly responsive, floating overlay widget tracking runtime, key states, credits, and wheelspins. It features an optimized **2x2 alignment grid tree** to clean up overlapping elements alongside quick-access action toggles to trigger diagnostics, game locks, or environment resets. To achieve the best background play experience, users are highly recommended to leverage the **Always On Top**, **Resize**, and **Lock** feature configurations directly through the buttons provided on this overlay panel.
 * **Interactive Share Code Footer:** Includes a click-to-copy integration built right into the GUI footer. Selecting your active track profile from the dropdown menu dynamically updates the footer text with the correct blueprint and tuning codes, copying them instantly to your clipboard for effortless in-game pasting.
 
 ### 📊 Telemetry & Resource Management Automation
-* **Deterministic Math Models & Data Mapping:** Maps track metadata and vehicle configurations into explicit dictionary structures (`EventLabData` and `CarData`), allowing the pipeline to easily scale and adapt to custom records. Rather than relying on volatile runtime estimates, the program utilizes internal mathematical formulas based on empirical loading baselines to accurately project session completion times.
+* **Deterministic Math Models & Data Mapping:** Maps track metadata and vehicle configurations into explicit dictionary structures, allowing the pipeline to easily scale and adapt to custom records. Rather than relying on volatile runtime estimates, the program utilizes internal mathematical formulas based on empirical loading baselines to accurately project session completion times.
 * **Dual-Phase Validation Scans:** Captures an OCR area snapshot right **before a race initializes** to log your starting balance, and runs a mirror calculation check **immediately after the match finishes**. This calculates exact performance updates per sequence interval and verifies that network disconnects didn't drop your match rewards.
 * **Smart Overestimation Cap:** While the true in-game skill point balance caps out at 999, the macro limits its internal single-loop target ceiling to a conservative max score of **980**. This buffer prevents mathematical overestimations from forcing the loop routine to purchase redundant, surplus vehicles.
 * **Custom Desired Target Override:** You can bypass the automatic calculation engine at any time by typing a target value directly into the **Desired Skill Points** input field on the dashboard, forcing the automated loops to halt precisely when your manual limit is reached.
 
-### 👁️ Intelligence & Safety Guardrails
+### 👁️ Account Protection & Safety Guardrails
+* **Accidental Deletion Blocker:** Automatically triggers a hard modal intercept, sounds an audible alarm, and kills the script runtime instantly if a `"Remove Car From Garage"` prompt is detected before the first vehicle gets selected, or if a `"Create Auction"` prompt is detected at any point during the automation process.
+* **Smart Vehicle Verification Framework:** Leverages a specialized text similarity evaluator (`GetTextSimilarity`) once cars are sorted. This frame uses a custom **Levenshtein similarity metric tool** to verify text structural reliability; if the scanned layout metric precision drops beneath an **80% similarity floor** compared against the active `CarData` profile, the system halts immediately to protect the user's account from running macros on the wrong vehicle type.
+* **Timer Leak Optimization:** Re-arranged thread sequencing to safely toggle the execution interval timer (`EmergencyUnlockCheck`) *only* when an active sequence loop is processing, preventing dangling thread leaks.
 * **Real-Time Pixel Detection Engine:** Employs precise color-matching and pixel-detection loops to dynamically evaluate state-changes across specific HUD safe frames. By sampling exact Hex color codes in real-time, the engine verifies loading states and UI flags instantly, preventing the macro from firing inputs out of sequence or proceeding blindly into unexpected game states.
 * **Fuzzy Optical Character Recognition (OCR):** Integrates `OCR.ahk` alongside a specialized **Fuzzy Edit-Distance String Recognition Pipeline**. This replaces rigid exact-string matches with a case-insensitive mathematical similarity scoring system, letting the macro safely absorb subtle OCR misreads without halting operations.
 * **Visual Bounding Zone Overlay:** Pressing `F5` triggers an adjustable, semi-transparent colored bounding box overlay that hooks directly onto your game window dimensions. This outlines exactly where automated color-scanning and optical text parsing routines are scraping data in real-time for effortless user calibration.
@@ -104,6 +116,8 @@ This automation utility balances low-level Windows API hooks with a highly refin
 ### 🛠️ Developer & Configuration Tools
 * **Centralized File Configuration Sync:** Standardizes a local persistent `.ini` file configuration framework to cache structural variable settings (custom tracks, car indices, loop multipliers, viewport configurations, licensing tiers) across reboots.
 * **Heuristic Application Path Discovery Matrix:** An autonomous background engine scanner that queries local Windows Registry keys, traces registered App Paths, and checks default system directories across multiple storage drives to locate the game executable without requiring manual path specification.
+
+---
 
 ## 🔁 The Automation Modes
 
@@ -119,7 +133,7 @@ The core macro pipeline is divided into independent operational modules that can
 
 ### 🛞 Unlock Mode (Hotkey: `]`)
 * **Purpose:** Unlocks targeted car mastery rewards and cleans out your garage.
-* **Logic:** Runs a pre-flight resource validation and invokes an **Optical Car Validation Safety Framework**. If the macro detects a mismatch between the expected target car and the active on-screen vehicle title header, it fires an emergency loop shutdown to safeguard your skill points.
+* **Logic:** Runs pre-flight resource validation and invokes the **Two-Phase Emergency Safety Framework**. Guided by the active `CarSorted` tracker, it scans layout parameters using `GetTextSimilarity`. If text correspondence falls below an **80% match**, or if a dangerous `"Remove Car"` prompt is caught before sorting completes, the script triggers an emergency hard shutdown to safeguard your account.
 
 ### ♾️ Full Automation Loop (Hotkey: `/`)
 * **Purpose:** Fully unattended, continuous farming.
@@ -130,6 +144,8 @@ The core macro pipeline is divided into independent operational modules that can
 ### 🎰 Spin Mode (Hotkey: `=`)
 * **Purpose:** Automatically burns through your backlog of accumulated wheelspins.
 * **Logic:** Designed to be activated while hovering over your wheelspin tiles inside the game's **My Horizon** pause menu. It logs live reward statistics and respects your GUI toggle settings to automatically **KEEP** new prize vehicles or **SELL** duplicates for cash.
+
+---
 
 ## ⌨️ Keyboard Controls Masterlist
 
@@ -145,6 +161,8 @@ The core macro pipeline is divided into independent operational modules that can
 | `Ctrl + Shift + C` | Developer Calibration Utility: Copy normalized screen coordinates and Hex color code |
 | `Alt + Left Click` | Move the game client window around your desktop via click-and-drag |
 
+---
+
 ## 📷 Step-by-Step Setup Guide
 
 ### ⚙️ 1. Difficulty Settings
@@ -154,7 +172,7 @@ Verify your in-game configurations match the settings below for maximum consiste
 | Setting | Recommended Value |
 | --- | --- |
 | Drivatar Difficulty | UNBEATABLE |
-| Drving Assists Preset | FULL ASSISTS |
+| Driving Assists Preset | FULL ASSISTS |
 | Braking | ASSISTED |
 | Steering | AUTO-STEERING |
 | Traction Control | ON |
@@ -178,7 +196,7 @@ Navigate to **Settings → HUD & Gameplay → What's Next** and turn it **OFF**.
 > **FLOW INTERRUPTION WARNING:** The "What's Next" feature must be disabled completely. Leaving it active allows the game client to break the automation flow by forcing unexpected menu states.
 
 <p align="center">
-  <img width="2456" height="1068" alt="Skills HUD Off" src="https://github.com/user-attachments/assets/c92a4501-a0f7-4af7-bc0a-ebe25ece19df"> 
+  <img width="2456" height="1068" alt="Skills HUD Off" src="https://github.com/user-attachments/assets/c92a4501-a0f7-4af7-bc0a-ebe25ece19df" />
 </p>
 
 ### 🖥️ 3. Video & Graphics Settings
@@ -189,25 +207,21 @@ Navigate to **Settings → HUD & Gameplay → What's Next** and turn it **OFF**.
 | :--- | :--- |
 | **Brightness** | `50` |
 | **HDR** | `Off` |
-| **Resolution** | `1920 x 1080` *(Recommended)* |
+| **Resolution** | `1920 x 1080` *(Recommended / See Fallbacks)* |
 | **Framerate** | `60 FPS Lock` *(Almost Mandatory)* |
 | **Graphics Quality** | `Lowest Settings` |
 
 #### Technical Implications (OCR & Pixel Search)
 
 * **Color Matching Stability (Brightness & HDR):** The pixel detection engine samples exact hexadecimal color coordinates to handle menu transitions. Activating HDR or moving the brightness slider warps these color codes, rendering the scanner blind and causing "Sync Errors".
-* **OCR Text Recognition Matrix (Resolution):** 
+* **OCR Text Recognition Matrix (Resolution):**
   * **Scale Calculations:** The macro dynamically recalculates scanning coordinates across standard **16:9 layouts** (1080p, 1440p, 4K). 
-  * **Peak Accuracy:** The underlying OCR engine is optimized for a native **1920x1080** canvas; running at this resolution delivers the highest character recognition success rate.
+  * **Peak Accuracy:** The underlying OCR engine is optimized for a native **1920x1080** canvas; running at this resolution delivers the highest character recognition success rate. Internal local fallbacks support scaling to **1280 x 720** for enhanced processing fidelity on lower setups.
   * **Ultrawide & Custom Shapes:** Non-native screen arrays (such as **21:9** or **16:10**) will break coordinate mapping unless the game client is run inside a restricted **windowed container**.
 * **Input Timing & Engine Sync (Framerate):** The script's operational delay buffers, telemetry verification tracking, and turning physics calculations are tightly synchronized to a fixed **60Hz update loop**. Running an unstable or higher framerate will cause the macro to drop key inputs.
 * **Visual Noise Reduction (Graphics Quality):** Setting your graphics to the lowest values strips out volatile environmental factors like dynamic shadows, motion blur, and anti-aliasing artifacts. This clean image stream significantly boosts the processing speed and reliability of both pixel scanning and OCR utilities.
 
-<p align="center">
-  <img width="2559" height="1439" alt="Screenshot 2026-06-17 215625" src="https://github.com/user-attachments/assets/46265802-0e86-4b81-90fe-5329ab5245e9" />
-</p>
-
-**Screen Clearance Safeguard:** The **left 1/3 of your monitor screen must be completely clear and uncovered** when running in a foreground configuration. Turn off floating windows, chat widgets, or system notification boxes, as they block the script from sampling hex colors.
+> 🛡️ **Screen Coverage Freedom:** Thanks to our rewritten rendering architecture utilizing a low-level GDI Canvas framework, **the game window can be completely covered or hidden out of focus** by other overlapping applications without blocking color scanning or optical character parsing routines.
 
 <p align="center">
   <img width="2559" height="1439" alt="Safe Area Layout" src="https://github.com/user-attachments/assets/1f8464f8-db8f-4093-8504-ba8fe5f423b0" />
@@ -285,6 +299,8 @@ When running the unlock mode sequence manually, you have the option to choose th
   <img width="2559" height="1439" alt="My Horizon Base Selection" src="https://github.com/user-attachments/assets/3a4ce3b7-f695-4cf4-a174-64ee42cd2c29" />
 </p>
 
+---
+
 ### 📱 8. Controlling the GUI
 
 #### 🎛️ Master GUI Control Dashboard Guide
@@ -297,7 +313,7 @@ The master interface serves as the centralized command center for configuring au
   <img width="271" height="139" alt="Target Matrix" src="https://github.com/user-attachments/assets/569140dd-ca8a-43cc-a5a1-f51fb80a3cc4" />
 </p>
 
-The upper portion of the **Input** tab visible allows you to define processing boundaries before deploying a script loop:
+The upper portion of the **Input** tab allows you to define processing boundaries before deploying a script loop:
 
 * **Current Skill Points:** Displays or allows manual override entry for your active vehicle mastery balance.
 * **Desired Skill Points:** Sets your ultimate resource ceiling target (e.g., `980`). Once reached, the automation engine cleanly finishes its active cycle and transitions out of racing states.
@@ -314,7 +330,7 @@ Directly underneath the parameter matrix are the optimization switches used to a
 
 * **Vehicle Dropdown Menu:** Selects the precise target vehicle schema (e.g., `Subaru Impreza 22B-STi`) to ensure the underlying OCR and mastery node layouts align correctly.
 * **STANDARD / PREMIUM Toggles:** Switches between different in-game car list menu alignments. If your game edition includes DLC car layout additions that shift grid coordinates, selecting **PREMIUM** recalibrates the menu tracking layer.
-* **Delay Multiplier Slider:** Provides an analog scaling slider ranging from **0.25x to 4.0x**. If your system experiences sudden background frame drops, disk read latency, or server connection lag, slide this modifier upward to scale all internal sleep buffers of key input safely.
+* **Delay Multiplier Slider:** Provides an analog scaling slider ranging from **0.25x to 4.0x**. If your system experiences sudden background frame drops, disk read latency, or server connection lag, slide this modifier upward to scale all internal sleep buffers of key inputs safely.
 
 #### 3. Core Automation Execution Triggers
 
@@ -326,7 +342,7 @@ The primary control buttons launch individual automation modes or initialize the
 
 * **RACE (`\`):** Launches the automated EventLab farming loop.
 * **BUY (`[`):** Executes the bulk vehicle acquisition macro sequence.
-* **UNLOCK (`]`):** Initializes the vehicle perk grid mastery loop to claim hidden wheelspin assets.
+* **UNLOCK (`]`):** Initializes the vehicle perk grid mastery loop, strictly governed by the new double-phase validation state checking.
 * **INIT SEQUENCE (`/`):** Daisy-chains all core modes into a continuous, self-sustaining loop (Race → Buy → Unlock → Repeat).
 * **OPEN SPIN INTERFACE:** Spawns the embedded prize delivery panel directly within the dashboard.
 
@@ -363,7 +379,7 @@ Located right below the running telemetry state readouts is the integrated track
 
 Expanding the **OPTIONS** toggle dropdown at the bottom of the dashboard grants access to background management and initialization hooks:
 
-* **Resolution Configuration Dropdown:** Configures target canvas viewport sizes (e.g., `854 x 480`) for windowed rendering scaling calculations.
+* **Resolution Configuration Dropdown:** Configures target canvas viewport sizes (default scaling set to **1280 x 720** for minimum OCR character fidelity) for windowed scaling metrics.
 * **SET GAME PATH:** Links the automation suite directly to your local installation directory for automated startup sequences.
 * **LAUNCH GAME:** Autonomously executes the target software executable while preparing local configuration settings.
 * **SPECIAL K Core Status:** Displays real-time API connection flags (e.g., `SPECIAL K (GAME RUNNING)`) to verify background play input translation wrappers are working smoothly.
@@ -377,16 +393,19 @@ Expanding the **OPTIONS** toggle dropdown at the bottom of the dashboard grants 
 When the main configuration dashboard is minimized, the tool shrinks into a highly responsive, floating overlay tracking live automation data and structural execution tasks in real time.
 
 The icon row positioned along the top header of Mini GUI provides low-level window hook management directly into the background engine:
-* Window Mode Transformation (🗗): Instantly commands the game window client to shift into a standardized 16:9 bordered resolution space based on selected resolution dropdown.
-* Always-On-Top Layer Lock (📌): Toggles an absolute visual priority layering state. This ensures the game window or overlay remains structurally visible without focus degradation.
-* Game Lock Engine Pipeline (🔒): Explicitly binds the unique window handle descriptor (HWND). This enables the system to continuously route input sequences into the background even while you interact with other desktop apps.
-* Environment Core Reload (⭮): Dispatches an emergency global reload command to instantly refresh script dependencies, clean stack buffers, and reset running metrics.
-* Restore Toggle (⛶): Spawns the Main GUI and hides the Mini GUI.
+* **Window Mode Transformation (🗗):** Instantly commands the game window client to shift into a standardized 16:9 bordered resolution space. Calculations feature precise bounding adjustments to drop the canvas layout completely flush with screen boundaries, eliminating pixel alignment offsets entirely.
+* **Always-On-Top Layer Lock (📌):** Toggles an absolute visual priority layering state. This ensures the game window or overlay remains structurally visible without focus degradation.
+* **Game Lock Engine Pipeline (🔒):** Explicitly binds the unique window handle descriptor (HWND). This enables the system to continuously route input sequences into the background even while you interact with other desktop apps.
+* **DWM Hardware-Accelerated Live Preview Subsystem (🎞️):** Harnesses the native **Windows Desktop Window Manager (DWM) Thumbnail API** (`dwmapi.dll`) through the `TogglePreview()` core trigger. It mirrors a hardware-accelerated, real-time preview stream of the out-of-focus background game canvas directly inside an auxiliary AutoHotkey GUI window container.
+* **Environment Core Reload (⭮):** Dispatches an emergency global reload command to instantly refresh script dependencies, clean stack buffers, and reset running metrics.
+* **Restore Toggle (⛶):** Spawns the Main GUI and hides the Mini GUI.
 
 Session Controls:
-* Init Sequence Start Button (🟢): Instantly triggers the Init Sequence loop. Cannot be used to start other independent modes.
-* Pause/Resume Button (❚❚): Gracefully parks execution threads mid-race without wiping session tracking states.
-* Hard Stop Emergency Reset (⏹): Forcibly stops hardware loops, zeroes temporary tracking variables, and resets the interface state.
+* **Init Sequence Start Button (🟢):** Instantly triggers the Init Sequence loop. Cannot be used to start other independent modes.
+* **Pause/Resume Button (❚❚):** Gracefully parks execution threads mid-race without wiping session tracking states.
+* **Hard Stop Emergency Reset (⏹):** Forcibly stops hardware loops, zeroes temporary tracking variables, and resets the interface state.
+
+---
 
 ## 🔧 Troubleshooting & FAQ
 
@@ -410,6 +429,8 @@ Session Controls:
 
 #### Q: What is the "First-Time Unfocus" quirk and how do I prevent the game from auto-pausing?
 **A:** The background window execution framework has a minor quirk: if the game loses focus for the very first time while you are actively driving in Free Roam or mid-race, it triggers an automatic game pause state that breaks the macro loop. To prevent this, **always click away to your background apps while your character is resting inside a static menu structure** (such as the main pause screen or your home garage). Once unfocused there, the macro will run smoothly in the background. Do not click back and forth onto the game window once your session starts.
+
+---
 
 ## ⚠️ Safety & Customization
 
