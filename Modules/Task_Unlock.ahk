@@ -371,9 +371,9 @@ UnlockLoop() {
 }
 
 VerifyAuction(timeoutMs := 5000) {
-    global ActiveMode, MasterMode, MasterStart, CurrentMultiplier, GameTitle
+    global ActiveMode, MasterMode, MasterStart, PixelMultiplier, GameTitle
     
-    timeoutMs *= CurrentMultiplier
+    timeoutMs *= PixelMultiplier
     StartTime := A_TickCount
     
     Process("Safety Scan: 'Create Auction' menu...")

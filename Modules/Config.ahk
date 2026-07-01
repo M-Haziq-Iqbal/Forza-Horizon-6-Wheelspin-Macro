@@ -130,9 +130,11 @@ global cHighlight       := "39FF14"
 global cIdle            := "7A4A60"
 global cTextDim         := "7A4A60"
 
-global Multipliers      := [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
-_iniMultiplier          := ReadMacroIni("Settings", "CurrentMultiplier", "")
-global CurrentMultiplier := _iniMultiplier ? _iniMultiplier : 1
+global Multipliers      := [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4]
+_iniKeyMultiplier       := ReadMacroIni("Settings", "KeyMultiplier", "")
+_iniPixelMultiplier     := ReadMacroIni("Settings", "PixelMultiplier", "")
+global KeyMultiplier    := _iniKeyMultiplier ? _iniKeyMultiplier : 1
+global PixelMultiplier  := _iniPixelMultiplier ? _iniPixelMultiplier : 1
 
 ; ══════════════════════════════════════════════
 ;  SPECIAL K INJECTION SETTINGS

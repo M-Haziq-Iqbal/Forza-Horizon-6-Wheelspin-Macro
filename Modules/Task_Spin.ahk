@@ -103,7 +103,7 @@ SpinLoop() {
                 break
 
             Loop 3 {
-                if GetPixelColorAfterDelay(0.450, 0.695, 500) = "0x000000" {
+                if GetPixelColor(0.450, 0.695, 500) = "0x000000" {
                     if SpinMode = "SELL" {
                         Process("Selling...")
                         PressKey("Down", 50)

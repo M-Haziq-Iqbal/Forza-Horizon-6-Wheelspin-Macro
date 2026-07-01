@@ -203,6 +203,11 @@ BuildMainGui(savedVals := "") {
     LoopCount_In := MainGUI.Add("Edit", "x" Round(179*ScaleX) " y" Round(240*ScaleY) " w" Round(63*ScaleX) " h" Round(20*ScaleY) " -E0x200 Center Number Background" p["editBg"] " c" p["text"], savedVals ? savedVals[4] : 99)
     MainGUI.Add("Text", "x" Round(30*ScaleX) " yp+" Round(3*ScaleY) " w" Round(155*ScaleX) " BackgroundTrans c" p["text"], "⟡   Sequence Loop")
 
+    SkillPtsCount_In.OnEvent("Change", (ctrl, *) => UpdateSkillPts(ctrl))
+    SkillPtsCount_In.OnEvent("LoseFocus", (ctrl, *) => ValidateSkillPts(ctrl))
+    SkillPtsWant_In.OnEvent("Change", (ctrl, *) => UpdateSkillPtsWant(ctrl))
+    SkillPtsWant_In.OnEvent("LoseFocus", (ctrl, *) => ValidateSkillPtsWant(ctrl))
+
     ; ── Cyber Dropdown: Car Selector ──────────
     SetFixedFont(MainGUI, 9, "bold")
     CarSelect_UI := MainGUI.Add("Text", "x" Round(45*ScaleX) " y" Round(278*ScaleY) " w" Round(180*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["editBg"] " c" p["text"])
@@ -242,15 +247,15 @@ BuildMainGui(savedVals := "") {
         KnobW:  Round(10 * ScaleX),
         KnobH:  Round(16 * ScaleY),
         MinVal: 1,
-        MaxVal: 12
+        MaxVal: 16
     }
 
     SetFixedFont(MainGUI, 9, "norm")
-    SpeedLabel_UI := MainGUI.Add("Text", "x0 y" Round(355*ScaleY) " w" Round(270*ScaleX) " Center c" p["text"], "Delay Multiplier: " CurrentMultiplier "x")
+    SpeedLabel_UI := MainGUI.Add("Text", "x0 y" Round(355*ScaleY) " w" Round(270*ScaleX) " Center c" p["text"], "Key Delay Multiplier: " KeyMultiplier "x")
     
     DelaySliderIndex := 4
     for index, name in Multipliers {
-        if (name == CurrentMultiplier) {
+        if (name == KeyMultiplier) {
             DelaySliderIndex := index
             break
         }
@@ -272,7 +277,7 @@ BuildMainGui(savedVals := "") {
     
     SliderTrack := MainGUI.Add("Text", "x" SliderCfg.TrackX " y" SliderCfg.TrackY " w" SliderCfg.TrackW " h" SliderCfg.TrackH " +0x100 Background" p["divider"])
     SliderKnob  := MainGUI.Add("Text", "x" startKnobX " y" knobY " w" SliderCfg.KnobW " h" SliderCfg.KnobH " +0x100 Background" p["accent"])
-    MainGUI.Add("Text", "x" Round(230*ScaleX) " y" (SliderCfg.TrackY - Round(6*ScaleY)) " w" Round(25*ScaleX) " Left c" p["textDim"], "5x")
+    MainGUI.Add("Text", "x" Round(230*ScaleX) " y" (SliderCfg.TrackY - Round(6*ScaleY)) " w" Round(25*ScaleX) " Left c" p["textDim"], "4x")
     
     ; ── Action Buttons ──
     SetFixedFont(MainGUI, 9, "bold", "Semibold")
@@ -313,11 +318,6 @@ BuildMainGui(savedVals := "") {
 
     MainGUI.Add("Text", "x" Round(22*ScaleX) " y+" Round(4*ScaleY) " w" Round(140*ScaleX) " Left BackgroundTrans c" p["textDim"], "⟡   Recommended Car")
     CarsLabel_UI   := _LinkNoirTelemetry(MainGUI.Add("Text", "x" Round(162*ScaleX) " yp w" Round(86*ScaleX) " Right BackgroundTrans c" p["text"]), Floor(PointsTotal / SelectedCarPoint))
-
-    SkillPtsCount_In.OnEvent("Change",    UpdateSkillPts)
-    SkillPtsCount_In.OnEvent("LoseFocus", ValidateSkillPts)
-    SkillPtsWant_In.OnEvent("Change",     UpdateSkillPtsWant)
-    SkillPtsWant_In.OnEvent("LoseFocus",  ValidateSkillPtsWant)
 
     ; ── Live Progress Telemetry ──
     SetFixedFont(MainGUI, 9, "bold")
@@ -449,7 +449,7 @@ BuildMainGui(savedVals := "") {
     FooterControls.Push(ThemeBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " yp+" Round(5*ScaleY) " w" Round(30*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], DarkMode ? "☀" : "🌙"))
     ThemeBtn.OnEvent("Click", (*) => ToggleTheme())
 
-    FooterControls.Push(VersionLink := MainGUI.Add("Link", "x" Round(224*ScaleX) " yp+" Round(12*ScaleY) " Right", '<a href="https://github.com/M-Haziq-Iqbal/Forza-Horizon-6-Wheelspin-Macro/releases/tag/v1.8.0">v1.8.0</a>'))
+    FooterControls.Push(VersionLink := MainGUI.Add("Link", "x" Round(224*ScaleX) " yp+" Round(12*ScaleY) " Right", '<a href="https://github.com/M-Haziq-Iqbal/Forza-Horizon-6-Wheelspin-Macro/releases/tag/v1.8.1">v1.8.1</a>'))
     FooterControls.Push(BottomSpacer := MainGUI.Add("Text", "x0 y+" Round(5*ScaleY) " w" Round(270*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans c" p["footer"], ""))
 
     MainGUI.Show("w" Round(270*ScaleX) " Hide")
@@ -604,7 +604,7 @@ DragSliderTimer() {
     
     ; FIXED: Target the text property for reliability on Text layout objects
     if IsSet(SpeedLabel_UI)
-        SpeedLabel_UI.Text := "Delay Multiplier: " currentValue "x"
+        SpeedLabel_UI.Text := "Key Delay Multiplier: " currentValue "x"
     
     try UpdateSpeed(DelaySlider_UI, "")
 }

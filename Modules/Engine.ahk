@@ -201,7 +201,7 @@ UpdateEventLab(ctrl, *) {
     CodeTune        := data.CodeTune
     CodeEventLab    := data.CodeEvent
     
-    SkillPtsWant_In.Value := UpdateSkillPtsWant({Value: MaxPoints})
+    SkillPtsWant_In.Value := UpdateSkillPtsWant({Value: MaxPoints}, false)
     CarCount_In.Value     := Floor(PointsTotal / SelectedCarPoint)
 
     WriteMacroIni("Settings", "EventLab", EventLab)
@@ -229,16 +229,17 @@ UpdateReso(ctrl, *) {
     WriteMacroIni("Settings", "Resolution", SelectedReso)
 }
 
-UpdateSkillPts(ctrl, *) {
+UpdateSkillPts(ctrl, ManualInput:= true, *) {
     global SelectedCarPoint, TimeTotal, PointsTotal, CarCount_In, SkillPtsWant_In, AveragePoints, PointsGain, MaxPoints
     global PointsLabel_UI, TimeLabel_UI, CarsLabel_UI, SectorLabel_UI, ActiveMode, CustomSkillPts
 
-    if CustomSkillPts = true
+    if ManualInput {
+        CustomSkillPts := false
         ShowNotif("info", "EventLab Race", "Mode: Automatic Desired Skill Point.")
+    }
 
-    CustomSkillPts := false
-    value          := ctrl.value
-    value          := (value = "") ? 0 : Min(999, value)
+    value := ctrl.value
+    value := (value = "") ? 0 : Min(999, value)
     
     SkillPtsWant_In.Value := (999 - value > MaxPoints) ? MaxPoints : 999 - value
 
@@ -254,15 +255,16 @@ UpdateSkillPts(ctrl, *) {
     CarsLabel_UI.Value   := Floor(PointsTotal / SelectedCarPoint)
 }
     
-UpdateSkillPtsWant(ctrl, *) {
+UpdateSkillPtsWant(ctrl, ManualInput:= true, *) {
     global SelectedCarPoint, TimeTotal, PointsTotal, CarCount_In, SkillPtsCount_In, AveragePoints, PointsGain, MaxPoints
     global PointsLabel_UI, TimeLabel_UI, CarsLabel_UI, PointsCount_UI, SectorLabel_UI, CustomSkillPts
 
-    if CustomSkillPts = false
+    if ManualInput {
+        CustomSkillPts := true
         ShowNotif("info", "EventLab Race", "Mode: Custom Desired Skill Point.")
+    }
 
-    CustomSkillPts := true
-    value          := ctrl.value
+    value := ctrl.value
     
     if (value = "") 
         value := 0
@@ -509,14 +511,14 @@ ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchN
 }
 
 WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs := 8000, postDelayMs := 1000, isFatal := false, variation := 0, note := "", radius := 0) {
-    global ActiveMode, MasterMode, MasterStart, CurrentMultiplier, GameTitle
+    global ActiveMode, MasterMode, MasterStart, PixelMultiplier, GameTitle
     CoordMode("Pixel", "Screen") 
     
     StartTime := A_TickCount
     LastSec   := -1
     
-    timeoutMs   *= CurrentMultiplier
-    postDelayMs *= CurrentMultiplier
+    timeoutMs   *= PixelMultiplier
+    postDelayMs *= PixelMultiplier
 
     Loop {
         if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
@@ -575,18 +577,18 @@ WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs 
     }
 }
 
-GetPixelColorAfterDelay(ratioX, ratioY, delayMs := 2000) {
-    global ActiveMode, MasterMode, MasterStart, CurrentMultiplier, GameTitle
+GetPixelColor(ratioX, ratioY, delayMs := 2000) {
+    global ActiveMode, MasterMode, MasterStart, PixelMultiplier, GameTitle
     CoordMode("Pixel", "Screen")
     
     ; Apply your macro speed multiplier to the wait time
-    delayMs *= CurrentMultiplier
+    delayMs *= PixelMultiplier
     StartTime := A_TickCount
 
     ; 1. Responsive delay loop (allows emergency abort while waiting)
     Loop {
-        if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
-            return "" ; Aborted
+        ; if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
+        ;     return "" ; Aborted
             
         if !WinExist(GameTitle)
             return ""
@@ -618,7 +620,7 @@ GetPixelColorAfterDelay(ratioX, ratioY, delayMs := 2000) {
 
 PressKey(key, delay := 500) {
     ; OPTIMIZATION: Added GameHwnd and MiniKey_UI to your global list
-    global Key_UI, MiniKey_UI, cHighlight, cIdle, CurrentMultiplier, GameTitle, GameHwnd
+    global Key_UI, MiniKey_UI, cHighlight, cIdle, KeyMultiplier, GameTitle, GameHwnd
 
     switch key {
         case "Down":      displayname := "↓"
@@ -685,7 +687,7 @@ PressKey(key, delay := 500) {
     }
     
     delay := Random(delay, delay + 50)
-    Sleep(CurrentMultiplier * delay)
+    Sleep(KeyMultiplier * delay)
 }
 
 Process(text, delay := 0) {
@@ -701,10 +703,10 @@ UpdateSpeed(*) {
 
     sliderPosition := DelaySlider_UI.Value
     
-    Global CurrentMultiplier := Multipliers[sliderPosition]
-    SpeedLabel_UI.Text       := "Delay Multiplier: " CurrentMultiplier "x"
+    Global KeyMultiplier := Multipliers[sliderPosition]
+    SpeedLabel_UI.Text       := "Key Delay Multiplier: " KeyMultiplier "x"
 
-    WriteMacroIni("Settings", "CurrentMultiplier", CurrentMultiplier)
+    WriteMacroIni("Settings", "KeyMultiplier", KeyMultiplier)
 }
 
 ; ══════════════════════════════════════════════
