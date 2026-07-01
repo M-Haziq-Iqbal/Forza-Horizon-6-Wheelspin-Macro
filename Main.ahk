@@ -48,8 +48,6 @@ Persistent(true)
 `::TogglePause()
 ^+c::GetCoordsColor()
 F5::ToggleDetectionZone()
-; F10::ToggleWindowLock()
-; F11::SetGameResolution()
 F12::Reload()
 !LButton::MoveWindow()
 #HotIf

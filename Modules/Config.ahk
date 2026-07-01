@@ -59,7 +59,7 @@ global MaxSections      := EventLabData[EventLab].MaxSections
 ; ══════════════════════════════════════════════
 global ResoList         := ["854 x 480", "960 x 540", "1024 x 576", "1280 x 720", "1366 x 768", "1920 x 1080", "2048 x 1152", "3200 x 1800", "3840 x 2160", "5120 x 2880", "7680 x 4320"]
 _iniReso                := ReadMacroIni("Settings", "Resolution", "")
-global SelectedReso     := _iniReso ? _iniReso : ResoList[3]
+global SelectedReso     := _iniReso ? _iniReso : ResoList[4]
 
 global CarList          := ["Subaru Impreza 22B-STi", "Lamborghini Revuelto", "Dodge Viper GTS ACR"]
 global CarData          := Map(

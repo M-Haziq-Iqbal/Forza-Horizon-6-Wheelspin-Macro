@@ -38,7 +38,7 @@ StartUnlock() {
 
         UnlockLoop()
     }
-    SetTimer(EmergencyUnlockCheck, 0)
+
     ResetIndicators()
 }
 
@@ -47,6 +47,8 @@ UnlockLoop() {
     global cActive, cHighlight, cIdle
     global SWheelCount_UI, WheelCount_UI, CreditCount_UI, UnlockRunTime_UI
     global SelectedCar, SelectedCarPoint, SkillPtsCount_In, CarCount_In
+
+    global CarSorted := false
 
     UnlockCount    := 0
     SWheelCount    := 0
@@ -68,6 +70,8 @@ UnlockLoop() {
             Case "Dodge Viper GTS ACR":
                 CreditCount_UI.SetFont("c" cHighlight)
         }
+
+        SetTimer(EmergencyUnlockCheck, 400)
         
         CarMenu := ScanOCR(0.060, 0.090, 0.156-0.060, 0.135-0.090)
 
@@ -162,7 +166,7 @@ UnlockLoop() {
                 break
         }
 
-        SetTimer(EmergencyUnlockCheck, 400)
+        CarSorted := true
 
         Process("Choosing First Car...")
         PressKey("Enter", 800) ; Select First Car
@@ -353,14 +357,14 @@ UnlockLoop() {
                 ShowNotif("success", "Reward Unlock", FormatCommas(CreditCount) " CR have been obtained.")
         }
 
-        if CarMismatch {
-            Process("Returning to Home...")
-            PressKey("Esc", 1600) ; Navigate to Auction House Menu
-            PressKey("Esc", 1600) ; Navigate to Buy & Sell Menu
-        }
+        ; if CarMismatch {
+        ;     Process("Returning to Home...")
+        ;     PressKey("Esc", 1600) ; Navigate to Auction House Menu
+        ;     PressKey("Esc", 1600) ; Navigate to Buy & Sell Menu
+        ; }
         
         PressKey("PgUp") ; Navigate to Campaign Menu
-
+        SetTimer(EmergencyUnlockCheck, 0)
         break ;
     }
 }
@@ -419,7 +423,7 @@ VerifyCar() {
 }
 
 EmergencyUnlockCheck() {
-    global GameTitle, ActiveMode, CarData, SelectedCar
+    global GameTitle, ActiveMode, CarData, SelectedCar, CarSorted
 
     static StatsNum := 0
     
@@ -427,9 +431,8 @@ EmergencyUnlockCheck() {
     if (ActiveMode != "Unlock" || !WinExist(GameTitle))
         return
 
-    ; Scan the combined danger zone for Auction or Deletion prompts
-    CarText := ScanOCR(0.364, 0.373, 0.267, 0.071)
-    if InStr(CarText, "Create Auction") {
+    MenuText := ScanOCR(0.362, 0.357,0.652-0.362, 0.449-0.357)
+    if InStr(MenuText, "Create Auction") {
         ; 1. Kill the timer thread immediately
         SetTimer(, 0)
         
@@ -437,26 +440,52 @@ EmergencyUnlockCheck() {
         SoundBeep(400, 500)
         
         ; 3. Flash a hard modal box to freeze all AHK execution paths
-        MsgBox("CRITICAL SAFETY INTERCEPT!`n`nStart Auction menu detected. Script has been reset to IDLE state to protect your account.", "MHI Emergency System", "IconX")
+        MsgBox("CRITICAL SAFETY INTERCEPT!`n`nCreate Auction menu detected. Script has been reset to IDLE state to protect your account.", "MHI Emergency System", "IconX")
         
         ; 4. Vaporize the current thread and reset the macro back to its pristine default state
         Reload()
     }
 
-    MenuText := ScanOCR(0.062, 0.092, 0.148-0.062, 0.132-0.092)
-    StatsNumNew := ScanOCR(0.177, 0.457, 0.205-0.177, 0.707-0.457, , , true)
-    StatsNum := StatsNumNew = -1 ? StatsNum : StatsNumNew
-    if InStr(MenuText, "My Cars") && CarData[SelectedCar].StatsNum != StatsNum {
-        ; 1. Kill the timer thread immediately
-        SetTimer(, 0)
-        
-        ; 2. Sound the alarm
-        SoundBeep(400, 500)
-        
-        ; 3. Flash a hard modal box to freeze all AHK execution paths
-        MsgBox("CRITICAL SAFETY INTERCEPT!`n`nWrong car detected. Script has been reset to IDLE state to protect your account.", "MHI Emergency System", "IconX")
-        
-        ; 4. Vaporize the current thread and reset the macro back to its pristine default state
-        Reload()
+    if !CarSorted {
+        if InStr(MenuText, "Remove Car") {
+            ; 1. Kill the timer thread immediately
+            SetTimer(, 0)
+            
+            ; 2. Sound the alarm
+            SoundBeep(400, 500)
+            
+            ; 3. Flash a hard modal box to freeze all AHK execution paths
+            MsgBox("CRITICAL SAFETY INTERCEPT!`n`nRemove Car menu detected. Script has been reset to IDLE state to protect your account.", "MHI Emergency System", "IconX")
+            
+            ; 4. Vaporize the current thread and reset the macro back to its pristine default state
+            Reload()
+        }
+    }
+
+    if CarSorted {
+        MenuText := ScanOCR(0.062, 0.092, 0.148-0.062, 0.132-0.092)
+        if InStr(MenuText, "My Cars") {
+            Loop {
+                StatsNumNew := ScanOCR(0.177, 0.457, 0.205-0.177, 0.707-0.457, , , true)
+                if StrLen(StatsNumNew) >= 10
+                    StatsNum := StatsNumNew
+                    break
+            }
+
+            if GetTextSimilarity(CarData[SelectedCar].StatsNum, StatsNum) <= 80 {
+                ; 1. Kill the timer thread immediately
+                SetTimer(, 0)
+                
+                ; 2. Sound the alarm
+                SoundBeep(400, 500)
+                
+                ; 3. Flash a hard modal box to freeze all AHK execution paths
+                MsgBox("CRITICAL SAFETY INTERCEPT!`n`nWrong car detected. Script has been reset to IDLE state to protect your account.", "MHI Emergency System", "IconX")
+                
+                ; 4. Vaporize the current thread and reset the macro back to its pristine default state
+                Reload()
+            }
+        }
     }
 }
+

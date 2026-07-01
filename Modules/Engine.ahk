@@ -428,41 +428,22 @@ GetCoordsColor() {
 }
 
 ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchNumber := false) {
-    CoordMode "Pixel", "Client"
     global GameTitle
-    gameTarget := GameTitle
-    
-    ; 1. Failsafe: Exit early if the game isn't running
-    if !WinExist(gameTarget) {
-        ShowNotif("error", "OCR Error", "Game window '" gameTarget "' is not running.")
+
+    ; Failsafe: Exit early if the game isn't running
+    if !WinExist(GameTitle) {
+        ShowNotif("error", "OCR Error", "Game window '" GameTitle "' is not running.")
         return -1
     }
     
-    ; 2. Get the canvas size to calculate percentage scaling
-    WinGetClientPos(, , &gameWidth, &gameHeight, gameTarget)
-    
-    startX := Round(ratioX * gameWidth)
-    startY := Round(ratioY * gameHeight)
-    width  := Round(ratioW * gameWidth)
-    height := Round(ratioH * gameHeight)
-    
     deadline := A_TickCount + waitTime
 
-    ; 3. Use a loop that always runs at least once, even if waitTime is 0
     Loop {
         try {
-            ; Grab the text straight from the background window canvas memory
-            result := OCR.FromWindow(gameTarget, {
-                x: startX, 
-                y: startY, 
-                w: width, 
-                h: height, 
-                scale: 3, 
-                invertcolors: 1
-            })
-            
-            scannedText := Trim(result.Text)
-            
+            ; 👉 CALL THE NEW BACKGROUND ENGINE HERE
+            result := GetBackgroundOCR(ratioX, ratioY, ratioW, ratioH)
+            scannedText := Trim(result)
+
             if (scannedText != "") {
                 ; Condition A: Looking for a specific phrase/word
                 if (targetText != "" && InStr(scannedText, targetText)) {
@@ -472,7 +453,7 @@ ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchN
                 ; Condition B: Looking for a number/digit data type
                 if (searchNumber) {
                     if InStr(scannedText, "No") {
-                        return 0 ; Your custom "No available skills" fallback
+                        return 0 ; Custom "No available skills" fallback
                     }
                     
                     cleanNumber := RegExReplace(scannedText, "\D") 
@@ -487,18 +468,17 @@ ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchN
                 }
             }
         } catch {
-            ; Suppressed background window state capture exception (e.g. temporary lag)
+            ; Suppressed background window state capture exception
         }
         
-        ; Break the loop if we've exceeded the deadline
         if (A_TickCount >= deadline) {
             break
         }
         
-        Sleep(50) ; Brief rest before looping to keep CPU usage low
+        Sleep(50) ; Brief rest to keep CPU usage low
     }
     
-    ; Trigger notifications on timeout (Only if waitTime > 0 to prevent one-shot check spam)
+    ; Trigger notifications on timeout
     if (waitTime > 0) {
         if (targetText != "") {
             ShowNotif("warning", "OCR Timeout", "Failed to find text: '" targetText "' within " Round(waitTime/1000, 1) "s")
@@ -507,12 +487,75 @@ ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchN
         }
     }
     
-    return (searchNumber) ? -1 : false ; Return appropriate fail state depending on type
+    return (searchNumber) ? -1 : false 
+}
+
+GetBackgroundOCR(ratioX, ratioY, ratioW, ratioH) {
+    global GameTitle
+    hWnd := WinExist(GameTitle)
+    if !hWnd
+        return ""
+
+    ; Calculate background frame geometry dimensions
+    rectW := Buffer(16), rectC := Buffer(16), pt := Buffer(8)
+    DllCall("GetWindowRect", "Ptr", hWnd, "Ptr", rectW)
+    DllCall("GetClientRect", "Ptr", hWnd, "Ptr", rectC)
+    
+    wW := NumGet(rectW, 8, "Int") - NumGet(rectW, 0, "Int")
+    hW := NumGet(rectW, 12, "Int") - NumGet(rectW, 4, "Int")
+    wC := NumGet(rectC, 8, "Int")
+    hC := NumGet(rectC, 12, "Int")
+
+    NumPut("Int", 0, pt, 0), NumPut("Int", 0, pt, 4)
+    DllCall("ClientToScreen", "Ptr", hWnd, "Ptr", pt)
+    offsetX := NumGet(pt, 0, "Int") - NumGet(rectW, 0, "Int")
+    offsetY := NumGet(pt, 4, "Int") - NumGet(rectW, 4, "Int")
+
+    startX := offsetX + Integer(ratioX * wC)
+    startY := offsetY + Integer(ratioY * hC)
+    width  := Integer(ratioW * wC)
+    height := Integer(ratioH * hC)
+
+    ; Initialize low-level GDI Canvas structures
+    hdcScreen := DllCall("GetDC", "Ptr", 0, "Ptr")
+    hdcMemSrc  := DllCall("gdi32\CreateCompatibleDC", "Ptr", hdcScreen, "Ptr")
+    hFullBmp   := DllCall("gdi32\CreateCompatibleBitmap", "Ptr", hdcScreen, "Int", wW, "Int", hW, "Ptr")
+    hOldSrc    := DllCall("gdi32\SelectObject", "Ptr", hdcMemSrc, "Ptr", hFullBmp, "Ptr")
+
+    ; Direct composition grab pulls data even if window is covered
+    DllCall("PrintWindow", "Ptr", hWnd, "Ptr", hdcMemSrc, "UInt", 2)
+
+    ; Setup the crop destination slice canvas
+    hdcMemDst  := DllCall("gdi32\CreateCompatibleDC", "Ptr", hdcScreen, "Ptr")
+    hCropBmp   := DllCall("gdi32\CreateCompatibleBitmap", "Ptr", hdcScreen, "Int", width, "Int", height, "Ptr")
+    hOldDst    := DllCall("gdi32\SelectObject", "Ptr", hdcMemDst, "Ptr", hCropBmp, "Ptr")
+
+    ; Execute the fast hardware crop transfer
+    DllCall("gdi32\BitBlt", "Ptr", hdcMemDst, "Int", 0, "Int", 0, "Int", width, "Int", height, "Ptr", hdcMemSrc, "Int", startX, "Int", startY, "UInt", 0x00CC0020)
+
+    ; 🌟 UNLOCK THE BITMAP: Restore original states so Windows UWP OCR can read it
+    DllCall("gdi32\SelectObject", "Ptr", hdcMemDst, "Ptr", hOldDst)
+    DllCall("gdi32\SelectObject", "Ptr", hdcMemSrc, "Ptr", hOldSrc)
+
+    ; Perform the OCR pass over the unlocked memory block
+    textResult := ""
+    try {
+        ocrObj := OCR.FromBitmap(hCropBmp, { scale: 3, invertcolors: 1 })
+        textResult := Trim(ocrObj.Text)
+    }
+
+    ; Dispose of raw memory handlers safely to completely avoid memory leaks
+    DllCall("gdi32\DeleteObject", "Ptr", hCropBmp)
+    DllCall("gdi32\DeleteDC", "Ptr", hdcMemDst)
+    DllCall("gdi32\DeleteObject", "Ptr", hFullBmp)
+    DllCall("gdi32\DeleteDC", "Ptr", hdcMemSrc)
+    DllCall("ReleaseDC", "Ptr", 0, "Ptr", hdcScreen)
+
+    return textResult
 }
 
 WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs := 8000, postDelayMs := 1000, isFatal := false, variation := 0, note := "", radius := 0) {
     global ActiveMode, MasterMode, MasterStart, PixelMultiplier, GameTitle
-    CoordMode("Pixel", "Screen") 
     
     StartTime := A_TickCount
     LastSec   := -1
@@ -520,18 +563,40 @@ WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs 
     timeoutMs   *= PixelMultiplier
     postDelayMs *= PixelMultiplier
 
+    ; Parse colors safely to numeric values for bit-shifting operations
+    nTarget := Integer(targetColor)
+    nTargetHDR := targetColorHDR != "" ? Integer(targetColorHDR) : ""
+
     Loop {
         if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
             return false
             
-        if !WinExist(GameTitle)
+        hWnd := WinExist(GameTitle)
+        if !hWnd
             return false
 
-        WinGetClientPos(&mLeft, &mTop, &mWidth, &mHeight, GameTitle)
-        centerX := mLeft + Integer(ratioX * mWidth)
-        centerY := mTop  + Integer(ratioY * mHeight)
+        ; Fetch structural dimensions of the target window
+        rectW := Buffer(16)
+        DllCall("GetWindowRect", "Ptr", hWnd, "Ptr", rectW)
+        wW := NumGet(rectW, 8, "Int") - NumGet(rectW, 0, "Int")
+        hW := NumGet(rectW, 12, "Int") - NumGet(rectW, 4, "Int")
+
+        rectC := Buffer(16)
+        DllCall("GetClientRect", "Ptr", hWnd, "Ptr", rectC)
+        wC := NumGet(rectC, 8, "Int")
+        hC := NumGet(rectC, 12, "Int")
+
+        ; Calculate the exact structural offset of the client canvas relative to the window frame
+        pt := Buffer(8)
+        NumPut("Int", 0, pt, 0), NumPut("Int", 0, pt, 4)
+        DllCall("ClientToScreen", "Ptr", hWnd, "Ptr", pt)
+        offsetX := NumGet(pt, 0, "Int") - NumGet(rectW, 0, "Int")
+        offsetY := NumGet(pt, 4, "Int") - NumGet(rectW, 4, "Int")
+
+        ; Map scaling ratios directly to the background client zone coordinates
+        centerX := offsetX + Integer(ratioX * wC)
+        centerY := offsetY + Integer(ratioY * hC)
             
-        ; Define a tiny bounding box based on your radius
         x1 := centerX - radius
         y1 := centerY - radius
         x2 := centerX + radius
@@ -546,25 +611,54 @@ WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs 
             LastSec := RemainingSec
         }
 
-        ; 1. Check Standard Color inside the small radius box
-        if PixelSearch(&foundX, &foundY, x1, y1, x2, y2, targetColor, variation) {
-            if (postDelayMs > 0)
-                Sleep(postDelayMs)
-            return true 
+        ; BACKGROUND DEVICE CONTEXT RENDERING ENGINE
+        hdcScreen := DllCall("GetDC", "Ptr", 0, "Ptr")
+        hdcMem := DllCall("gdi32\CreateCompatibleDC", "Ptr", hdcScreen, "Ptr")
+        hBitmap := DllCall("gdi32\CreateCompatibleBitmap", "Ptr", hdcScreen, "Int", wW, "Int", hW, "Ptr")
+        hOld := DllCall("gdi32\SelectObject", "Ptr", hdcMem, "Ptr", hBitmap, "Ptr")
+        
+        ; Flag 2 (PW_RENDERFULLCONTENT) forces direct hardware composition capture 
+        DllCall("PrintWindow", "Ptr", hWnd, "Ptr", hdcMem, "UInt", 2)
+
+        pixelMatchFound := false
+        
+        ; Scan the internal graphic buffer within the designated radius
+        loopY := y1
+        while (loopY <= y2 && !pixelMatchFound) {
+            loopX := x1
+            while (loopX <= x2 && !pixelMatchFound) {
+                bgrColor := DllCall("gdi32\GetPixel", "Ptr", hdcMem, "Int", loopX, "Int", loopY, "UInt")
+                
+                if (bgrColor != 0xFFFFFFFF) { ; Ensure valid data window reads
+                    ; Convert background GDI Windows structure (BGR) back to standard AHK color formatting (RGB)
+                    rgbColor := ((bgrColor & 0xFF) << 16) | (bgrColor & 0xFF00) | ((bgrColor >> 16) & 0xFF)
+                    
+                    if BGColorCompare(rgbColor, nTarget, variation) || (nTargetHDR !== "" && BGColorCompare(rgbColor, nTargetHDR, variation)) {
+                        pixelMatchFound := true
+                    }
+                }
+                loopX++
+            }
+            loopY++
         }
 
-        ; 2. Check HDR Color Alternative inside the small radius box
-        if (targetColorHDR != "" && PixelSearch(&foundX, &foundY, x1, y1, x2, y2, targetColorHDR, variation)) {
+        ; Explicitly clean up all tracking handles to eliminate memory leaks
+        DllCall("gdi32\SelectObject", "Ptr", hdcMem, "Ptr", hOld)
+        DllCall("gdi32\DeleteObject", "Ptr", hBitmap)
+        DllCall("gdi32\DeleteDC", "Ptr", hdcMem)
+        DllCall("ReleaseDC", "Ptr", 0, "Ptr", hdcScreen)
+
+        if (pixelMatchFound) {
             if (postDelayMs > 0)
                 Sleep(postDelayMs)
-            return true 
+            return true
         }
 
         if (A_TickCount - StartTime > timeoutMs) {
             if isFatal {
-                failMsg := note!="" ? note : "Menu interaction timed out!"
+                failMsg := note != "" ? note : "Menu interaction timed out!"
                 Process("Sync Error: " failMsg)
-                if note!=0
+                if note != "0"
                     ShowNotif("error", "Sync Failure", failMsg)
                 return false
             } else {
@@ -577,41 +671,82 @@ WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs 
     }
 }
 
-GetPixelColor(ratioX, ratioY, delayMs := 2000) {
+GetPixelColor(ratioX, ratioY, delayMs := 0) {
     global ActiveMode, MasterMode, MasterStart, PixelMultiplier, GameTitle
-    CoordMode("Pixel", "Screen")
     
-    ; Apply your macro speed multiplier to the wait time
-    delayMs *= PixelMultiplier
-    StartTime := A_TickCount
-
-    ; 1. Responsive delay loop (allows emergency abort while waiting)
-    Loop {
-        ; if ((ActiveMode != "Race" && ActiveMode != "Buy" && ActiveMode != "Unlock" && ActiveMode != "Spin") || (!MasterMode && MasterStart))
-        ;     return "" ; Aborted
-            
-        if !WinExist(GameTitle)
-            return ""
-
-        ; Check if the required time has passed
-        if (A_TickCount - StartTime >= delayMs)
-            break
-            
-        Sleep(50) 
+    ; Apply multiplier and execute delay ONLY if delayMs is greater than 0
+    if (delayMs > 0) {
+        delayMs *= PixelMultiplier
+        StartTime := A_TickCount
+        Loop {
+            if !WinExist(GameTitle)
+                return ""
+            if (A_TickCount - StartTime >= delayMs)
+                break
+            Sleep(50) 
+        }
     }
 
-    ; 2. Calculate the exact target coordinates right at the moment of capture
-    WinGetClientPos(&mLeft, &mTop, &mWidth, &mHeight, GameTitle)
-    centerX := Integer(mLeft + (ratioX * mWidth))
-    centerY := Integer(mTop  + (ratioY * mHeight))
+    hWnd := WinExist(GameTitle)
+    if !hWnd
+        return ""
 
-    ; 3. Grab and return the Hex color code (e.g., "0xFFFFFF")
+    ; Calculate background frame metrics
+    rectW := Buffer(16), rectC := Buffer(16), pt := Buffer(8)
+    DllCall("GetWindowRect", "Ptr", hWnd, "Ptr", rectW)
+    DllCall("GetClientRect", "Ptr", hWnd, "Ptr", rectC)
+    
+    wW := NumGet(rectW, 8, "Int") - NumGet(rectW, 0, "Int")
+    hW := NumGet(rectW, 12, "Int") - NumGet(rectW, 4, "Int")
+    wC := NumGet(rectC, 8, "Int")
+    hC := NumGet(rectC, 12, "Int")
+
+    NumPut("Int", 0, pt, 0), NumPut("Int", 0, pt, 4)
+    DllCall("ClientToScreen", "Ptr", hWnd, "Ptr", pt)
+    offsetX := NumGet(pt, 0, "Int") - NumGet(rectW, 0, "Int")
+    offsetY := NumGet(pt, 4, "Int") - NumGet(rectW, 4, "Int")
+
+    centerX := offsetX + Integer(ratioX * wC)
+    centerY := offsetY + Integer(ratioY * hC)
+
+    ; Initialize memory graphics handles
+    hdcScreen := DllCall("GetDC", "Ptr", 0, "Ptr")
+    hdcMem    := DllCall("gdi32\CreateCompatibleDC", "Ptr", hdcScreen, "Ptr")
+    hBitmap   := DllCall("gdi32\CreateCompatibleBitmap", "Ptr", hdcScreen, "Int", wW, "Int", hW, "Ptr")
+    hOld      := DllCall("gdi32\SelectObject", "Ptr", hdcMem, "Ptr", hBitmap, "Ptr")
+    
+    bgrColor := 0xFFFFFFFF ; Default to invalid flag
+    
     try {
-        detectedColor := PixelGetColor(centerX, centerY)
-        return detectedColor
-    } catch {
-        return "" ; Game window closed or minimized during grab
+        ; Capture background window state layer
+        DllCall("PrintWindow", "Ptr", hWnd, "Ptr", hdcMem, "UInt", 2)
+        bgrColor := DllCall("gdi32\GetPixel", "Ptr", hdcMem, "Int", centerX, "Int", centerY, "UInt")
+    } finally {
+        ; 🌟 GUARANTEED CLEANUP: This block executes no matter what happens above
+        DllCall("gdi32\SelectObject", "Ptr", hdcMem, "Ptr", hOld)
+        DllCall("gdi32\DeleteObject", "Ptr", hBitmap)
+        DllCall("gdi32\DeleteDC", "Ptr", hdcMem)
+        DllCall("ReleaseDC", "Ptr", 0, "Ptr", hdcScreen)
     }
+
+    ; CLR_INVALID or window acquisition failure fallback
+    if (bgrColor = 0xFFFFFFFF)
+        return ""
+
+    ; Convert GDI's native 0xBBGGRR format cleanly into standard 0xRRGGBB
+    rgbColor := ((bgrColor & 0xFF) << 16) | (bgrColor & 0xFF00) | ((bgrColor >> 16) & 0xFF)
+    return Format("0x{:06X}", rgbColor)
+}
+
+; Internal processing math module to match variations across shading maps
+BGColorCompare(color1, color2, variation) {
+    if (variation == 0)
+        return color1 == color2
+        
+    r1 := (color1 >> 16) & 0xFF, g1 := (color1 >> 8) & 0xFF, b1 := color1 & 0xFF
+    r2 := (color2 >> 16) & 0xFF, g2 := (color2 >> 8) & 0xFF, b2 := color2 & 0xFF
+    
+    return (Abs(r1 - r2) <= variation) && (Abs(g1 - g2) <= variation) && (Abs(b1 - b2) <= variation)
 }
 
 ; ══════════════════════════════════════════════

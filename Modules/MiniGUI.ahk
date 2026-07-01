@@ -354,7 +354,7 @@ SetGameResolution(ctrl) {
         ; Strip title bar and window borders so the game canvas aligns perfectly with monitor pixels
         WinSetStyle("-0x00C00000 -0x00040000", GameTitle) ; -WS_CAPTION -WS_THICKFRAME
 
-        TargetX := (MonLeft + MonWidth) - (TargetWidth // 3)
+        TargetX := (MonLeft + MonWidth) - TargetWidth
         TargetY := (MonTop + MonHeight) - TargetHeight
         
         ; Apply positioning metrics
