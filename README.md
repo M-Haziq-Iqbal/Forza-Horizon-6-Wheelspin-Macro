@@ -71,8 +71,8 @@ Select your preferred target car on the dashboard dropdown menu depending on you
 | **1999 Dodge Viper GTS ACR** | 68,000 CR | 64,600 CR | 150,000 Cash Credits | 30 Points | **Credit Flipping:** Quickly converts your skill points back into raw cash credits. |
 | **1974 Mazda #123 Mad Mike 808 Wagon 'FURSTY'** | 100,000 CR | 95,000 CR | 1x Super Wheelspin | 21 Points | **Budget Fast Wheelspins:** Great decently-cost choice for farming pretty fast Super Wheelspins. |
 
-> \* **Note on 1974 Mazda #123 Mad Mike 808 Wagon 'FURSTY':** This is a Car Pass only car! Make sure to select it only if you owned it via Premium Edition, Car Pass pack or single purchase.
-> \* **Note on Premium Edition:** If you are running a premium edition account that alters this vehicle's placement layout inside the Journal, make sure to click the **PREMIUM** button layout on the UI dashboard to safely adjust menu tracking layers.
+> \* **Note on 1974 Mazda #123 Mad Mike 808 Wagon 'FURSTY':** This is a Car Pass only car! Make sure to select it only if you owned it via Premium Edition, Car Pass pack or single add-on purchase.  
+> \* **Note on Premium Edition:** If you are running a premium edition account that alters this vehicle's placement layout inside the Journal, make sure to click the **PREMIUM** button layout on the UI dashboard to safely adjust menu tracking layers.  
 > \* **Note on Standard Edition with Car Pass:** If you are running a standard edition account with additional Car Pass, Buy Mode might not work properly as the vehicle's placement layout inside the Journal might be different than usual, make sure to raise Issues if that happens.
 
 ---

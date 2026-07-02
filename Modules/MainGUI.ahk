@@ -462,7 +462,7 @@ BuildMainGui(savedVals := "") {
     FooterControls.Push(Kofi_UI := MainGUI.Add("Picture", "x" Round(72.5*ScaleX) " yp+" Round(0*ScaleY) " w" Round(125*ScaleX) " h" Round(25*ScaleY) , A_ScriptDir "\assets\kofi.png"))
     Kofi_UI.OnEvent("Click", (*) => Run("https://ko-fi.com/mhaziqiqbal"))
 
-    FooterControls.Push(VersionLink := MainGUI.Add("Link", "x" Round(224*ScaleX) " yp+" Round(5*ScaleY) " Right", '<a href="https://github.com/M-Haziq-Iqbal/Forza-Horizon-6-Wheelspin-Macro/releases/tag/v1.8.1">v1.8.1</a>'))
+    FooterControls.Push(VersionLink := MainGUI.Add("Link", "x" Round(224*ScaleX) " yp+" Round(5*ScaleY) " Right", '<a href="https://github.com/M-Haziq-Iqbal/Forza-Horizon-6-Wheelspin-Macro/releases/tag/v1.8.0">v1.8.0</a>'))
 
     FooterControls.Push(BottomSpacer := MainGUI.Add("Text", "x0 yp+" Round(30*ScaleY) " w" Round(270*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans c" p["footer"], ""))
 
