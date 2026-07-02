@@ -115,22 +115,35 @@ BuyLoop() {
             Case "Lamborghini Revuelto":
                 Loop 10
                     PressKey("Down", 50)
-                PressKey("Enter") ; Select Lamborghini
-                PressKey("Right")
-                Loop 4
-                    PressKey("Down", 50)
+                PressKey("Right") ; Navigate to Lancia
+                PressKey("Enter") ; Select Lancia
+                PressKey("Left") ; Navigate to Revuelto
 
             Case "Dodge Viper GTS ACR":
                 Loop 5
                     PressKey("Down", 50)
                 Loop 2
-                    PressKey("Right", 50)
+                    PressKey("Right", 50) ; Navigate to Dodge
                 PressKey("Enter") ;Select Dodge
                 if UserTier = "STANDARD"
                     PressKey("Down")
-                else {
+                else if UserTier = "PREMIUM" {
                     PressKey("Down")
                     PressKey("Right")
+                }
+                
+            Case "Mazda #123 Mad Mike 808":
+                Loop 10
+                    PressKey("Up", 50) ; Navigate to Mazda
+                PressKey("Enter") ;Select Mazda
+                if UserTier = "STANDARD" {
+                    PressKey("Down")
+                    PressKey("Left")
+                    PressKey("Left")
+                } else if UserTier = "PREMIUM" {
+                    PressKey("Down")
+                    PressKey("Left")
+                    PressKey("Left")
                 }
         }
 
@@ -139,6 +152,16 @@ BuyLoop() {
 
         ; ── Buying Car ───────────────
         Process("Buying " SelectedCar "...")
+        PressKey("Enter") ; Select Car
+        ScannedCar := ScanOCR(0.254, 0.607, 0.446-0.254, 0.672-0.607) ; Verify car name is correct
+
+        if !InStr(ScannedCar, CarData[SelectedCar].AltName) {
+            ShowNotif("error", "Car Purchase", "Selected Car does not match scanned car name.`nPlease check the selected car and try again.")
+            break
+        } else {
+            ShowNotif("info", "Car Purchase", "Purchasing " CarCount_In.Value+1 " " SelectedCar ".")
+        }
+
         While (BuyCount < CarCount_In.Value+1) {
             PressKey("Space") ; Purchase Car
             PressKey("Down") ; Navigate to Yes
@@ -158,7 +181,7 @@ BuyLoop() {
 
         ; ── Return to Home ───────────────
         Process("Returning to Home...")
-        Loop 3
+        Loop 4
             PressKey("Esc") ; Navigate to Home Menu
         Sleep(500)
         PressKey("Up") ; Navigate to Drive

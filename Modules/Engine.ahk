@@ -754,8 +754,7 @@ BGColorCompare(color1, color2, variation) {
 ; ══════════════════════════════════════════════
 
 PressKey(key, delay := 500) {
-    ; OPTIMIZATION: Added GameHwnd and MiniKey_UI to your global list
-    global Key_UI, MiniKey_UI, cHighlight, cIdle, KeyMultiplier, GameTitle, GameHwnd
+    global Key_UI, MiniKey_UI, cHighlight, cIdle, KeyMultiplier, GameTitle, GameHwnd, GameExe
 
     switch key {
         case "Down":      displayname := "↓"
@@ -769,60 +768,104 @@ PressKey(key, delay := 500) {
         default:          displayname := key
     }
 
-    Key_UI.Value     := "⌨  [ " displayName " ]"
-    MiniKey_UI.Value := "⌨  [ " displayName " ]"
+    if IsSet(Key_UI) && Key_UI
+        Key_UI.Value     := "⌨  [ " displayname " ]"
+    if IsSet(MiniKey_UI) && MiniKey_UI
+        MiniKey_UI.Value := "⌨  [ " displayname " ]"
 
-    ; Parse out the base key and the state modifier (down/up)
     cleanKey := key
     suffix   := ""
     if InStr(key, " ") {
         parts    := StrSplit(key, " ")
         cleanKey := parts[1]   
-        suffix   := parts[2] ; "down" or "up"
-    }
-
-    ; SMART HWND CACHING:
-    ; If we don't have the handle yet, or the old handle died (game restarted), find it once.
-    if (!GameHwnd || !WinExist(GameHwnd)) {
-        GameHwnd := WinExist(GameTitle)
-    }
-
-    ; If the game isn't running at all, throw the warning safely
-    if (!GameHwnd) {
-        ShowNotif("error", "Target Error", "Keystroke missed because game window was not found.")
-        return
+        suffix   := parts[2] 
     }
 
     try {
-        ; Retrieve the OS-level Virtual Key and Scan Code for the key
         vkCode := GetKeyVK(cleanKey)
         scCode := GetKeySC(cleanKey)
         
-        ; Construct the lParam bitmasks for Windows message accuracy
-        lParamDown := 0x00000001 | (scCode << 16)
-        lParamUp   := 0xC0000001 | (scCode << 16)
-
-        ; CRUCIAL CHANGE: Replaced ControlSend with direct PostMessage pipeline routing
-        if (suffix = "down") {
-            ; 0x0100 = WM_KEYDOWN
-            PostMessage(0x0100, vkCode, lParamDown, , "ahk_id " GameHwnd)
-        }
-        else if (suffix = "up") {
-            ; 0x0101 = WM_KEYUP
-            PostMessage(0x0101, vkCode, lParamUp, , "ahk_id " GameHwnd)
-        } 
-        else {
-            ; Normal full key press (Down -> Short Hold -> Up)
-            PostMessage(0x0100, vkCode, lParamDown, , "ahk_id " GameHwnd)
-            Sleep(40) ; Human-like micro-delay holding the key down
-            PostMessage(0x0101, vkCode, lParamUp, , "ahk_id " GameHwnd)
-        }
+        isExtended := (cleanKey = "Up" || cleanKey = "Down" || cleanKey = "Left" || cleanKey = "Right" || cleanKey = "Enter")
+        extBit     := isExtended ? 0x01000000 : 0
+        
+        lParamDown := 0x00000001 | (scCode << 16) | extBit
+        lParamUp   := 0xC0000001 | (scCode << 16) | extBit
     } catch {
-        ShowNotif("error", "Target Error", "Keystroke missed because game canvas was lost.")
+        return 
+    }
+
+    ; =========================================================================
+    ; BRANCH 1: CHROME PWA / BROWSER GFN (Background via Chromium Canvas)
+    ; =========================================================================
+    if (GameExe = "msedge.exe") {
+        if (!GameHwnd || !WinExist(GameHwnd)) {
+            topHwnd := WinExist(GameTitle)
+            if (topHwnd) {
+                try {
+                    GameHwnd := ControlGetHwnd("Chrome_RenderWidgetHostHWND1", "ahk_id " topHwnd)
+                } catch {
+                    GameHwnd := topHwnd
+                }
+            }
+        }
+
+        if (!GameHwnd) {
+            ShowNotif("error", "Target Error", "GFN PWA window was not found.")
+            return
+        }
+
+        try {
+            SendMessage(0x0007, 0, 0, , "ahk_id " GameHwnd) ; Keep canvas awake
+
+            if (suffix = "down") {
+                PostMessage(0x0100, vkCode, lParamDown, , "ahk_id " GameHwnd)
+            }
+            else if (suffix = "up") {
+                PostMessage(0x0101, vkCode, lParamUp, , "ahk_id " GameHwnd)
+            } 
+            else {
+                PostMessage(0x0100, vkCode, lParamDown, , "ahk_id " GameHwnd)
+                Sleep(45) 
+                PostMessage(0x0101, vkCode, lParamUp, , "ahk_id " GameHwnd)
+            }
+        } catch {
+            ShowNotif("error", "Target Error", "Keystroke missed because GFN PWA canvas was lost.")
+        }
+    }
+
+    ; =========================================================================
+    ; BRANCH 2: NATIVE LOCAL APP (Background via Direct Top-Level Window)
+    ; =========================================================================
+    else {
+        if (!GameHwnd || !WinExist(GameHwnd)) {
+            GameHwnd := WinExist("ahk_exe " GameExe)
+        }
+
+        if (!GameHwnd) {
+            ShowNotif("error", "Target Error", "Native game window (" GameExe ") was not found.")
+            return
+        }
+
+        try {
+            if (suffix = "down") {
+                PostMessage(0x0100, vkCode, lParamDown, , "ahk_id " GameHwnd)
+            }
+            else if (suffix = "up") {
+                PostMessage(0x0101, vkCode, lParamUp, , "ahk_id " GameHwnd)
+            } 
+            else {
+                PostMessage(0x0100, vkCode, lParamDown, , "ahk_id " GameHwnd)
+                Sleep(45) 
+                PostMessage(0x0101, vkCode, lParamUp, , "ahk_id " GameHwnd)
+            }
+        } catch {
+            ShowNotif("error", "Target Error", "Keystroke failed to post to native local game.")
+        }
     }
     
-    delay := Random(delay, delay + 50)
-    Sleep(KeyMultiplier * delay)
+    currentMultiplier := IsSet(KeyMultiplier) ? KeyMultiplier : 1
+    actualDelay := Random(delay, delay + 50)
+    Sleep(currentMultiplier * actualDelay)
 }
 
 Process(text, delay := 0) {

@@ -72,7 +72,7 @@ GetPalette() {
 ; ══════════════════════════════════════════════
 ;  TOGGLE BUTTON PAIR
 ; ══════════════════════════════════════════════
-TogglePair(chosenValue, &targetVar, activeBtn, inactiveBtn, p) {
+ToggleUserTier(chosenValue, &targetVar, activeBtn, inactiveBtn, p) {
     targetVar := chosenValue
     activeBtn.Opt("Background" p["activeBg"])
     inactiveBtn.Opt("Background" p["inactiveBg"])
@@ -80,6 +80,16 @@ TogglePair(chosenValue, &targetVar, activeBtn, inactiveBtn, p) {
     inactiveBtn.Redraw()
 
     WriteMacroIni("Settings", "UserTier", targetVar)
+}
+
+ToggleSpinMode(chosenValue, &targetVar, activeBtn, inactiveBtn, p) {
+    targetVar := chosenValue
+    activeBtn.Opt("Background" p["activeBg"])
+    inactiveBtn.Opt("Background" p["inactiveBg"])
+    activeBtn.Redraw()
+    inactiveBtn.Redraw()
+
+    WriteMacroIni("Settings", "SpinMode", targetVar)
 }
 
 ; ══════════════════════════════════════════════
@@ -235,8 +245,8 @@ BuildMainGui(savedVals := "") {
     PremiumBtnBG := UserTier = "PREMIUM" ? p["activeBg"] : p["inactiveBg"]
     StandardBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y" Round(308*ScaleY) " w" Round(119*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" StandardBtnBG   " c" p["text"], "😎   STANDARD")
     PremiumBtn  := MainGUI.Add("Text", "x" Round(137*ScaleX) " yp w" Round(119*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" PremiumBtnBG " c" p["text"], "🜲   PREMIUM")
-    StandardBtn.OnEvent("Click", (*) => TogglePair("STANDARD", &UserTier, StandardBtn, PremiumBtn, p))
-    PremiumBtn.OnEvent("Click",  (*) => TogglePair("PREMIUM",  &UserTier, PremiumBtn, StandardBtn, p))
+    StandardBtn.OnEvent("Click", (*) => ToggleUserTier("STANDARD", &UserTier, StandardBtn, PremiumBtn, p))
+    PremiumBtn.OnEvent("Click",  (*) => ToggleUserTier("PREMIUM",  &UserTier, PremiumBtn, StandardBtn, p))
 
     ; ── Custom Slider Matrix ──
     SliderCfg := {
@@ -291,7 +301,7 @@ BuildMainGui(savedVals := "") {
     BuyBtn.OnEvent("Click",     (*) => StartBuy())
     UnlockBtn.OnEvent("Click",  (*) => StartUnlock())
     AllBtn.OnEvent("Click",     (*) => ToggleAll())
-    OpenSpinWindowBtn.OnEvent("Click", OpenSpinPanel)
+    OpenSpinWindowBtn.OnEvent("Click", (*) => OpenSpinPanel())
 
     ; ══════════════════════════════════════════
     ;  TAB 2 — STATS
@@ -449,8 +459,12 @@ BuildMainGui(savedVals := "") {
     FooterControls.Push(ThemeBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " yp+" Round(5*ScaleY) " w" Round(30*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], DarkMode ? "☀" : "🌙"))
     ThemeBtn.OnEvent("Click", (*) => ToggleTheme())
 
-    FooterControls.Push(VersionLink := MainGUI.Add("Link", "x" Round(224*ScaleX) " yp+" Round(12*ScaleY) " Right", '<a href="https://github.com/M-Haziq-Iqbal/Forza-Horizon-6-Wheelspin-Macro/releases/tag/v1.8.1">v1.8.1</a>'))
-    FooterControls.Push(BottomSpacer := MainGUI.Add("Text", "x0 y+" Round(5*ScaleY) " w" Round(270*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans c" p["footer"], ""))
+    FooterControls.Push(Kofi_UI := MainGUI.Add("Picture", "x" Round(72.5*ScaleX) " yp+" Round(0*ScaleY) " w" Round(125*ScaleX) " h" Round(25*ScaleY) , A_ScriptDir "\assets\kofi.png"))
+    Kofi_UI.OnEvent("Click", (*) => Run("https://ko-fi.com/mhaziqiqbal"))
+
+    FooterControls.Push(VersionLink := MainGUI.Add("Link", "x" Round(224*ScaleX) " yp+" Round(5*ScaleY) " Right", '<a href="https://github.com/M-Haziq-Iqbal/Forza-Horizon-6-Wheelspin-Macro/releases/tag/v1.8.1">v1.8.1</a>'))
+
+    FooterControls.Push(BottomSpacer := MainGUI.Add("Text", "x0 yp+" Round(30*ScaleY) " w" Round(270*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans c" p["footer"], ""))
 
     MainGUI.Show("w" Round(270*ScaleX) " Hide")
     
@@ -558,11 +572,13 @@ OpenSpinPanel(*) {
     SpinLeftCount_UI := SpinGUI.Add("Text", "x" Round(150*ScaleX) " yp w" Round(80*ScaleX) " Right c" p["text"], "0")
 
     SetFixedFont(SpinGUI, 9, "bold", "Semibold")
-    KeepBtn := SpinGUI.Add("Text", "x" Round(15*ScaleX) " y+16 w" Round(105*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" p["activeBg"] " c" p["text"], "💾   KEEP")
-    SellBtn := SpinGUI.Add("Text", "x" Round(130*ScaleX) " yp w" Round(105*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" p["inactiveBg"] " c" p["text"], "🏷️   SELL")
+    KeepBtnBG := SpinMode = "KEEP" ? p["activeBg"] : p["inactiveBg"]
+    SellBtnBG := SpinMode = "SELL" ? p["activeBg"] : p["inactiveBg"]
+    KeepBtn := SpinGUI.Add("Text", "x" Round(15*ScaleX) " y+16 w" Round(105*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" KeepBtnBG " c" p["text"], "💾   KEEP")
+    SellBtn := SpinGUI.Add("Text", "x" Round(130*ScaleX) " yp w" Round(105*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" SellBtnBG " c" p["text"], "🏷️   SELL")
 
-    KeepBtn.OnEvent("Click", (*) => TogglePair("KEEP", &SpinMode, KeepBtn, SellBtn, p))
-    SellBtn.OnEvent("Click", (*) => TogglePair("SELL", &SpinMode, SellBtn, KeepBtn, p))
+    KeepBtn.OnEvent("Click", (*) => ToggleSpinMode("KEEP", &SpinMode, KeepBtn, SellBtn, p))
+    SellBtn.OnEvent("Click", (*) => ToggleSpinMode("SELL", &SpinMode, SellBtn, KeepBtn, p))
 
     SetFixedFont(SpinGUI, 10, "bold", "Semibold")
     SpinBtn := SpinGUI.Add("Text", "x" Round(15*ScaleX) " y+10 w" Round(220*ScaleX) " h" Round(35*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🎲   RUN WHEELSPIN   =")

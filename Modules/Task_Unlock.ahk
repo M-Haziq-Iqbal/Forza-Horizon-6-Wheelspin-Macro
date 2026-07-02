@@ -275,6 +275,27 @@ UnlockLoop() {
 
                     if Mod(UnlockCount, NotiFreqInterv) = 0
                         ShowNotif("info", "Reward Unlock", FormatCommas(CreditCount) " CR have been obtained.")
+                
+                Case "Mazda #123 Mad Mike 808":
+                    Loop 2 {
+                        PressKey("Enter", 1100)
+                        PressKey("Right", 300)
+                    }
+                    Loop 3 {
+                        PressKey("Enter", 1100)
+                        PressKey("Up", 300)
+                    }
+                    PressKey("Enter", 1100)
+    
+                    UnlockCount++
+
+                    SWheelCount := UnlockCount
+
+                    SWheelCount_UI.Value := SWheelCount
+                    MiniSWheelCount_UI.Value := SWheelCount
+
+                    if Mod(UnlockCount, NotiFreqInterv) = 0
+                        ShowNotif("info", "Reward Unlock", SWheelCount " Super Wheelspins have been obtained." )            
             }
 
             SkillPtsCount_In.Value -=  SelectedCarPoint
@@ -466,7 +487,11 @@ EmergencyUnlockCheck() {
         MenuText := ScanOCR(0.062, 0.092, 0.148-0.062, 0.132-0.092)
         if InStr(MenuText, "My Cars") {
             Loop {
-                StatsNumNew := ScanOCR(0.177, 0.457, 0.205-0.177, 0.707-0.457, , , true)
+                if SelectedCar = "Mazda #123 Mad Mike 808" {
+                    StatsNumNew := ScanOCR(0.170, 0.455, 0.205-0.170, 0.700-0.455, , , true)
+                } else {
+                    StatsNumNew := ScanOCR(0.177, 0.457, 0.205-0.177, 0.707-0.457, , , true)
+                }
                 if StrLen(StatsNumNew) >= 10
                     StatsNum := StatsNumNew
                     break
@@ -488,4 +513,3 @@ EmergencyUnlockCheck() {
         }
     }
 }
-

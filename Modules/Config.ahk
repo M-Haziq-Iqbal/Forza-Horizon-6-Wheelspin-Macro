@@ -7,7 +7,8 @@
 ;  ENVIRONMENT & GAME SETTINGS
 ; ══════════════════════════════════════════════
 global GameExe          := "forzahorizon6.exe"
-global GameTitle        := "ahk_exe " GameExe
+; global GameExe          := "msedge.exe"
+global GameTitle        := "ahk_exe" GameExe
 global MacroIni         := "mhiacro.ini"
 global GameDir          := FindGameDirFromProfiles()
 global GameMonitor      := 1
@@ -61,7 +62,7 @@ global ResoList         := ["854 x 480", "960 x 540", "1024 x 576", "1280 x 720"
 _iniReso                := ReadMacroIni("Settings", "Resolution", "")
 global SelectedReso     := _iniReso ? _iniReso : ResoList[4]
 
-global CarList          := ["Subaru Impreza 22B-STi", "Lamborghini Revuelto", "Dodge Viper GTS ACR"]
+global CarList          := ["Subaru Impreza 22B-STi", "Lamborghini Revuelto", "Dodge Viper GTS ACR", "Mazda #123 Mad Mike 808"]
 global CarData          := Map(
     "Subaru Impreza 22B-STi", {
         SkillPtsCost: 30,
@@ -77,6 +78,11 @@ global CarData          := Map(
         SkillPtsCost: 30,
         AltName: "1999 Dodge",
         StatsNum: 694952414050
+    },
+    "Mazda #123 Mad Mike 808", {
+        SkillPtsCost: 21,
+        AltName: "1974 Mazda",
+        StatsNum: 725047495145
     }
 )
 _iniCar                 := ReadMacroIni("Settings", "Car", "")
@@ -86,6 +92,9 @@ global SelectedCarPoint := CarData[SelectedCar].SkillPtsCost
 _iniTier                := ReadMacroIni("Settings", "UserTier", "")
 global UserTier         := _iniTier ? _iniTier : "STANDARD"
 
+_iniSpinMode            := ReadMacroIni("Settings", "SpinMode", "")
+global SpinMode         := _iniSpinMode ? _iniSpinMode : "KEEP"
+
 ; ══════════════════════════════════════════════
 ;  MACRO RUNTIME & OPERATIONAL STATES
 ; ══════════════════════════════════════════════
@@ -94,8 +103,6 @@ global PauseMode        := ""
 global MasterMode       := ""
 global MasterStart      := ""
 global RaceStart        := ""
-global SpinMode         := "KEEP"
-
 global SkillPtsCount_In := 0
 global SkillPtsWant_In  := 0
 global CarCount_In      := 0
