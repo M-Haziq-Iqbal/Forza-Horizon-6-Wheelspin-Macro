@@ -223,10 +223,6 @@ Navigate to **Settings → HUD & Gameplay → What's Next** and turn it **OFF**.
 
 > 🛡️ **Screen Coverage Freedom:** Thanks to our rewritten rendering architecture utilizing a low-level GDI Canvas framework, **the game window can be completely covered or hidden out of focus** by other overlapping applications without blocking color scanning or optical character parsing routines.
 
-<p align="center">
-  <img width="2559" height="1439" alt="Safe Area Layout" src="https://github.com/user-attachments/assets/1f8464f8-db8f-4093-8504-ba8fe5f423b0" />
-</p>
-
 ### 🎯 4. EventLab Menu Configuration
 The automated text entry share-code systems have been removed to improve speed and reliability. You must configure your track list layout manually:
 
