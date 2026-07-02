@@ -5,7 +5,7 @@
 
 StartSpin() {
     global ActiveMode, StatusText, cActive, SpinRunSeconds
-    global SpinOpenCount_UI, SpinLeftCount_UI, SpinRunTime_Ui
+    global SpinOpenCount_UI, SpinLeftCount_UI, SpinRunTime_UI
 
     if FindGame() = 0
         return
@@ -33,9 +33,10 @@ StartSpin() {
 
 SpinLoop() {
 
-    global SpinMode, LoopCount_In
-
-    SpinToOpen      := LoopCount_In.Value
+    global SpinMode, SpinLoop_In, SpinWants_In
+    
+    SpinToOpen      := SpinLoop_In.Value
+    SpinLeftTotal   := SpinWants_In.Value
     SpinLeftCount   := 0
     SpinOpenCount   := 0
     SpinType        := ""
@@ -44,8 +45,7 @@ SpinLoop() {
 
     if WaitForPixel("Checking Wheelspin type...", 0.123, 0.479, "0x000000", , 1000, 50, true, , "0", 25)
         SpinType := "Super Wheelspin"
-
-    if WaitForPixel("Checking Wheelspin type...", 0.876, 0.483, "0x000000", , 1000, 50, true, , "0", 25)
+    else if WaitForPixel("Checking Wheelspin type...", 0.876, 0.483, "0x000000", , 1000, 50, true, , "0", 25)
         SpinType := "Wheelspin"
 
     If (SpinType = "") {
@@ -66,7 +66,7 @@ SpinLoop() {
 
     SpinLeftCount := SpinLeftCount = -1 ? SpinToOpen : SpinLeftCount
 
-    While (ActiveMode = "Spin" && SpinLeftCount > 0)  {
+    While (ActiveMode = "Spin" && SpinLeftCount > 0 && SpinLeftTotal > 0) {
         loop Min(SpinToOpen, SpinLeftCount) {            
             Process("Skipping...")
 
@@ -76,9 +76,11 @@ SpinLoop() {
             if CheckAbort()
                 break
 
-            ; Rescan Wheelspin amount to avoid desync
             SpinOpenCount++
+            SpinLeftCount--
+            SpinLeftTotal--
             
+            ; Rescan Wheelspin amount to avoid desync
             if Mod(SpinOpenCount, 5) = 0 {
                 if SpinType = "Super Wheelspin"
                     spin := ScanOCR(0.107, 0.622, 0.071, 0.052, 2000, , true)
@@ -95,7 +97,7 @@ SpinLoop() {
             Process("Collecting...")
             if InStr(ScanOCR(0.071, 0.915, 0.110-0.070, 0.945-0.915, 4000), "C") {
             ; if (WaitForPixel("Collecting...", 0.058, 0.926, "0xFFFFFF", , 4000, 50, true, , 0)) {
-                if Mod(SpinOpenCount, SpinToOpen) = 0 {
+                if Mod(SpinOpenCount, SpinToOpen) = 0 || SpinLeftTotal = 0{
                     PressKey("Esc", 50) ; Collect Prize
                 } else {
                     PressKey("Enter", 50) ; Collect Prize and Spin Again
@@ -119,7 +121,9 @@ SpinLoop() {
                 else
                     break
             }
-            SpinLeftCount--
+
+            if SpinLeftTotal = 0
+                break
 
             if CheckAbort()
                 break
@@ -128,6 +132,9 @@ SpinLoop() {
         PressKey("Esc", 1000) ; Return to Free Roam to avoid Inactivity Status
         
         WaitForPixel("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 10000)
+
+        if SpinLeftTotal = 0
+            break
 
         if CheckAbort()
             break

@@ -501,7 +501,7 @@ BuildMainGui(savedVals := "") {
 ;  POPOUT INTERFACE: SPIN MANAGEMENT PANEL
 ; ══════════════════════════════════════════════
 OpenSpinPanel(*) {
-    global SpinGUI, SpinRunTime_UI, SpinOpenCount_UI, SpinLeftCount_UI, SpinMode, MainGUI, ActiveMode
+    global SpinGUI, SpinRunTime_UI, SpinOpenCount_UI, SpinLeftCount_UI, SpinLoop_In, SpinWants_In, MainGUI, ActiveMode, SpinMode
     global ScaleX, ScaleY
     
     try {
@@ -537,9 +537,18 @@ OpenSpinPanel(*) {
     ; ── Interface Content ──
     SetFixedFont(SpinGUI, 12, "bold", "Light")
     SpinGUI.Add("Text", "x0 y" Round(30*ScaleY) " w" Round(250*ScaleX) " Center c" p["accent"], "SPIN CONTROLLER")
+
+    SetFixedFont(SpinGUI, 9, "norm", "Light")
+    SpinLoop_In := SpinGUI.Add("Edit", "x" Round(170*ScaleX) " y+" Round(15*ScaleY) " w" Round(63*ScaleX) " h" Round(20*ScaleY) " -E0x200 Center Number Background" p["editBg"] " c" p["text"], 99)
+    SpinGUI.Add("Text", "x" Round(20*ScaleX) " yp+" Round(3*ScaleY) " w" Round(155*ScaleX) " BackgroundTrans c" p["text"], "⟡   Spin Loop")
+        
+    SpinWants_In := SpinGUI.Add("Edit", "x" Round(170*ScaleX) " y+" Round(6*ScaleY) " w" Round(63*ScaleX) " h" Round(20*ScaleY) " -E0x200 Center Number Background" p["editBg"] " c" p["text"], 99)
+    SpinGUI.Add("Text", "x" Round(20*ScaleX) " yp+" Round(3*ScaleY) " w" Round(155*ScaleX) " BackgroundTrans c" p["text"], "⟡   Desired Spins")
+
+    SpinGUI.Add("Text", "x" Round(5*ScaleX) " y+5 w" Round(240*ScaleX) " Center BackgroundTrans c" p["divider"], "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     
     SetFixedFont(SpinGUI, 9, "norm", "Light")
-    SpinGUI.Add("Text", "x" Round(20*ScaleX) " y+" Round(15*ScaleY) " w" Round(130*ScaleX) " c" p["textDim"], "¼   Spin Runtime")
+    SpinGUI.Add("Text", "x" Round(20*ScaleX) " y+" Round(5*ScaleY) " w" Round(130*ScaleX) " c" p["textDim"], "🕓   Spin Runtime")
     SpinRunTime_UI := SpinGUI.Add("Text", "x" Round(150*ScaleX) " yp w" Round(80*ScaleX) " Right c" p["text"], "00:00")
 
     SpinGUI.Add("Text", "x" Round(20*ScaleX) " y+6 w" Round(130*ScaleX) " c" p["textDim"], "🎊   Spins Opened")
@@ -556,11 +565,11 @@ OpenSpinPanel(*) {
     SellBtn.OnEvent("Click", (*) => TogglePair("SELL", &SpinMode, SellBtn, KeepBtn, p))
 
     SetFixedFont(SpinGUI, 10, "bold", "Semibold")
-    SpinBtn := SpinGUI.Add("Text", "x" Round(15*ScaleX) " y+10 w" Round(220*ScaleX) " h" Round(34*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🎲   RUN WHEELSPIN   =")
+    SpinBtn := SpinGUI.Add("Text", "x" Round(15*ScaleX) " y+10 w" Round(220*ScaleX) " h" Round(35*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🎲   RUN WHEELSPIN   =")
     SpinBtn.OnEvent("Click", (*) => StartSpin())
 
     sW := Round(250 * ScaleX)
-    sH := Round(230 * ScaleY)
+    sH := Round(290 * ScaleY)
     
     MainGUI.GetPos(&mX, &mY, &mW, &mH)
     sX := mX + (mW // 2) - (sW // 2)
