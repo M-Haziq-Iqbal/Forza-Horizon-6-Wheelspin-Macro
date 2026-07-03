@@ -347,7 +347,7 @@ CalcTimeRace(score) {
 }
 
 CalcTimeBuy(car) {
-    totalTime := car * 2.7
+    totalTime := car * 3
     return totalTime / 60
 }
 

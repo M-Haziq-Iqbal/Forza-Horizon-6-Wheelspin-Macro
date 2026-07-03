@@ -48,9 +48,8 @@ Persistent(true)
 ]::StartUnlock()
 /::ToggleAll()
 `::TogglePause()
-^+c::GetCoordsColor()
-F5::ToggleDetectionZone()
 F12::Reload()
+^+c::GetCoordsColor()
 !LButton::MoveWindow()
 #HotIf
 

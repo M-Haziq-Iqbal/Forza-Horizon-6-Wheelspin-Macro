@@ -270,62 +270,6 @@ ShowNotif(type, title, message := "") {
     SetTimer(() => Notif.Destroy(), duration)
 }
 
-global OverlayGui        := ""
-global OverlayGuiEnabled := false
-
-ToggleDetectionZone() {
-    global OverlayGui, OverlayGuiEnabled, GameTitle
-    
-    if !OverlayGuiEnabled {
-        OverlayGuiEnabled := !OverlayGuiEnabled
-
-        gameHwnd := WinExist(GameTitle)
-        if !gameHwnd
-            return
-
-        if (OverlayGui) 
-            return
-
-        OverlayGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +Owner" gameHwnd)
-        
-        OverlayGui.BackColor := "Red" 
-        WinSetTransparent(5, OverlayGui.Hwnd) 
-
-        SetTimer(UpdateOverlayPosition, 50)
-    } else if OverlayGuiEnabled {
-        OverlayGuiEnabled := !OverlayGuiEnabled
-
-        SetTimer(UpdateOverlayPosition, 0) 
-        if (OverlayGui) {
-            OverlayGui.Destroy()
-            OverlayGui := ""
-        }
-    }
-}
-
-UpdateOverlayPosition() {
-    global OverlayGuiEnabled, GameTitle
-    
-    if !WinExist(GameTitle) {
-        OverlayGuiEnabled := true
-        ToggleDetectionZone()
-        return
-    }
-    
-    WinGetPos(&gameX, &gameY, &gameW, &gameH, GameTitle)
-    
-    leftOffset := Integer(gameW * (1 / 3))
-    targetW    := Integer(gameW * (2 / 3))
-    targetH    := gameH
-    
-    targetX := gameX + leftOffset
-    targetY := gameY
-
-    OverlayGui.Show("X" targetX " Y" targetY " W" targetW " H" targetH " NoActivate")
-    
-    DllCall("SetWindowPos", "Ptr", OverlayGui.Hwnd, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0x0003)
-}
-
 ; ══════════════════════════════════════════════
 ;  GAME WINDOW MANIPULATION
 ; ══════════════════════════════════════════════
