@@ -30,6 +30,7 @@
 ;@Ahk2Exe-SetVersion 1.9.0
 ;@Ahk2Exe-SetDescription MHI - FH6 Wheelspin Macro
 ;@Ahk2Exe-SetMainIcon assets\icon.ico
+;@Ahk2Exe-AddResource assets\kofi.png, MyKofi
 ; Setup tray icon dynamically
 TraySetIcon(A_IsCompiled ? A_ScriptFullPath : A_ScriptDir "\assets\icon.ico")
 

@@ -477,7 +477,21 @@ BuildMainGui(savedVals := "") {
     FooterControls.Push(F_Divider := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans", ""))
 
     ; Row 2: Centered Ko-fi button
-    FooterControls.Push(Kofi_UI := MainGUI.Add("Picture", "x" Round(72*ScaleX) " yp+" Round(0*ScaleY) " w" Round(125*ScaleX) " h" Round(25*ScaleY), A_ScriptDir "\assets\kofi.png"))
+    ; 1. Get your image source (from memory or file)
+    imageSource := LoadResourceImage("MyKofi", A_ScriptDir "\assets\kofi.png")
+
+    try {
+        ; 2. ATTEMPT: Try to create the image control normally
+        Kofi_UI := MainGUI.Add("Picture", "x" Round(72*ScaleX) " yp+" Round(0*ScaleY) " w" Round(125*ScaleX) " h" Round(25*ScaleY), imageSource)
+    } 
+    catch {
+        ; 3. FALLBACK: If the image fails to load, create a plain text link instead
+        ; This ensures Kofi_UI is still a valid GUI object so the rest of your script doesn't break!
+        Kofi_UI := MainGUI.Add("Text", "x" Round(72*ScaleX) " yp+" Round(0*ScaleY) " w" Round(125*ScaleX) " h" Round(25*ScaleY) " cBlue", "[ Support on Ko-fi ]")
+    }
+
+    ; 4. PUSH TO ARRAY: This now safely works whether it's a picture or text
+    FooterControls.Push(Kofi_UI)
     Kofi_UI.OnEvent("Click", (*) => Run("https://ko-fi.com/mhaziqiqbal"))
     
     ; Row 3: Natively Centered Application Status Bar (Full Width)
@@ -841,4 +855,39 @@ ProcessUpdate(url, assetType) {
     } catch Error as err {
         MsgBox("Update failed:`n" err.Message, "Update Error", "Iconx")
     }
+}
+
+LoadResourceImage(ResourceName, FallbackPath) {
+    ; If running uncompiled (.ahk), load the standard file path directly
+    if !A_IsCompiled
+        return FallbackPath
+
+    ; Find and load the embedded resource from the EXE
+    hMod := DllCall("GetModuleHandle", "Ptr", 0, "Ptr")
+    if !hRes := DllCall("FindResource", "Ptr", hMod, "Str", ResourceName, "Ptr", 10, "Ptr") ; 10 = RT_RCDATA
+        return FallbackPath
+
+    resSize := DllCall("SizeofResource", "Ptr", hMod, "Ptr", hRes)
+    hResData := DllCall("LoadResource", "Ptr", hMod, "Ptr", hRes, "Ptr")
+    pBuff := DllCall("LockResource", "Ptr", hResData, "Ptr")
+
+    ; Convert binary data to an in-memory stream
+    pStream := DllCall("shlwapi\SHCreateMemStream", "Ptr", pBuff, "UInt", resSize, "Ptr")
+
+    ; Initialize GDI+ to handle the PNG structure
+    si := Buffer(A_PtrSize = 8 ? 24 : 16, 0)
+    NumPut("UInt", 1, si, 0)
+    DllCall("gdiplus\GdiplusStartup", "Ptr*", &token := 0, "Ptr", si, "Ptr", 0)
+
+    ; Create bitmap handles from stream
+    DllCall("gdiplus\GdipCreateBitmapFromStream", "Ptr", pStream, "Ptr*", &pBitmap := 0)
+    DllCall("gdiplus\GdipCreateHBITMAPFromBitmap", "Ptr", pBitmap, "Ptr*", &hBitmap := 0, "UInt", 0)
+
+    ; Clean up GDI+ components and stream allocations from memory
+    DllCall("gdiplus\GdipDisposeImage", "Ptr", pBitmap)
+    DllCall("gdiplus\GdiplusShutdown", "Ptr", token)
+    DllCall(NumGet(NumGet(pStream, "Ptr"), 2 * A_PtrSize, "Ptr"), "Ptr", pStream) ; Release stream object
+
+    ; Return the standard AHK v2 HBITMAP handle syntax
+    return "HBITMAP:" hBitmap
 }
