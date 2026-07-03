@@ -3,9 +3,9 @@
 Welcome to the ultimate progression companion for Forza Horizon 6! This is a highly modular, high-performance automation tool built on **AutoHotkey v2** designed to eliminate repetitive in-game tasks. Whether you want to skip the grind, farm credits, or stack up Super Wheelspins, this macro fully automates your workflow using optical character recognition (OCR), pixel-aware session tracking, and background play execution.
 
 <p align="center">
-  <img width="274" height="808" alt="Main Dashboard UI" src="https://github.com/user-attachments/assets/0fd06883-ec59-439c-8efb-c03155ae297b" />
-  <img width="275" height="938" alt="Settings Configuration" src="https://github.com/user-attachments/assets/34b25bb0-0e3b-4576-90af-b29aee57dbbf" />
-  <img width="274" height="811" alt="Track & Profile Sub-panel" src="https://github.com/user-attachments/assets/ecb8dc82-b856-4ce0-8719-1ad3cf49e751" />
+  <img width="272" height="828" alt="Main Dashboard UI" src="https://github.com/user-attachments/assets/43944c7d-e954-4643-8763-3e8fc481dda2" />
+  <img width="274" height="953" alt="Settings Configuration" src="https://github.com/user-attachments/assets/993f22f2-7095-4538-a710-bdc098750774" />
+  <img width="272" height="828" alt="Targets & Telemetry" src="https://github.com/user-attachments/assets/001cc969-0b0f-40ba-a797-22db6bc01621" />
 </p>
 
 ---
@@ -280,9 +280,10 @@ When executing the **Unlock Mode** standalone macro sequence manually (Hotkey: `
   2. Press `X` to adjust your listing filter parameters, switch your sort layout structure to **Recently Added**, and confirm the layout.
   3. Enter your active vehicle collection grid view.
   4. **CRITICAL BASELINE STEP:** Use your directional arrow keys to **hover over and highlight the specific car slot you want the macro to start processing with—but DO NOT press Enter to select it.** Keep the cursor cleanly highlighting that specific car square, and then fire your standalone unlock script via your hotkey.
+  5. **REMINDER:** Choose only the first or second car in the row!!!
 
 <p align="center">
-  <img width="2559" height="1439" alt="Unlock Mode Base Position" src="https://github.com/user-attachments/assets/2e145722-efb6-4307-95b9-1039f3d9c1fc" />
+  <img width="2559" height="1439" alt="Unlock Mode Base Position" src="https://github.com/user-attachments/assets/d824e130-6672-4a3c-a7bd-94dc4f0155fb" />
 </p>
 
 > **Reminder**: During Unlock mode, make sure the car's stats numbers, as featured in the red box, are shown on the screen! It is necessary for car verification to work properly.
@@ -331,35 +332,37 @@ Directly underneath the parameter matrix are the optimization switches used to a
 #### 3. Core Automation Execution Triggers
 
 <p align="center">
-  <img width="270" height="164" alt="primary control buttons" src="https://github.com/user-attachments/assets/e9de7250-2774-4ac4-aea0-9242ee451938" />
+  <img width="268" height="161" alt="primary control buttons" src="https://github.com/user-attachments/assets/d4bae11a-97e5-4b0a-b114-c5bdc9945955" />
 </p>
 
 The primary control buttons launch individual automation modes or initialize the full continuous macro pipeline:
 
+* **FULL LOOP (`/`):** Daisy-chains all core operational modes into a continuous, self-sustaining loop (Race → Buy → Unlock → Repeat).
 * **RACE (`\`):** Launches the automated EventLab farming loop.
 * **BUY (`[`):** Executes the bulk vehicle acquisition macro sequence.
 * **UNLOCK (`]`):** Initializes the vehicle perk grid mastery loop, strictly governed by the new double-phase validation state checking.
-* **FULL LOOP (`/`):** Daisy-chains all core operational modes into a continuous, self-sustaining loop (Race → Buy → Unlock → Repeat).
 * **OPEN SPIN INTERFACE:** Spawns the embedded prize delivery panel directly within the dashboard.
 
 #### 4. Embedded Spin Controller Panel
 
 <p align="center">
-  <img width="250" height="229" alt="image" src="https://github.com/user-attachments/assets/50f7683c-0487-42b0-9b66-e5bae0fefd3e" />
+  <img width="253" height="292" alt="image" src="https://github.com/user-attachments/assets/3a50c8b0-ce41-48f5-a298-c147b1642217" />
 </p>
 
 Clicking the purple interface trigger transforms the center of the dashboard into an isolated bulk opening terminal.
 
+* **Spin Loop Input Box:** The number of wheelspins that will be opened before returning to free roam to avoid inactivity warning.
+* **Desired Spins Input Box:** The number of total wheelspins throughout the whole process that will opened before ending the mode.
 * **Live Teleview Readouts:** Tracks real-time session statistics including total **Spin Runtime**, total **Spins Opened**, and **Spins Remaining** in the active backlog queue.
 * **KEEP / SELL Optimization Buttons:** Sets the structural rule engine for duplicate prize car drops. Choosing **SELL** auto-converts duplicates back to liquid in-game credits instantly, while **KEEP** passes them into your garage structure.
 * **RUN WHEELSPIN (`=`):** Fires the automated hardware routine to continuously clear out your accumulated wheelspin cache.
 
-#### 5. Profile Selection & Quick-Copy Share Codes
+#### 5. Profile Selection, Quick-Copy Share Codes and Auto Updater
 
 Located right below the running telemetry state readouts is the integrated track configuration and code utility footer:
 
 <p align="center">
-  <img width="268" height="80" alt="image" src="https://github.com/user-attachments/assets/ac521149-fb72-4565-954a-cb609af6b1ca" />
+  <img width="270" height="181" alt="footer" src="https://github.com/user-attachments/assets/10180cbf-b658-4620-a57c-c825b7abc9e7" />
 </p>
 
 * **Track Profile Dropdown Menu:** Allows you to swap seamlessly between different pre-configured automated driving routes, such as `AMMAGEDON` or `LIQUIDPOTATO`. Selecting a track profile immediately updates the underlying path calculations, timing variables, and telemetry color nodes to match that specific layout.
@@ -387,7 +390,7 @@ Expanding the **OPTIONS** toggle dropdown at the bottom of the dashboard grants 
 #### 🗲 Compact Mini GUI Overlay
 
 <p align="center">
-  <img width="238" height="202" alt="MiniGUI" src="https://github.com/user-attachments/assets/bfcc48eb-f4cb-4ae4-8d53-4143cefa6feb" />
+  <img width="237" height="331" alt="MiniGUI" src="https://github.com/user-attachments/assets/b7596488-605c-4520-b274-8313fe4ca3fd" />
 </p>
 
 When the main configuration dashboard is minimized, the tool shrinks into a highly responsive, floating overlay tracking live automation data and structural execution tasks in real time.
