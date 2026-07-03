@@ -1,18 +1,21 @@
 ; ╔═════════════════════════════════════════╗
 ; ║        MHI - FH6 Wheelspin Macro        ║
-; ║        Cyber Noir Edition v1.8.0        ║
+; ║            Cyber Noir Edition           ║
 ; ╚═════════════════════════════════════════╝
 
 ; ══════════════════════════════════════════════
 ;  ENVIRONMENT & GAME SETTINGS
 ; ══════════════════════════════════════════════
+global CurrentVersion := "v1.9.0"  
+global RepoOwner      := "M-Haziq-Iqbal"
+global RepoName       := "Forza-Horizon-6-Wheelspin-Macro"
+
 global GameExe          := "forzahorizon6.exe"
-; global GameExe          := "msedge.exe"
 global GameTitle        := "ahk_exe" GameExe
 global MacroIni         := "mhiacro.ini"
 global GameDir          := FindGameDirFromProfiles()
 global GameMonitor      := 1
-global GameHwnd         := 0  ; Initializes the permanent window pointer handle
+global GameHwnd         := 0
 
 global IsGameWindowed       := CheckWindowed()
 global IsGameLocked         := CheckLocked()

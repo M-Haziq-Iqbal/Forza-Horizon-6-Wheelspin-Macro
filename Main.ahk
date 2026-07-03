@@ -1,6 +1,6 @@
 ; ╔═════════════════════════════════════════╗
 ; ║        MHI - FH6 Wheelspin Macro        ║
-; ║        Cyber Noir Edition v1.8.0        ║
+; ║            Cyber Noir Edition           ║
 ; ╚═════════════════════════════════════════╝
 
 #Requires AutoHotkey v2.0
@@ -27,6 +27,8 @@
 #Include modules\Task_Spin.ahk
 #Include modules\SpecialK.ahk
 
+;@Ahk2Exe-SetVersion 1.9.0
+;@Ahk2Exe-SetDescription MHI - FH6 Wheelspin Macro
 ;@Ahk2Exe-SetMainIcon assets\icon.ico
 ; Setup tray icon dynamically
 TraySetIcon(A_IsCompiled ? A_ScriptFullPath : A_ScriptDir "\assets\icon.ico")

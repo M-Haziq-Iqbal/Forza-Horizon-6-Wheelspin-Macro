@@ -1,9 +1,7 @@
 ; ╔═════════════════════════════════════════╗
 ; ║        MHI - FH6 Wheelspin Macro        ║
-; ║        Cyber Noir Edition v1.8.0        ║
+; ║            Cyber Noir Edition           ║
 ; ╚═════════════════════════════════════════╝
-
-#Requires AutoHotkey v2.0
 
 ; ══════════════════════════════════════════════
 ;  GLOBAL UI HANDLES
@@ -25,14 +23,22 @@ GetPalette() {
         p["bg"]          := "0B0F14"
         p["panel"]       := "111826"
         p["accent"]      := "00E5FF"
-        p["accent2"]     := "7C4DFF"
         p["text"]        := "E6F1FF"
         p["textDim"]     := "6B7C93"
         p["editBg"]      := "0F1624"
+        
+        ; Sub-process buttons (Muted background, accent text)
         p["btnBg"]       := "111826"
         p["btnText"]     := "00E5FF"
         p["btnBg2"]      := "0C1320"
         p["btnText2"]    := "6B7C93"
+        p["btnBg3"]      := "7C4DFF"
+        p["btnText3"]    := "FFFFFF"
+        
+        ; Main Button (Inverted: Accent background, dark text)
+        p["btnMainBg"]   := "00E5FF"
+        p["btnMainText"] := "0B0F14"
+        
         p["divider"]     := "1F2A3A"
         p["cActive"]     := "00E5FF"
         p["cHighlight"]  := "39FF14"
@@ -47,14 +53,22 @@ GetPalette() {
         p["bg"]          := "F5F7FA"
         p["panel"]       := "E8EEF5"
         p["accent"]      := "0066FF"
-        p["accent2"]     := "7C4DFF"
         p["text"]        := "0B1220"
         p["textDim"]     := "4B5B73"
         p["editBg"]      := "FFFFFF"
+        
+        ; Sub-process buttons (Soft background, deep text)
         p["btnBg"]       := "DCE8FF"
         p["btnText"]     := "003A99"
         p["btnBg2"]      := "CFE0FF"
         p["btnText2"]    := "4B5B73"
+        p["btnBg3"]      := "7C4DFF"
+        p["btnText3"]    := "FFFFFF"
+        
+        ; Main Button (Solid vibrant background, white text)
+        p["btnMainBg"]   := "0066FF"
+        p["btnMainText"] := "FFFFFF"
+        
         p["divider"]     := "C9D6E5"
         p["cActive"]     := "0066FF"
         p["cHighlight"]  := "1DB954"
@@ -165,6 +179,11 @@ BuildMainGui(savedVals := "") {
     MainGUI := Gui("+AlwaysOnTop -MaximizeBox -DPIScale -Caption +Border", "MHI | FH6 MACRO")
     MainGUI.BackColor := p["bg"]
 
+    ; ── Top-Left Header Window Utility ─────────
+    SetFixedFont(MainGUI, 10, "norm") ; Slightly larger icon fits nicely at the top
+    ThemeBtn := MainGUI.Add("Text", "x" Round(12*ScaleX) " y" Round(12*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], DarkMode ? "☀" : "🌙")
+    ThemeBtn.OnEvent("Click", (*) => ToggleTheme())
+
     ; ── Custom Window Controls ──
     SetFixedFont(MainGUI, 10, "bold")
     CustomMin := MainGUI.Add("Text", "x" Round(225*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "─")
@@ -257,7 +276,7 @@ BuildMainGui(savedVals := "") {
         KnobW:  Round(10 * ScaleX),
         KnobH:  Round(16 * ScaleY),
         MinVal: 1,
-        MaxVal: 16
+        MaxVal: Multipliers.Length
     }
 
     SetFixedFont(MainGUI, 9, "norm")
@@ -291,11 +310,11 @@ BuildMainGui(savedVals := "") {
     
     ; ── Action Buttons ──
     SetFixedFont(MainGUI, 9, "bold", "Semibold")
-    RaceBtn   := MainGUI.Add("Text", "x" Round(14*ScaleX) " y" Round(410*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🏁   RACE      \")
+    AllBtn    := MainGUI.Add("Text", "x" Round(14*ScaleX) " y" Round(410*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnMainBg"] " c" p["btnMainText"], "⟲   FULL LOOP     /")
+    RaceBtn   := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🏁   RACE      \")
     BuyBtn    := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(119*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🚗   BUY     [")
     UnlockBtn := MainGUI.Add("Text", "x" Round(137*ScaleX) " yp w" Round(119*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🛞   UNLOCK     ]")
-    AllBtn    := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "⟲   INIT SEQUENCE     /")
-    OpenSpinWindowBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["accent2"] " c" p["text"], "🎰   OPEN SPIN INTERFACE")
+    OpenSpinWindowBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg3"] " c" p["btnText3"], "🎰   OPEN SPIN INTERFACE")
 
     RaceBtn.OnEvent("Click",    (*) => StartRace())
     BuyBtn.OnEvent("Click",     (*) => StartBuy())
@@ -451,20 +470,28 @@ BuildMainGui(savedVals := "") {
     OptionsControls.Push(SpecialKCheck_UI)
     SpecialKCheck_UI.OnEvent("Click", SpecialKToggle)
 
-    ; ── Sticky Bottom Footer Grouping ─────────
+    ; ── Clean Center-Aligned Footer ─────────
     FooterControls := []
-    FooterControls.Push(F_Divider := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(12*ScaleY) " w" Round(242*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans", ""))
     
-    SetFixedFont(MainGUI, 8, "norm")
-    FooterControls.Push(ThemeBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " yp+" Round(5*ScaleY) " w" Round(30*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], DarkMode ? "☀" : "🌙"))
-    ThemeBtn.OnEvent("Click", (*) => ToggleTheme())
+    ; Row 1: Divider line
+    FooterControls.Push(F_Divider := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans", ""))
 
-    FooterControls.Push(Kofi_UI := MainGUI.Add("Picture", "x" Round(72.5*ScaleX) " yp+" Round(0*ScaleY) " w" Round(125*ScaleX) " h" Round(25*ScaleY) , A_ScriptDir "\assets\kofi.png"))
+    ; Row 2: Centered Ko-fi button
+    FooterControls.Push(Kofi_UI := MainGUI.Add("Picture", "x" Round(72*ScaleX) " yp+" Round(0*ScaleY) " w" Round(125*ScaleX) " h" Round(25*ScaleY), A_ScriptDir "\assets\kofi.png"))
     Kofi_UI.OnEvent("Click", (*) => Run("https://ko-fi.com/mhaziqiqbal"))
-
-    FooterControls.Push(VersionLink := MainGUI.Add("Link", "x" Round(224*ScaleX) " yp+" Round(5*ScaleY) " Right", '<a href="https://github.com/M-Haziq-Iqbal/Forza-Horizon-6-Wheelspin-Macro/releases/tag/v1.8.0">v1.8.0</a>'))
-
-    FooterControls.Push(BottomSpacer := MainGUI.Add("Text", "x0 yp+" Round(30*ScaleY) " w" Round(270*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans c" p["footer"], ""))
+    
+    ; Row 3: Natively Centered Application Status Bar (Full Width)
+    SetFixedFont(MainGUI, 8, "norm")
+    FooterControls.Push(UpdateLink := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+" Round(6*ScaleY) " w" Round(242*ScaleX) " Center c" p["btnText2"], "Checking status..."))
+    
+    ; Custom property-based click router (No more parameter index crashes!)
+    UpdateLink.OnEvent("Click", (ctrlObj, *) => (ctrlObj.HasProp("DownloadUrl") && ctrlObj.DownloadUrl != "") ? ProcessUpdate(ctrlObj.DownloadUrl, ctrlObj.AssetType) : Run(ctrlObj.HtmlUrl))
+    
+    ; Launch update check
+    CheckForUpdates(UpdateLink)
+    
+    ; Row 4: Bottom boundary spacer
+    FooterControls.Push(BottomSpacer := MainGUI.Add("Text", "x0 yp+" Round(25*ScaleY) " w" Round(270*ScaleX) " h" Round(1*ScaleY) " BackgroundTrans c" p["footer"], ""))
 
     MainGUI.Show("w" Round(270*ScaleX) " Hide")
     
@@ -680,4 +707,138 @@ MenuSelectReso(index, *) {
     global ResoSelect_UI
     ResoSelect_UI.Value := index 
     try UpdateReso(ResoSelect_UI, "")
+}
+
+; ==========================================
+; UPDATE FUNCTIONS
+; ==========================================
+
+CheckForUpdates(linkCtrl) {
+    try {
+        whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        whr.Open("GET", "https://api.github.com/repos/" RepoOwner "/" RepoName "/releases/latest", true)
+        whr.SetRequestHeader("User-Agent", "AHK-v2-Updater")
+        whr.Send()
+        whr.WaitForResponse()
+        
+        if (whr.Status != 200)
+            throw Error()
+            
+        jsonText := whr.ResponseText
+        
+        if !RegExMatch(jsonText, '"tag_name":\s*"([^"]+)"', &matchTag)
+            throw Error()
+        latestVersion := matchTag[1]
+        
+        downloadUrl := ""
+        assetType := ""
+        currentArch := (A_PtrSize == 8) ? "x64" : "x32"
+        
+        if (!A_IsCompiled) {
+            assetType := "ZIP archive"
+            if RegExMatch(jsonText, '"browser_download_url":\s*"([^"]+\.zip)"', &matchUrl)
+                downloadUrl := matchUrl[1]
+        } else {
+            assetType := currentArch " Executable"
+            archPattern := (currentArch == "x64") ? "x64" : "(x32|x86)"
+            if RegExMatch(jsonText, '"browser_download_url":\s*"([^"]+' archPattern '[^"]*\.exe)"', &matchUrl)
+                downloadUrl := matchUrl[1]
+        }
+        
+        RegExMatch(jsonText, '"html_url":\s*"([^"]+)"', &matchHtml)
+        htmlUrl := matchHtml ? matchHtml[1] : "https://github.com/" RepoOwner "/" RepoName "/releases"
+
+        ; Run our smart comparison math
+        compResult := CompareVersions(CurrentVersion, latestVersion)
+
+        if (compResult == 1) {
+            ; 🧪 LOCAL VERSION IS GREATER THAN GITHUB RELEASE
+            linkCtrl.DownloadUrl := ""  ; Empty url forces click to open the github changelog instead
+            linkCtrl.AssetType := ""
+            linkCtrl.HtmlUrl := htmlUrl
+            linkCtrl.Text := CurrentVersion " | Beta Build 🧪"
+        } 
+        else if (compResult == -1) {
+            ; ⚠ LOCAL VERSION IS OLDER (UPDATE AVAILABLE)
+            linkCtrl.DownloadUrl := downloadUrl
+            linkCtrl.AssetType := assetType
+            linkCtrl.HtmlUrl := htmlUrl
+            linkCtrl.Text := CurrentVersion " | Update Available ⚠"
+        } 
+        else {
+            ; ✓ PERFECT MATCH
+            linkCtrl.DownloadUrl := ""
+            linkCtrl.AssetType := ""
+            linkCtrl.HtmlUrl := htmlUrl
+            linkCtrl.Text := CurrentVersion " | Up to Date ✓"
+        }
+        
+    } catch {
+        linkCtrl.DownloadUrl := ""
+        linkCtrl.HtmlUrl := "https://github.com/" RepoOwner "/" RepoName "/releases"
+        linkCtrl.Text := "Check Failed"
+    }
+}
+
+; ── Smart Semantic Version Comparator Helper ──
+CompareVersions(vLocal, vRemote) {
+    ; Strip out letters/prefixes (e.g., "v1.0.1-beta" -> "1.0.1")
+    cleanL := RegExReplace(vLocal, "[^\d.]")
+    cleanR := RegExReplace(vRemote, "[^\d.]")
+    
+    aLocal  := StrSplit(cleanL, ".")
+    aRemote := StrSplit(cleanR, ".")
+    
+    ; Loop through the longest section array length
+    Loop Max(aLocal.Length, aRemote.Length) {
+        nLocal  := (A_Index <= aLocal.Length  && aLocal[A_Index]  != "") ? Integer(aLocal[A_Index])  : 0
+        nRemote := (A_Index <= aRemote.Length && aRemote[A_Index] != "") ? Integer(aRemote[A_Index]) : 0
+        
+        if (nLocal > nRemote)  
+            return 1  ; Local is newer (Beta / Prerelease)
+        if (nLocal < nRemote)  
+            return -1 ; Local is older (Update available)
+    }
+    return 0 ; Versions match exactly
+}
+
+ProcessUpdate(url, assetType) {
+    if (url == "") {
+        MsgBox("Could not find the appropriate " assetType " asset in the latest GitHub release.", "Asset Missing", "Iconx")
+        return
+    }
+    
+    MsgBox("Downloading " assetType "... The application will restart automatically.", "Updating", "Iconi")
+    
+    try {
+        scriptPath := A_ScriptFullPath
+        workingDir := A_ScriptDir
+        
+        if (!A_IsCompiled) {
+            ; --- ZIP UPDATE ROUTINE (.ahk script users) ---
+            zipFile := workingDir "\update.tmp.zip"
+            Download(url, zipFile)
+            
+            psCommand := 'Start-Sleep -s 2; '
+                      . 'Expand-Archive -Path "' zipFile '" -DestinationPath "' workingDir '" -Force; '
+                      . 'Remove-Item -Path "' zipFile '" -Force; '
+                      . 'Start-Process "' workingDir '\' A_ScriptName '"'
+            
+            Run('powershell -NoProfile -WindowStyle Hidden -Command ' . psCommand, , "Hide")
+        } 
+        else {
+            ; --- EXE UPDATE ROUTINE (.exe users) ---
+            tempFile := scriptPath ".tmp"
+            Download(url, tempFile)
+            
+            cmdCommand := A_ComSpec ' /c timeout /t 1 > nul & del "' scriptPath '" & move "' tempFile '" "' scriptPath '" & start "" "' scriptPath '"'
+            
+            Run(cmdCommand, , "Hide")
+        }
+        
+        ExitApp()
+        
+    } catch Error as err {
+        MsgBox("Update failed:`n" err.Message, "Update Error", "Iconx")
+    }
 }
