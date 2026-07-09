@@ -27,6 +27,7 @@
 #Include modules\Mode_Spin.ahk
 #Include modules\Mode_Unlock.ahk
 #Include modules\SpecialK.ahk
+#Include modules\Discord.ahk
 
 ; Setup tray icon dynamically
 TraySetIcon(A_IsCompiled ? A_ScriptFullPath : A_ScriptDir "\assets\icon.ico")

@@ -201,6 +201,13 @@ global SpecialKEnabled      := "0"
 global TargetDLL            := "" 
 global WindowHook           := 0
 
+; ══════════════════════════════════════════════
+;  DISCORD WEBHOOK SETTINGS
+; ══════════════════════════════════════════════
+_iniDiscordEnabled          := ReadMacroIni("Settings", "DiscordEnabled", "")
+global DiscordEnabled       := _iniDiscordEnabled ? _iniDiscordEnabled : "0"
+global DiscordWebhookUrl    := ReadMacroIni("Settings", "DiscordWebhookUrl", "")
+
 global SK_ConfigMap     := Map(
     "SpecialK.System", Map("Silent", "true"),
     "Render.FrameRate", Map("TargetFPS", "60.0"),
