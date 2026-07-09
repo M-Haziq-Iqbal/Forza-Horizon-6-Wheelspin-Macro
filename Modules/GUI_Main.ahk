@@ -569,6 +569,24 @@ _AddCollapsibleOptions() {
     ControlsArray.Push(SpecialKCheck_UI)
     SpecialKCheck_UI.OnEvent("Click", SpecialKToggle)
 
+    ; ── Discord Webhook ─────────
+    SetFixedFont(MainGUI, 8, "bold", "Semibold")
+    ControlsArray.Push(MainGUI.Add("Text", "x" Round(75*ScaleX) " y+10 w" Round(120*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans c" p["textDim"], "Discord Webhook URL"))
+
+    SetFixedFont(MainGUI, 8, "norm")
+    ControlsArray.Push(DiscordUrl_UI := MainGUI.Add("Edit", "x" Round(20*ScaleX) " y+4 w" Round(230*ScaleX) " h" Round(22*ScaleY) " -E0x200 Center Background" p["editBg"] " c" p["text"], DiscordWebhookUrl))
+    DiscordUrl_UI.OnEvent("Change", DiscordUrlChanged)
+
+    isDiscordEnabled := (DiscordEnabled = "1")
+    discordColor := isDiscordEnabled ? p["text"] : p["textDim"]
+    discordText  := isDiscordEnabled ? "▰  DISCORD: ACTIVE" : "▱  DISCORD: INACTIVE"
+
+    SetFixedFont(MainGUI, 9, "norm", "Light")
+    DiscordCheck_UI := MainGUI.Add("Text", "x" Round(20*ScaleX) " y+6 w" Round(230*ScaleX) " h" Round(20*ScaleY) " Center 0x200 c" discordColor, discordText)
+    DiscordCheck_UI.State := isDiscordEnabled
+    ControlsArray.Push(DiscordCheck_UI)
+    DiscordCheck_UI.OnEvent("Click", DiscordToggle)
+
     return ControlsArray
 }
 
