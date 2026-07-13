@@ -7,60 +7,90 @@ StartFullLoop() {
     global ActiveMode, MasterMode, StartLoopMode
     global LoopCount_In, SkillPtsScanSuccess
     global RadioRace, RadioBuy, RadioUnlock
+    global DiscordWebhookRunning
 
-    StartLoop := StartLoopMode
-    SkillPtsScanSuccess := false
-    CustomCarCount := 0
-
-    if FindGame() = 0
+    if FindGame() = false
         return
 
-    StartIndicators()
+    ; Initialize state variables
+    StartLoop := StartLoopMode
+    FirstLoopMode := StartLoopMode
+    SkillPtsScanSuccess := false
+    LoopCount := 0
+    CustomCarCount := 0
     MasterMode := !MasterMode
 
-    if MasterMode
-        ShowNotif("success", "Master Loop Initiated", "Beginning automated event cycles.")
+    Loop {
+        if !MasterMode
+            break
 
-    while (MasterMode && LoopCount_In.Value > 0) {
+        SetTimer(TotalTimerTick, 1000)
 
-        if !StartLoop || StartLoop = "Race" {
+        LoopCount++
+        ResetMiniGuiTelemetry()
+        ShowNotif("info", "Full Loop Started", "Sequence " LoopCount " Initiated", , true)
+
+        ; 1. Race Segment
+        if (!StartLoop || StartLoop = "Race") {
             _UpdateStartLoop(RadioRace, "Race")
             StartRace()
             StartLoop := ""
-            if !MasterMode
+            if _CheckAbort()
                 break
         }
 
-        if !StartLoop || StartLoop = "Buy" {
+        ; 2. Buy Segment
+        if (!StartLoop || StartLoop = "Buy") {
             _UpdateStartLoop(RadioBuy, "Buy")
             StartBuy()
             StartLoop := ""
-            if !MasterMode
+            if _CheckAbort()
                 break
         }
 
-        if !StartLoop || StartLoop = "Unlock" {
+        ; 3. Unlock Segment
+        if (!StartLoop || StartLoop = "Unlock") {
             _UpdateStartLoop(RadioUnlock, "Unlock")
             StartUnlock()
             StartLoop := ""
-            if !MasterMode
+            if _CheckAbort()
                 break
         }
         
-        if SpinInFullLoop {
+        ; 4. Optional Wheelspin Segment
+        if (SpinInFullLoop) {
             OpenSpinPanel()
             StartSpin()
             OnSpinClose()
-            if !MasterMode
+            if _CheckAbort()
                 break
         }
 
+        ; Only fires if the entire loop sequence survived without hitting an abort
+        ShowNotif("success", "Full Loop", "Sequence " LoopCount " Finalized in " MiniTotalRunTime_UI.Value, , true)
+        
+        _UpdateStartLoop(RadioRace, "Race")
+
+        SetTimer(TotalTimerTick, 0)
+
+        LoopCount_In.Value--
+        if LoopCount_In.Value = 0
+            break
+
         Process("Restarting Full Loop with Race Mode...")
-        LoopCount_In.Value -= 1
     }
     
-    MasterMode := ""
-    ShowNotif("info", "Sequence Complete", "Master loop runs finished or stopped.")
-    
-    ResetIndicators()
+    ; Clean up state at termination
+    MasterMode := false
+    return
+
+    ; Nested helper to deduplicate your termination alerts
+    _CheckAbort() {
+        global MasterMode
+        if (!MasterMode) {
+            ShowNotif("warning", "Full Loop", "Sequence " LoopCount " interrupted and stopped.", true)
+            return true
+        }
+        return false
+    }
 }

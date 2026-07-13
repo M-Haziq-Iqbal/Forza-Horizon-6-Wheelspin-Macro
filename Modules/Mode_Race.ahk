@@ -21,6 +21,7 @@ StartRace() {
     UpdateMiniWidgetMode(ActiveMode)
     
     if (ActiveMode = "Race" && SkillPtsWant_In.Value > 0 && SkillPtsCount_In.Value < 999) {        
+
         TotalRunSeconds      := 0
         RaceRunSeconds       := 0
 
@@ -44,30 +45,36 @@ StartRace() {
 }
 
 RaceLoop() {
-    global ActiveMode, MasterMode, RaceStart, EventLab
+    global ActiveMode, MasterMode, EventLab
     global cActive, cHighlight, cIdle
     global SectorCount_UI, PointsCount_UI, CarCount_UI, RaceRunTime_UI
     global MiniSectorCount_UI, MiniPointsCount_UI
-    global AveragePoints, Maxpoints, PointsGain, RaceRunSeconds
+    global Maxpoints, PointsGain, RaceRunSeconds
+    global CarData, SelectedCar, EventLabData, EventLab
+    global PointsCount     := 0
+    global SectorCount     := 0
 
-    PointsCount     := 0
-    SectorCount     := 0
+    car := CarData[SelectedCar]
+    event := EventLabData[EventLab]
+
     FailedTurn      := 0
-    NotiFreqInterv  := 5
+    NotiFreqInterv  := 10
 
-    CheckAbort() => (ActiveMode != "Race" && !MasterMode)
+    CheckAbort() {
+        return ActiveMode != "Race" && !MasterMode
+    }
 
     While (ActiveMode = "Race") {
-        RaceStart := true
+        DiscordStatusUpdate("info", "Race Mode Started", "Starting " EventLab " EventLab circuit...")
 
         Process("Scanning Menu...")
-        RaceNav("EventLab Race")
+        RaceNav()
 
         if CheckAbort()
             break
         
         Process("Scanning Skill Points")
-        SkillPtsRaceScan(0.280, 0.698, 0.157, 0.058)
+        RaceSkillPtsScan(0.280, 0.698, 0.157, 0.058, false)
 
         if (PointsGain <= 0)
             break 
@@ -90,19 +97,15 @@ RaceLoop() {
         Loop 7
             PressKey("PgDn", 100)
 
-        if !WaitForPixel("Waiting for EventLab to load...", 0.283, 0.198, "0xFCC500", , 10000) {
-            Process("Sync Error: EventLab search timed out!")
-            break
-        }
+        WaitForPixel("Waiting for EventLab to load...", 0.283, 0.198, "0xFCC500", , 10000)
+
         PressKey("Enter")           ; Select Event
 
         if CheckAbort()
             break
 
-        if !WaitForPixel("Choosing Race Type...", 0.331, 0.567, "0xFFFFFF", , 10000) {
-            Process("Sync Error: EventLab search timed out!")
-            break
-        }
+        WaitForPixel("Choosing Race Type...", 0.331, 0.567, "0xFFFFFF", , 10000)
+
         PressKey("Enter", 3000) ; Select Race Type
 
         if CheckAbort()
@@ -116,13 +119,22 @@ RaceLoop() {
         if CheckAbort()
             break
 
-        Process("Loading EventLab...")
-        PressKey("Enter")           ; Select Car
-        
-        if !WaitForPixel("Waiting for track to load...", 0.158, 0.678, "0xFFFFFF", "", 30000) {
-            Process("Sync Error: EventLab track failed to load!")
-            break
+        Loop {
+            Process("Verifying 1998 Subaru with the correct tune.", 500)
+            CarVerify := CarVerifyCheck("Race Mode", "1998 Subaru", 816997639471, false)
+            if !CarVerify
+                PressKey("Right", 50)
+            else {
+                PressKey("Enter", 50)
+                break
+            }
+
+            if A_Index > 15
+                EmergencyExit("No 1998 Subaru with the correct tune detected.")
         }
+        
+        Process("Loading EventLab...")
+        WaitForPixel("Waiting for track to load...", 0.158, 0.678, "0xFFFFFF", , 30000)
 
         Process("Start Race Event...")
         PressKey("Enter", 2000) 
@@ -130,13 +142,14 @@ RaceLoop() {
         if CheckAbort()
             break
 
+        DiscordStatusUpdate("info", "Race Mode Active", "Driving " EventLab " EventLab circuit...")
+
         PressKey("W", 50) 
         Process("Countdown...", 3000)
 
         if (EventLab == "LIQUIDPOTATO") {
             While (PointsCount < PointsGain) {
                 Process("Throttling...")
-
                 PressKey("w down", 50) 
                 Sleep(30000)
                 PressKey("w up", 50) 
@@ -145,7 +158,7 @@ RaceLoop() {
                     break
                 
                 SectorCount++
-                PointsCount := Floor(SectorCount * AveragePoints) 
+                PointsCount := Floor(SectorCount * event.AveragePoints) 
 
                 ; Update GUI
                 PointsCount_UI.Value     := PointsCount
@@ -160,7 +173,9 @@ RaceLoop() {
                 }
 
                 if (Mod(SectorCount, NotiFreqInterv) == 0)
-                    ShowNotif("info", "EventLab Race", SectorCount " sectors of EventLab Race completed.")
+                    ShowNotif("info", "Race Mode", SectorCount " sectors of EventLab Race completed.")
+
+                DiscordStatusUpdate("info", "Race Mode Active", "Driving " EventLab " EventLab circuit...")
             }
 
             Process("Quitting the Event...", 2000)
@@ -170,27 +185,37 @@ RaceLoop() {
             PressKey("Enter")           ; Confirm Quit
         }
         else if (EventLab == "AMMAGEDON") {
-            StartTime := A_TickCount
             AlreadyQuit := false
 
             While (PointsCount < PointsGain) {
                 Process("Throttling...")
-                PressKey("w down", 18000)
+                Loop 18 {
+                    PressKey("w down", 1000)
+                    if CheckAbort()
+                        break 2
+                }
 
                 if CheckAbort()
                     break
 
-                if WaitForPixel("Turning...", 0.202, 0.843, "0x696562", , 6000, 500, true, 25, "Failed braking on time.", 5) {
+                if WaitForPixel("Turning...", 0.202, 0.843, "0x696562", , 6000, 500, 25, 5, true, "Failed braking on time.") {
                     Process("Braking...")
                     PressKey("w up")
                     PressKey("s down", 1500)
                     PressKey("s up", 1000)
+
+                    if CheckAbort()
+                        break
 
                     Process("Throttling...")
                     PressKey("w down", 2000)
                 } else {
                     Process("Releasing throttle...")
                     PressKey("w up", 2000)
+
+                    if CheckAbort()
+                        break
+
                     Process("Throttling...")
                     PressKey("w down", 2000)
                 }
@@ -201,9 +226,9 @@ RaceLoop() {
                 SectorCount++
 
                 if (Mod(SectorCount, NotiFreqInterv) == 0)
-                    ShowNotif("info", "EventLab Race", SectorCount " sectors of EventLab Race completed.")
+                    ShowNotif("info", "Race Mode", SectorCount " sectors of EventLab Race completed.")
 
-                PointsCount := Floor(SectorCount * AveragePoints) 
+                PointsCount := Floor(SectorCount * event.AveragePoints) 
 
                 ; Update GUI
                 PointsCount_UI.Value     := PointsCount
@@ -222,7 +247,7 @@ RaceLoop() {
                 }
 
                 if (Mod(SectorCount, 50) == 0 && PointsCount >= PointsGain) {
-                    if WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 20000, , true, , "Leaderboard failed to load! `nRestarting event...") {
+                    if WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 20000, , , , true, "Leaderboard failed to load! `nRestarting event...") {
                         Process("Quitting the Event...")
                         PressKey("Enter")
                         AlreadyQuit := true
@@ -230,8 +255,8 @@ RaceLoop() {
                     }
                 }
 
-                if (Mod(SectorCount, 50) == 0) {
-                    if !WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 30000, , true, , "Leaderboard failed to load! `nRestarting event...") {
+                if (Mod(SectorCount, 50) == 0 && PointsCount < PointsGain) {
+                    if !WaitForPixel("Waiting for leaderboard to load...", 0.166, 0.292, "0xFFFFFF", "", 30000, , , , true, "Leaderboard failed to load! `nRestarting event...") {
                         Process("Sync Error: EventLab leaderboard failed to load!")
 
                         Process("Restarting the Event...", 2000)
@@ -239,30 +264,22 @@ RaceLoop() {
                         PressKey("Left")        ; Navigate to Restart
                         PressKey("Enter")       ; Restart Event
                         PressKey("Enter")       ; Confirm Restart
-                        
-                        if !WaitForPixel("Waiting for next round to load...", 0.174, 0.683, "0xFFFFFF", "", 20000) {
-                            Process("Sync Error: EventLab next round failed to load!")
-                            break
-                        }
-                        Process("Entering the Event")
-                        PressKey("Enter", 2000) 
-                        PressKey("W down", 50) 
-                        Process("Countdown...", 3000)
+                    
                     } else {
                         Process("Restarting the Event...")
                         PressKey("X") 
                         PressKey("Enter") 
-
-                        if !WaitForPixel("Waiting for next round to load...", 0.174, 0.683, "0xFFFFFF", "", 20000) {
-                            Process("Sync Error: EventLab next round failed to load!")
-                            break
-                        }
-                        Process("Entering the Event")
-                        PressKey("Enter", 2000) 
-                        PressKey("W down", 50) 
-                        Process("Countdown...", 3000)
                     }
+
+                    WaitForPixel("Waiting for next round to load...", 0.174, 0.683, "0xFFFFFF", "", 20000)
+                    
+                    Process("Entering the Event")
+                    PressKey("Enter", 2000) 
+                    PressKey("W down", 50) 
+                    Process("Countdown...", 3000)
                 }
+
+                DiscordStatusUpdate("info", "Race Mode Active", "Driving " EventLab " EventLab circuit...")
             }
 
             if (!AlreadyQuit) {
@@ -273,10 +290,10 @@ RaceLoop() {
                 PressKey("Enter")       ; Confirm Quit
             }
         }
-        RaceStart := false
         
         PressKey("w up")
-        ShowNotif("success", "EventLab Race", SectorCount " sectors EventLab Race completed.")
+
+        ShowNotif("success", "Race Mode", SectorCount " sectors EventLab Race completed.")
 
         WaitForPixel("Returning to Free Roam...", 0.061, 0.945, "0xFFFFFF", "", 30000)
 
@@ -288,17 +305,14 @@ RaceLoop() {
         PressKey("PgDn")         ; Navigate to Cars Menu
 
         Process("Scanning Skill Points")
-        SkillPtsRaceScan(0.280, 0.698, 0.157, 0.058)
+        RaceSkillPtsScan(0.280, 0.698, 0.157, 0.058, true)
 
         Process("Navigating Home...")
         PressKey("PgDn")        ; Navigate to My Horizon Menu
         PressKey("Enter")       ; Select Return Home
         PressKey("Enter")       ; Confirm Travel to Home
 
-        if !WaitForPixel("Returning to Home...", 0.168, 0.722, "0xFFFFFF", "", 20000) {
-            Process("Sync Error: Unable to return Home!")
-            break
-        }
+        WaitForPixel("Returning to Home...", 0.168, 0.722, "0xFFFFFF", "", 20000)
 
         RaceRunTime_UI.SetFont("c" cIdle)
         PointsCount_UI.SetFont("c" cIdle)
@@ -307,61 +321,66 @@ RaceLoop() {
     }
 }
 
-SkillPtsRaceScan(ratioX, ratioY, ratioW, ratioH, waitTime := 1000) {
+RaceSkillPtsScan(ratioX, ratioY, ratioW, ratioH, finish:=false waitTime := 1000) {
     global SkillPtsCount_In, SkillPtsWant_In, CarCount_In
     global PointsLabel_UI, SectorLabel_UI, TimeLabel_UI, CarsLabel_UI
-    global ActiveMode, MaxPoints, CustomSkillPts, SkillPtsScanSuccess, RaceStart, AveragePoints
-    global CarData, SelectedCar
+    global ActiveMode, MaxPoints, CustomSkillPts
     global SkillPtsCount, SkillPtsWant, PointsGain, PointsTotal, CarCount, TimeTotal
+    global CarData, SelectedCar, EventLabData, EventLab
+
+    car := CarData[SelectedCar]
+    event := EventLabData[EventLab]
+
+    SkillPtsCountOld := SkillPtsCount_In.Value
     
     Process("Scanning Skill Points", 1000)
     points := ScanOCR(ratioX, ratioY, ratioW, ratioH, 1000, , true)
 
-    if RaceStart {
+    if !finish {
         if (points == -1) {
-            SkillPtsCount := SkillPtsCount_In.Value
-            SkillPtsWant := CustomSkillPts ? Min(CustomSkillPts, MaxPoints - SkillPtsCount) : Min(999 - SkillPtsCount, MaxPoints)
-            ShowNotif("fail", "EventLab Race", "Skill Points Scan Failed. `nDefaulting to previous Skill Points value...")
+            SkillPtsCount := SkillPtsCountOld
+            ShowNotif("warning", "Race Mode", "Skill Points not detected. `nEstimated value: " SkillPtsCount)
         } else {
             SkillPtsCount := points
-            SkillPtsWant := CustomSkillPts ? Min(CustomSkillPts, MaxPoints - points) : Min(999 - points, MaxPoints)
-            ShowNotif("info", "EventLab Race", "Starting the EventLab Race with " SkillPtsCount " Skill Points.")
+            ShowNotif("info", "Race Mode", SkillPtsCount " Skill Points detected.", true)
         }
 
+        SkillPtsWant := CustomSkillPts ? Min(CustomSkillPts, MaxPoints - SkillPtsCount) : Min(999 - SkillPtsCount, MaxPoints)
+        SkillPtsWant_In.Value  := SkillPtsWant
+
         PointsGain  := GetMinScore(SkillPtsWant)
-        PointsTotal := Min(PointsGain + SkillPtsCount_In.Value, 999)
+        PointsTotal := Min(PointsGain + SkillPtsCount, 999)
         CarCount    := Floor(PointsTotal / CarData[SelectedCar].SkillPtsCost)
         TimeTotal   := CalcTotalTime(SkillPtsWant, CarCount)
 
         CarCount_In.Value      := CarCount
-        SkillPtsCount_In.Value := SkillPtsCount
-        SkillPtsWant_In.Value  := SkillPtsWant
 
         PointsLabel_UI.Value := PointsGain
-        SectorLabel_UI.Value := Ceil(PointsGain / AveragePoints)
+        SectorLabel_UI.Value := Ceil(PointsGain / event.AveragePoints)
         TimeLabel_UI.Value   := Format("{:02}:{:02}", Floor(TimeTotal), Floor((TimeTotal - Floor(TimeTotal)) * 60))
         CarsLabel_UI.Value   := CarCount
-    } else {
-        SkillPtsCount_InPrev := SkillPtsCount_In.Value
-        
+    } else if finish {
         if (points == -1) {
-            SkillPtsCount_In.Value := PointsTotal - 10
-            ShowNotif("fail", "EventLab Race", "Skill Points Scan Failed. `nDefaulting to estimated Skill Points gained...")
+            SkillPtsCount := PointsTotal - 10
+            ShowNotif("warning", "Race Mode", "Skill Points not detected. `nEstimated value: " SkillPtsCount, true)
         } else {
-            SkillPtsCount_In.Value := points
-            SkillPtsCount_InNew    := SkillPtsCount_In.Value - SkillPtsCount_InPrev
-            SkillPtsScanSuccess    := true
-            ShowNotif("success", "EventLab Race", SkillPtsCount_InNew " Skill Points have been obtained.")
+            global SkillPtsScanSuccess := true
+            SkillPtsCount       := points
+            SkillPtsCountNew    := SkillPtsCount - SkillPtsCountOld
+            ShowNotif("success", "Race Mode", SkillPtsCountNew " Skill Points earned.", true)
         }
-        SkillPtsWant_In.Value := Min(999 - SkillPtsCount_In.Value, MaxPoints)
+
+        SkillPtsWant := Min(999 - SkillPtsCount, MaxPoints)
+        SkillPtsWant_In.Value := SkillPtsWant
     }
+
+    SkillPtsCount_In.Value := SkillPtsCount
 
     return points
 }
 
-RaceNav(NotifTitle) {
+RaceNav() {
     Scanned := ScanMenu()
-    ShowNotif("info", NotifTitle, "Navigating to Cars Menu...")
 
     if (Scanned.menu == "") {
         Process("Navigation aborted: Menu could not be identified.")
@@ -380,7 +399,7 @@ RaceNav(NotifTitle) {
     switch Scanned.menu {
         case "Home Menu":
             Process("Navigating to Free Roam...")
-            ShowNotif("info", NotifTitle, "Home Menu detected. `nReturning to free roam...")
+            ShowNotif("info", "Race Mode", "Home Menu detected!")
             PressKey("Esc")             ; Return to Free Roam
             WaitForPixel("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 20000, 1000)
             PressKey("Esc", 1000)       ; Open Free Roam Menu (Lands on default Campaign tab)
@@ -388,12 +407,12 @@ RaceNav(NotifTitle) {
 
         case "Free Roam":
             Process("Navigating to Free Roam Menu...")
-            ShowNotif("info", NotifTitle, "Free Roam detected! `nNavigating to Free Roam Menu...")
+            ShowNotif("info", "Race Mode", "Free Roam detected!")
             PressKey("Esc", 1000)       ; Open Free Roam Menu (Lands on default Campaign tab)
             Scanned.submenu := "Free Roam Menu - Campaign"
             
         case "Free Roam Menu":
-            ShowNotif("info", NotifTitle, "Free Roam Menu detected!")
+            ShowNotif("info", "Race Mode", "Free Roam Menu detected!")
     }
 
     Process("Navigating to My Horizon Menu...")

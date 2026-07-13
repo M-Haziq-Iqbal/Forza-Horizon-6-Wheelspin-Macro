@@ -82,7 +82,8 @@ This utility merges smart automation techniques with an accessible user interfac
 
 * **True Background Automation:** Built with a specialized background screen-capture engine. The macro can read menus, check colors, and send keypresses **even when the game window is entirely covered or out of focus**.
 * **Anti-Pause Protection:** Intercepts system focus changes. When you click away to work or browse, the macro keeps the game engine awake, bypassing the game's default rule that pauses the action when you switch windows.
-* **Modern UI & Theme Options:** Built on a completely overhauled mode framework. You can switch between a sleek **Dark Mode** and a clean **Light Mode** palette on the fly.
+* **Modern UI & Theme Options:** Built on a completely overhauled mode framework. You can switch between a sleek **Cyber Noir Dark Mode** and a clean **Light Mode** palette on the fly.
+* **Live Discord Webhook Telemetry:** Built-in network engine hook that instantly pushes local `ShowNotif()` toast updates straight to your private Discord channel. Tracks loops, purchase validations, unlocks, and errors with system timestamp tracking and safe, locale-independent UTF-8 byte arrays.
 * **Fuzzy Text Matching & Safety Intercepts:** Uses an intelligent text-matching pipeline. If a network drop, unexpected lag spike, or menu mismatch occurs, the script notes it. If text matching drops below a safe **80% accuracy threshold** during a critical loop, the script triggers an emergency hard cutoff to safeguard your profile and resources.
 * **Live Statistics Overlay (Mini GUI):** When minimized, the control dashboard shrinks into a tiny, floating desktop overlay tracking live farming stats, total running time, and remaining prize queues.
 * **Speed Multiplier Slider:** Adjust the overall macro processing speed from **0.25x to 4.0x** to perfectly match your PC's loading drive speed (SSD vs. HDD) and system power.
@@ -322,15 +323,18 @@ You can add / edit custom reward cars or adjust underlying movement paths effort
 * Simply click directly on the interactive layout text codes (`Tune Code` or `Race Code`) to instantly save that precise numeric sequence to your Windows clipboard for quick in-game pasting.
 * The application bar also handles real-time semantic tracking and background updating alongside the GitHub API.
 
-#### 7. Advanced Launch Controls
+#### 7. Advanced Launch & Integration Controls (Collapsible Panel)
 
 <p align="center">
   <img width="268" height="178" alt="image" src="https://github.com/user-attachments/assets/ed6b1cc2-b4fd-478e-a7c1-8e834574d4d2" />
 </p>
 
-* Configure the resolution of 16:9 borderless game client window in Resize mode.
-* Link your local application directories using **SET GAME PATH** to boot, scale, and launch your software loops instantly from a single hub.
-* Enable / Disable Special K in your game with a  single toggle.
+Clicking the **⚙️ OPTIONS** chevron button reveals the streamlined micro-configuration tray:
+
+* **Game Resolution Selector:** Lock or select the optimized render resolution profile matching your window configuration.
+* **Set Game Path / Launch:** Instantly point to your local installation directories to boot, center, and align your automation loops directly out of the interface.
+* **Special K Integration Engine:** Safe UI-bound toggle to hook global background inputs directly via injected wrappers if native keyboard handling fails on your hardware.
+* **Discord Notification Integration:** Paste your Discord channel webhook URL into the input panel and click the interactive button. When active, it toggles into a bright theme accent state (**▰ DISCORD NOTIFICATIONS: ON**) and sends live remote toasts of your macro events, rewards, and connection drops directly to your server.
 
 #### 🗗 Floating Mini GUI Widget Overview
 

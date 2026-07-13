@@ -30,7 +30,8 @@ ShowCarEditorGUI(Mode := "New") {
     }
 
     p := GetPalette()
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox -DPIScale -Caption +Border", Mode == "New" ? "MHI | ADD VEHICLE" : "MHI | EDIT PROFILE")
+    MainGUI.Opt("+Disabled")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox -DPIScale -Caption +Border +Owner", Mode == "New" ? "MHI | ADD VEHICLE" : "MHI | EDIT PROFILE")
     EditorGui.BackColor := p["bg"]
     
     vName := "", vAltName := "", vStats := "", vMfrPath := "", vCarPath := "", vUnlockPath := "", vCost := "0", vSWheel := "0", vWheel := "0", vCredit := "0"
@@ -68,10 +69,10 @@ ShowCarEditorGUI(Mode := "New") {
     
     ; Caption Controls
     SetFixedFont(EditorGui, 10, "bold")
-    EditorMin := EditorGui.Add("Text", "x" Round(265*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "─")
-    EditorMin.OnEvent("Click", (*) => WinMinimize(EditorGui.Hwnd))
+    ; EditorMin := EditorGui.Add("Text", "x" Round(265*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "─")
+    ; EditorMin.OnEvent("Click", (*) => WinMinimize(EditorGui.Hwnd))
     EditorX := EditorGui.Add("Text", "x" Round(285*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "✕")
-    EditorX.OnEvent("Click", (*) => EditorGui.Destroy())
+    EditorX.OnEvent("Click", (*) => ClosePopup())
 
     SetFixedFont(EditorGui, 12, "bold", "Light")
     EditorGui.Add("Text", "x0 y" Round(30*ScaleY) " w" Round(310*ScaleX) " Center c" p["accent"], Mode == "New" ? "ADD NEW VEHICLE" : "EDIT VEHICLE PROFILE")
@@ -226,7 +227,7 @@ DeleteProfile(CtrlObj, *) {
     
     fallbackName := CarList.Length > 0 ? CarList[1] : ""
     RefreshCarSelectorTree(fallbackName)
-    EditorGui.Destroy()
+    ClosePopup()
 }
 
 ; Localized dynamic clearing subroutine
@@ -390,7 +391,7 @@ CommitChanges(CtrlObj, *) {
     })
     
     RefreshCarSelectorTree(Name)
-    EditorGui.Destroy()
+    ClosePopup()
 }
 
 RefreshCarSelectorTree(TargetName) {
@@ -408,4 +409,9 @@ RefreshCarSelectorTree(TargetName) {
         CarSelect_UI.Value := newIndex
         try UpdateCar(CarSelect_UI, "")
     }
+}
+
+ClosePopup() {
+    MainGUI.Opt("-Disabled") ; Re-enable the main GUI window
+    EditorGui.Destroy()
 }

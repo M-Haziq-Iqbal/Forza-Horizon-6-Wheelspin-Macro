@@ -157,7 +157,7 @@ BuildMainGui(savedVals := "") {
     Global ScaleX, ScaleY, DarkMode, ActiveMode, StartLoopMode
     Global CarList, SelectedCar, CarCount, EventLabList, EventLab
     Global PointsGain, PointsTotal, TimeTotal, ResoList, SelectedReso
-    Global GameExe, CodeTune, CodeEventLab
+    Global GameExe
 
     ; 1. Environment & Theme Matrix Resolution
     global cStat      := ActiveMode ? p["accent"] : p["textDim"]
@@ -240,12 +240,18 @@ BuildMainGui(savedVals := "") {
             ctrl.Visible := isOpen
         for i, ctrl in FooterControls
             ctrl.Move(, isOpen ? footerOrigY[i] : (footerOrigY[i] - shiftY))
+        
+        ; Adjust window bounds
         MainGUI.Move(,,, isOpen ? expandedH : compactH)
+        
+        ; Visual polish adjustments
         btnObj.Opt("Background" (isOpen ? p["activeBg"] : p["btnBg2"]))
         btnObj.Text := isOpen ? "⚙️   OPTIONS   ⏶" : "⚙️   OPTIONS   ⏷"
+        
+        ; FORCE REDRAW FOR CLEAN COMPACT TRANSITION
         btnObj.Redraw()
+        MainGUI.Show() ; Re-assert window presentation to avoid trailing frame shadows
     }
-
     ; Bind and Initializing Starting Compact Sizing
     ToggleBtn.OnEvent("Click", _OnOptionsToggle)
     for ctrl in OptionsControls
@@ -271,6 +277,7 @@ _AddHeader() {
     SetFixedFont(MainGUI, 10, "norm")
     ThemeBtn := MainGUI.Add("Text", "x" Round(12*ScaleX) " y" Round(12*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], DarkMode ? "☀" : "🌙")
     ThemeBtn.OnEvent("Click", (*) => ToggleTheme())
+    ThemeBtn.ToolTipText := "Toogle Dark/Light Mode"
 
     SetFixedFont(MainGUI, 10, "bold")
     CustomMin := MainGUI.Add("Text", "x" Round(225*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "─")
@@ -328,6 +335,7 @@ _AddInputTab(savedVals) {
     SetFixedFont(MainGUI, 9, "bold")
     AddCarBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+20 w" Round(25*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "＋")
     AddCarBtn.OnEvent("Click", (*) => ShowCarEditorGUI("New"))
+    AddCarBtn.ToolTipText := "Add Car Profile"
 
     CarSelect_UI := MainGUI.Add("Text", "x" Round(45*ScaleX) " yp w" Round(180*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["editBg"] " c" p["text"])
     CarSelect_UI.DefineProp("Value", {
@@ -350,6 +358,7 @@ _AddInputTab(savedVals) {
 
     EditCarBtn := MainGUI.Add("Text", "x" Round(231*ScaleX) " yp w" Round(25*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "✎")
     EditCarBtn.OnEvent("Click", (*) => ShowCarEditorGUI("Edit"))
+    EditCarBtn.ToolTipText := "Edit Car Profile"
 
     ; ══════════════════════════════════════════════
     ;  LOOP ENTRY POINT SELECTOR
@@ -410,7 +419,7 @@ _AddStatsTab() {
     ;  SPIN INTERFACE METRICS GLOBALS
     ; ══════════════════════════════════════════════
     Global MainSpinRunTime_UI, MainSpinOpenCount_UI, MainSpinLeftCount_UI
-    Global ScaleX, ScaleY, PointsGain, TimeTotal, AveragePoints, CarCount
+    Global ScaleX, ScaleY, PointsGain, TimeTotal, CarCount
     Global StatsHeader_UI, StatsHeaderOrigY, StatsControlsList := []
 
     TabControl.UseTab(2)
@@ -421,7 +430,7 @@ _AddStatsTab() {
     
     StatsControlsList.Push(MainGUI.Add("Text", "x" Round(14*ScaleX) " y+0 w" Round(242*ScaleX) " Center BackgroundTrans c" p["divider"], "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
 
-    SectorCountEst := Ceil(PointsGain / AveragePoints)
+    SectorCountEst := Ceil(PointsGain / EventLabData[EventLab].AveragePoints)
     TimeTotalText  := Format("{:02}:{:02}", Floor(TimeTotal), Round((TimeTotal - Floor(TimeTotal)) * 60))
 
     SetFixedFont(MainGUI, 9, "norm", "Light")
@@ -481,7 +490,7 @@ _AddStatsTab() {
 }
 
 _AddSharedDashboard(DividerYPosition) {
-    Global MainGUI, TabControl, ToggleBtn, ScaleX, ScaleY, EventLab, EventLabList, CodeTune, CodeEventLab
+    Global MainGUI, TabControl, ToggleBtn, ScaleX, ScaleY, EventLab, EventLabList
     Global EventLabSelect_UI, CodeTune_UI, CodeEventLab_UI
 
     SetFixedFont(MainGUI, 8, "bold", "Semibold")
@@ -512,8 +521,8 @@ _AddSharedDashboard(DividerYPosition) {
     CodeTune_UI     := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+4 w" Round(119*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "📋 TUNE CODE")
     CodeEventLab_UI := MainGUI.Add("Text", "x" Round(137*ScaleX) " yp w" Round(119*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "📋 RACE CODE")
     
-    CodeTune_UI.OnEvent("Click", (*) => _CopyToClip(CodeTune, "Subaru 22B Tune Code"))
-    CodeEventLab_UI.OnEvent("Click", (*) => _CopyToClip(CodeEventLab, "EventLab Race Code"))
+    CodeTune_UI.OnEvent("Click", (*) => _CopyToClip(EventLabData[EventLab].CodeTune, "Subaru 22B Tune Code"))
+    CodeEventLab_UI.OnEvent("Click", (*) => _CopyToClip(EventLabData[EventLab].CodeEvent, "EventLab Race Code"))
 
     SetFixedFont(MainGUI, 8, "bold", "Semibold")
     ToggleBtn := MainGUI.Add("Text", "x" Round(65*ScaleX) " y+16 w" Round(140*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText"], "⚙️   OPTIONS   ⏷")
@@ -529,10 +538,20 @@ _RepositionStatsControls(yOffset) {
 
 _AddCollapsibleOptions() {
     Global MainGUI, ResoSelect_UI, BrowseBtn, LaunchBtn, SpecialKCheck_UI, ScaleX, ScaleY, ResoList, SelectedReso, GameExe
+    Global DiscordUrl_UI, DiscordCheck_UI
     
     ControlsArray := []
+    margin       := Round(14 * ScaleX)
+    fullWidth    := Round(242 * ScaleX)
+    halfWidth    := Round(119 * ScaleX)
+    btnHeight    := Round(26 * ScaleY)
+
+    ; ── RESOLUTION SELECTOR ───────────────────────────────────────────────────
+    SetFixedFont(MainGUI, 8, "bold", "Semibold")
+    ControlsArray.Push(MainGUI.Add("Text", "x" margin " y+14 w" fullWidth " Center BackgroundTrans c" p["textDim"], "GAME CLIENT RESOLUTION"))
+
     SetFixedFont(MainGUI, 9, "bold")
-    ControlsArray.Push(ResoSelect_UI := MainGUI.Add("Text", "x" Round(75*ScaleX) " y+12 w" Round(120*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["editBg"] " c" p["text"]))
+    ControlsArray.Push(ResoSelect_UI := MainGUI.Add("Text", "x" margin " y+6 w" fullWidth " h" Round(24*ScaleY) " Center 0x200 Background" p["editBg"] " c" p["text"]))
     ResoSelect_UI.DefineProp("Value", {
         get: (this) => this.HasOwnProp("ctrlIndex") ? this.ctrlIndex : 1,
         set: (this, val) => (this.ctrlIndex := val, ControlSetText("     " ResoList[val] "   ▼", this.Hwnd, this.Gui.Hwnd))
@@ -541,6 +560,7 @@ _AddCollapsibleOptions() {
         get: (this) => ResoList[this.Value],
         set: (this, val) => ControlSetText(val, this.Hwnd, this.Gui.Hwnd)
     })
+    
     startupIndex := 1
     for index, name in ResoList {
         if (name == SelectedReso) {
@@ -550,42 +570,81 @@ _AddCollapsibleOptions() {
     }
     ResoSelect_UI.Value := startupIndex
     ResoSelect_UI.OnEvent("Click", ShowResoMenu)
-   
+    ResoSelect_UI.ToolTipText := "Game Client Resolution"
+
+    ; ──  NOTIFICATION PANEL ─────────────────────────────────────────────   
     SetFixedFont(MainGUI, 8, "bold", "Semibold")
-    ControlsArray.Push(BrowseBtn := MainGUI.Add("Text", "x" Round(70*ScaleX) " y+8 w" Round(130*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText"], "📂   SET GAME PATH"))
+    ControlsArray.Push(MainGUI.Add("Text", "x" margin " y+12 w" fullWidth " Center BackgroundTrans c" p["textDim"], "NOTIFICATION"))
+
+    ; ── DESKTOP NOTIFICATION PANEL ─────────────────────────────────────────────
+    SetFixedFont(MainGUI, 8, "norm")
+    isNotifEnabled := (NotifEnabled = "1")
+    notifColor := NotifEnabled ? p["accent"] : p["textDim"]
+    notifText  := NotifEnabled ? "▰  DESKTOP" : "▱  DESKTOP"
+
+    SetFixedFont(MainGUI, 9, "bold", "Semibold")
+    NotifCheck_UI := MainGUI.Add("Text", "x" margin " y+6 w" halfWidth " h" Round(22*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" notifColor, notifText)
+    NotifCheck_UI.State := isNotifEnabled
+    ControlsArray.Push(NotifCheck_UI)
+    
+    NotifCheck_UI.OnEvent("Click", NotifToggle)
+
+    NotifToggle(ctrl, *) {
+        global NotifEnabled, p
+
+        ctrl.State := !ctrl.State
+        NotifEnabled := ctrl.State
+        WriteMacroIni("Settings", "NotifEnabled", NotifEnabled)
+
+        if (ctrl.State) {
+            ctrl.Opt("c" p["accent"]) ; Clean cyber accent color
+            ctrl.Text := "▰  DESKTOP"
+            ctrl.Redraw()
+        } else {
+            ctrl.Opt("c" p["textDim"]) ; Muted text color
+            ctrl.Text := "▱  DESKTOP"
+            ctrl.Redraw()
+        }
+    }
+
+    ; ── DISCORD NOTIFICATION PANEL ─────────────────────────────────────────────
+
+    SetFixedFont(MainGUI, 8, "norm")
+    isDiscordEnabled := (DiscordEnabled = "1")
+    discordColor := isDiscordEnabled ? p["accent"] : p["textDim"]
+    discordText  := isDiscordEnabled ? "▰  DISCORD" : "▱  DISCORD"
+
+    SetFixedFont(MainGUI, 9, "bold", "Semibold")
+    DiscordCheck_UI := MainGUI.Add("Text", "x+4 yp w" halfWidth " h" Round(22*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" discordColor, discordText)
+    DiscordCheck_UI.State := isDiscordEnabled
+    DiscordCheck_UI.ToolTipText := "Ctrl + Click to configure Webhook URL"
+    ControlsArray.Push(DiscordCheck_UI)
+    
+    DiscordCheck_UI.OnEvent("Click", DiscordToggle)
+
+    ; ──  NOTIFICATION PANEL ─────────────────────────────────────────────   
+    SetFixedFont(MainGUI, 8, "bold", "Semibold")
+    ControlsArray.Push(MainGUI.Add("Text", "x" margin " y+12 w" fullWidth " Center BackgroundTrans c" p["textDim"], "OTHERS"))
+
+    ; ── GAME DIRECTORY UTILITIES (Side-by-Side Split) ─────────────────────────
+    SetFixedFont(MainGUI, 8, "bold", "Semibold")
+    ControlsArray.Push(BrowseBtn := MainGUI.Add("Text", "x" margin " y+10 w" halfWidth " h" btnHeight " Center 0x200 Background" p["btnBg2"] " c" p["btnText"], "📂  SET PATH"))
     BrowseBtn.OnEvent("Click", (*) => LocateGameDir(true))
 
-    ControlsArray.Push(LaunchBtn := MainGUI.Add("Text", "x" Round(70*ScaleX) " y+8 w" Round(130*ScaleX) " h" Round(26*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText"], "🚀   LAUNCH GAME"))
+    ControlsArray.Push(LaunchBtn := MainGUI.Add("Text", "x+4 yp w" halfWidth " h" btnHeight " Center 0x200 Background" p["btnBg2"] " c" p["btnText"], "🚀  LAUNCH"))
     LaunchBtn.OnEvent("Click", LaunchGame)
 
+    ; ── SPECIAL K ENGINE INTEGRATION ──────────────────────────────────────────
     isKEnabled := SpecialKCheck()
     isGameRunning := ProcessExist(GameExe)
-    initColor := isGameRunning ? p["textDim"] : (isKEnabled ? p["text"] : p["textDim"])
-    initText  := isGameRunning ? "🔒 SPECIAL K (GAME RUNNING)" : (isKEnabled ? "▰  SPECIAL K: ACTIVE" : "▱  SPECIAL K: INACTIVE")
+    initColor := isGameRunning ? p["textDim"] : (isKEnabled ? p["accent"] : p["textDim"])
+    initText  := isGameRunning ? "🔒  SPECIAL K (GAME RUNNING)" : (isKEnabled ? "▰  SPECIAL K: ACTIVE" : "▱  SPECIAL K: INACTIVE")
 
-    SetFixedFont(MainGUI, 9, "norm", "Light")
-    SpecialKCheck_UI := MainGUI.Add("Text", "x" Round(20*ScaleX) " y+8 w" Round(230*ScaleX) " h" Round(20*ScaleY) " Center 0x200 c" initColor, initText)
+    SetFixedFont(MainGUI, 9, "bold", "Semibold")
+    SpecialKCheck_UI := MainGUI.Add("Text", "x" margin " y+10 w" fullWidth " h" Round(22*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" initColor, initText)
     SpecialKCheck_UI.State := isKEnabled
     ControlsArray.Push(SpecialKCheck_UI)
     SpecialKCheck_UI.OnEvent("Click", SpecialKToggle)
-
-    ; ── Discord Webhook ─────────
-    SetFixedFont(MainGUI, 8, "bold", "Semibold")
-    ControlsArray.Push(MainGUI.Add("Text", "x" Round(75*ScaleX) " y+10 w" Round(120*ScaleX) " h" Round(16*ScaleY) " BackgroundTrans c" p["textDim"], "Discord Webhook URL"))
-
-    SetFixedFont(MainGUI, 8, "norm")
-    ControlsArray.Push(DiscordUrl_UI := MainGUI.Add("Edit", "x" Round(20*ScaleX) " y+4 w" Round(230*ScaleX) " h" Round(22*ScaleY) " -E0x200 Center Background" p["editBg"] " c" p["text"], DiscordWebhookUrl))
-    DiscordUrl_UI.OnEvent("Change", DiscordUrlChanged)
-
-    isDiscordEnabled := (DiscordEnabled = "1")
-    discordColor := isDiscordEnabled ? p["text"] : p["textDim"]
-    discordText  := isDiscordEnabled ? "▰  DISCORD: ACTIVE" : "▱  DISCORD: INACTIVE"
-
-    SetFixedFont(MainGUI, 9, "norm", "Light")
-    DiscordCheck_UI := MainGUI.Add("Text", "x" Round(20*ScaleX) " y+6 w" Round(230*ScaleX) " h" Round(20*ScaleY) " Center 0x200 c" discordColor, discordText)
-    DiscordCheck_UI.State := isDiscordEnabled
-    ControlsArray.Push(DiscordCheck_UI)
-    DiscordCheck_UI.OnEvent("Click", DiscordToggle)
 
     return ControlsArray
 }
@@ -607,7 +666,7 @@ _AddFooterLayout() {
     Kofi_UI.OnEvent("Click", (*) => Run("https://ko-fi.com/mhaziqiqbal"))
 
     SetFixedFont(MainGUI, 8, "norm")
-    UpdateLink := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+6 w" Round(242*ScaleX) " Center c" p["btnText2"], "Checking status...")
+    UpdateLink := MainGUI.Add("Text", "x" Round(60*ScaleX) " y+6 w" Round(150*ScaleX) " Center c" p["btnText2"], "Checking status...")
     ControlsArray.Push(UpdateLink)
     UpdateLink.OnEvent("Click", (ctrlObj, *) => (ctrlObj.HasProp("DownloadUrl") && ctrlObj.DownloadUrl != "") ? ProcessUpdate(ctrlObj.DownloadUrl, ctrlObj.AssetType) : Run(ctrlObj.HtmlUrl))
     CheckForUpdates(UpdateLink)
@@ -776,18 +835,10 @@ UpdateCar(ctrl, *) {
 }
 
 UpdateEventLab(ctrl, *) {
-    global EventLab, EventLabData, MaxPoints, MaxSections, AveragePoints, CodeTune, CodeEventLab
-    global CarData, SelectedCar
+    global EventLab, MaxPoints
     global SkillPtsWant_In
 
     EventLab := ctrl.Text
-
-    data := EventLabData[EventLab]
-    MaxSections     := data.MaxSections
-    MaxPoints       := data.MaxPoints
-    AveragePoints   := data.AveragePoints
-    CodeTune        := data.CodeTune
-    CodeEventLab    := data.CodeEvent
     
     SkillPtsWant_In.Value := UpdateSkillPtsWant({Value: MaxPoints}, false)
 
@@ -807,13 +858,12 @@ UpdateReso(ctrl, *) {
 ; ══════════════════════════════════════════════
 
 UpdateSkillPtsCount(ctrl, ManualInput:= true, *) {
-    global CarCount_In, SkillPtsWant_In, AveragePoints, MaxPoints
+    global CarCount_In, SkillPtsWant_In, MaxPoints
     global PointsLabel_UI, TimeLabel_UI, CarsLabel_UI, SectorLabel_UI, ActiveMode
     global SkillPtsCountText, SkillPtsWantText, CarCountText
-    global CarData, SelectedCar
-    global CustomCarCount, CustomSkillPts
-
-    carCost := CarData[SelectedCar].SkillPtsCost
+    global CarData, SelectedCar, EventLabData, EventLab
+    car := CarData[SelectedCar]
+    event := EventLabData[EventLab]
 
     if ManualInput {
         global CustomSkillPts := 0
@@ -848,9 +898,10 @@ UpdateSkillPtsCount(ctrl, ManualInput:= true, *) {
     global PointsTotal := Min(PointsGain + value, 999)
 
     PointsLabel_UI.Value := PointsGain
-    SectorLabel_UI.Value := (AveragePoints > 0) ? Ceil(PointsGain / AveragePoints) : 0
-        
-    global CarCount := (carCost > 0) ? Floor(PointsTotal / carCost) : 0
+    SectorLabel_UI.Value := (event.AveragePoints > 0) ? Ceil(PointsGain / event.AveragePoints) : 0
+    
+    global CustomCarCount := 0
+    global CarCount := (car.SkillPtsCost > 0) ? Floor(PointsTotal / car.SkillPtsCost) : 0
 
     CarCount_In.Value    := CarCount
     CarsLabel_UI.Value   := CarCount
@@ -866,11 +917,12 @@ UpdateSkillPtsCount(ctrl, ManualInput:= true, *) {
 }
 
 UpdateSkillPtsWant(ctrl, ManualInput:= true, *) {
-    global CarCount_In, SkillPtsCount_In, SkillPtsWant_In, AveragePoints, MaxPoints
+    global CarCount_In, SkillPtsCount_In, SkillPtsWant_In, MaxPoints
     global PointsLabel_UI, TimeLabel_UI, CarsLabel_UI, PointsCount_UI, SectorLabel_UI
     global SkillPtsCountText, SkillPtsWantText, CarCountText
-    global CarData, SelectedCar
-    global CustomCarCount, CustomSkillPts
+    global EventLabData, EventLab
+    car := CarData[SelectedCar]
+    event := EventLabData[EventLab]
 
     if ManualInput {
         global CustomSkillPts := 0
@@ -890,7 +942,7 @@ UpdateSkillPtsWant(ctrl, ManualInput:= true, *) {
     value := Min(value, MaxPoints)
 
     global CustomSkillPts := value
-    global SkillPtsWant := value
+    global SkillPtsWant := CustomSkillPts
     global SkillPtsCount := SkillPtsCount_In.Value
 
     ; FIX: Strict string check detects leading zeros ("02" != "2")
@@ -907,15 +959,15 @@ UpdateSkillPtsWant(ctrl, ManualInput:= true, *) {
     global PointsTotal := Min(PointsGain + SkillPtsCount, 999)
 
     PointsLabel_UI.Value := PointsGain
-    SectorLabel_UI.Value := (AveragePoints > 0) ? Ceil(PointsGain / AveragePoints) : 0
+    SectorLabel_UI.Value := (event.AveragePoints > 0) ? Ceil(PointsGain / event.AveragePoints) : 0
     
-    carCost := CarData[SelectedCar].SkillPtsCost
-    global CarCount := (carCost > 0) ? Floor(PointsTotal / carCost) : 0
+    global CustomCarCount := 0
+    global CarCount := Floor(PointsTotal / car.SkillPtsCost)
 
     CarCount_In.Value    := CarCount
     CarsLabel_UI.Value   := CarCount
 
-    global TimeTotal            := CalcTotalTime(SkillPtsWant, CarCount)
+    global TimeTotal := CalcTotalTime(SkillPtsWant, CarCount)
     
     TotalSubUnits        := Round(TimeTotal * 60)
     MainUnit             := Floor(TotalSubUnits / 60)
@@ -1027,6 +1079,7 @@ CheckForUpdates(linkCtrl) {
             linkCtrl.AssetType := ""
             linkCtrl.HtmlUrl := htmlUrl
             linkCtrl.Text := CurrentVersion " | Beta Build 🧪"
+            linkCtrl.ToolTipText := "Click to open Github Release"
         } 
         else if (compResult == -1) {
             ; ⚠ LOCAL VERSION IS OLDER (UPDATE AVAILABLE)
@@ -1034,6 +1087,7 @@ CheckForUpdates(linkCtrl) {
             linkCtrl.AssetType := assetType
             linkCtrl.HtmlUrl := htmlUrl
             linkCtrl.Text := CurrentVersion " | Update Available ⚠"
+            linkCtrl.ToolTipText := "Click to Update"
         } 
         else {
             ; ✓ PERFECT MATCH
@@ -1041,6 +1095,7 @@ CheckForUpdates(linkCtrl) {
             linkCtrl.AssetType := ""
             linkCtrl.HtmlUrl := htmlUrl
             linkCtrl.Text := CurrentVersion " | Up to Date ✓"
+            linkCtrl.ToolTipText := "Click to open Github Release"
         }
         
     } catch {
@@ -1117,6 +1172,7 @@ ProcessUpdate(url, assetType) {
 ;  MOUSE HOVER CURSOR CONTROLLER
 ; ══════════════════════════════════════════════
 OnMessage(0x0020, WM_SETCURSOR)
+OnMessage(0x0200, WM_MOUSEMOVE)
 
 WM_SETCURSOR(wParam, lParam, msg, hwnd) {
     ; 0x0200 corresponds to mouse move events within the client window area
@@ -1154,6 +1210,34 @@ WM_SETCURSOR(wParam, lParam, msg, hwnd) {
                 charHand := DllCall("LoadCursor", "Ptr", 0, "Ptr", 32649, "Ptr")
                 DllCall("SetCursor", "Ptr", charHand)
                 return true 
+            }
+        }
+    }
+}
+
+WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
+    static lastHwnd := 0
+    
+    ; Identify the specific control handle under the cursor
+    MouseGetPos , , , &ctrlHwnd, 2
+    
+    ; Prevent flickering: Only act if the mouse moved to a DIFFERENT control
+    if (ctrlHwnd == lastHwnd)
+        return
+        
+    lastHwnd := ctrlHwnd
+    
+    ; Clear any existing tooltip while moving between controls
+    ToolTip()
+    
+    ; If the control exists and has a custom 'ToolTipText' property, display it
+    if (ctrlHwnd) {
+        try {
+            ctrlObj := GuiCtrlFromHwnd(ctrlHwnd)
+            if (ctrlObj && ctrlObj.HasOwnProp("ToolTipText")) {
+                ToolTip(ctrlObj.ToolTipText)
+                ; Remove the tooltip automatically after 3 seconds so it doesn't hang around
+                SetTimer(() => ToolTip(), -3000)
             }
         }
     }

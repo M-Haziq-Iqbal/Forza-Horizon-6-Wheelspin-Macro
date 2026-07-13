@@ -23,7 +23,7 @@ TogglePause() {
         StatusText.Value := "⬤  Running..."
         StatusText.SetFont("c" cStat)
         PauseMode := false
-        ShowNotif("success", "Macro Resumed", "Resuming automated sequence.")
+        ShowNotif("info", "Macro Resumed", "Resuming automated sequence.")
     }
 }
 
@@ -38,7 +38,7 @@ ToggleMode(mode) {
         return false
     }
     ActiveMode := mode
-    ShowNotif("success", "Mode Activated", "Routine locked into: " mode)
+    ShowNotif("info", "Mode Activated", "Routine locked into: " mode)
     return true
 }
 
@@ -62,8 +62,8 @@ SmartCountdown(TotalSec, UIEl, ActiveText) {
 ; ══════════════════════════════════════════════
 
 StartIndicators() {
-    global StatusText, Process_UI, Key_UI, TotalRunTime_UI, ActiveMode
-    global SkillPtsCount_In, SkillPtsWant_In, CarCount_In, CarSelect_UI
+    global ActiveMode
+    global StatusText, Process_UI, Key_UI, TotalRunTime_UI, CarSelect_UI
     global RadioRace, RadioBuy, RadioUnlock
 
     p := GetPalette()
@@ -77,6 +77,9 @@ StartIndicators() {
     Key_UI.SetFont("c" cHighlight)
     TotalRunTime_UI.SetFont("c" cHighlight)
 
+    if ActiveMode = "Buy" || ActiveMode = "Unlock"
+        CarSelect_UI.Enabled := false
+
     EventLabSelect_UI.Enabled := false
     RadioRace.Enabled := false
     RadioBuy.Enabled := false
@@ -85,8 +88,6 @@ StartIndicators() {
     StopBtn.Opt("cFF5A5A")
     PauseBtn.Opt("cFFD166")
     PauseBtn.Value := "❚❚"
-    
-    SetTimer(TotalTimerTick, 1000)
 }
 
 ResetIndicators() {
@@ -102,10 +103,6 @@ ResetIndicators() {
     SetTimer(BuyTimerTick, 0)
     SetTimer(UnlockTimerTick, 0)
     SetTimer(SpinTimerTick, 0)
-    
-    if (!MasterMode) {
-        SetTimer(TotalTimerTick, 0)
-    }
     
     ActiveMode           := ""
     Key_UI.Value         := "⌨  [   ]"
@@ -133,6 +130,7 @@ ResetIndicators() {
     StatusText.Value := "⬤  Stopped"
     StatusText.SetFont("c" cTextDim)
 
+    CarSelect_UI.Enabled := true
     EventLabSelect_UI.Enabled := true
     RadioRace.Enabled := true
     RadioBuy.Enabled := true
@@ -150,11 +148,10 @@ ResetIndicators() {
 ; ══════════════════════════════════════════════
 
 GetMinScore(score) {
-    global EventLab, MaxPoints, MaxSections
-
-    pointsPerSection := MaxPoints / MaxSections
-    sections         := Ceil(score / pointsPerSection)
-    return Floor(sections * pointsPerSection)
+    global EventLab, EventLabData
+    
+    step := EventLabData[EventLab].AveragePoints
+    return Floor(Ceil(score / step) * step)
 }
 
 CalcTotalTime(score, car) {
@@ -162,20 +159,19 @@ CalcTotalTime(score, car) {
 }
 
 CalcTimeRace(score) {
-    global MaxSections, EventLab, EventLabData
+    global EventLab, EventLabData
+
+    event := EventLabData[EventLab]
+    AveragePoints       := event.AveragePoints
+    secPerSection       := event.SecPerSection
+    secPerRow           := event.SecPerRow
+    sectionsPerRow      := event.SectionsPerRow
 
     StartLoadingTime := 52
     MidLoadingTime   := 20
     FinLoadingTime   := 40
 
-    pointsPerSection := MaxPoints / MaxSections
-
-    data := EventLabData[EventLab]
-    secPerSection       := data.SecPerSection
-    secPerRow           := data.SecPerRow
-    sectionsPerRow      := data.SectionsPerRow
-
-    sections  := Ceil(score / pointsPerSection)
+    sections  := Ceil(score / AveragePoints)
     rows      := Ceil(sections / sectionsPerRow)
     totalTime := StartLoadingTime + (sections * secPerSection) + (rows * secPerRow) + MidLoadingTime + FinLoadingTime
 
@@ -202,17 +198,22 @@ CalcTimeSpin(car) {
 ; ══════════════════════════════════════════════
 
 TotalTimerTick() {
-    global TotalRunSeconds, TotalRunTime_UI, cHighlight
+    global TotalRunSeconds, TotalRunTime_UI, MiniTotalRunTime_UI
+    static lastStr := ""
     TotalRunSeconds++
+    
     mins := TotalRunSeconds // 60
     secs := Mod(TotalRunSeconds, 60)
+    timeStr := "🕓  " Format("{:02d}:{:02d}", mins, secs)
 
-    TotalRunTime_UI.Value     := "🕓  " Format("{:02d}:{:02d}", mins, secs)
-    MiniTotalRunTime_UI.Value := "🕓  " Format("{:02d}:{:02d}", mins, secs)
+    TotalRunTime_UI.Value     := timeStr
+    MiniTotalRunTime_UI.Value := timeStr
+
+    DiscordStatusUpdate()
 }
 
 RaceTimerTick() {
-    global RaceRunSeconds, RaceRunTime_UI, cHighlight
+    global RaceRunSeconds, RaceRunTime_UI, MiniRaceRunTime_UI
     RaceRunSeconds++
     mins := RaceRunSeconds // 60
     secs := Mod(RaceRunSeconds, 60)
@@ -222,7 +223,7 @@ RaceTimerTick() {
 }
 
 BuyTimerTick() {
-    global BuyRunSeconds, BuyRunTime_UI, cHighlight
+    global BuyRunSeconds, BuyRunTime_UI, MiniBuyRunTime_UI
     BuyRunSeconds++
     mins := BuyRunSeconds // 60
     secs := Mod(BuyRunSeconds, 60)
@@ -232,7 +233,7 @@ BuyTimerTick() {
 }
 
 UnlockTimerTick() {
-    global UnlockRunSeconds, UnlockRunTime_UI, cHighlight
+    global UnlockRunSeconds, UnlockRunTime_UI, MiniUnlockRunTime_UI
     UnlockRunSeconds++
     mins := UnlockRunSeconds // 60
     secs := Mod(UnlockRunSeconds, 60)
@@ -242,7 +243,7 @@ UnlockTimerTick() {
 }
 
 spinTimerTick() {
-    global SpinRunSeconds, SpinRunTime_UI, MiniSpinRunTime_UI, MainSpinRunTime_UI, cHighlight
+    global SpinRunSeconds, SpinRunTime_UI, MiniSpinRunTime_UI, MainSpinRunTime_UI
     SpinRunSeconds++
     mins := SpinRunSeconds // 60
     secs := Mod(SpinRunSeconds, 60)
@@ -397,7 +398,7 @@ GetBackgroundOCR(ratioX, ratioY, ratioW, ratioH) {
     return textResult
 }
 
-WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs := 8000, postDelayMs := 1000, isFatal := false, variation := 0, note := "", radius := 0) {
+WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs := 8000, postDelayMs := 1000, variation := 0, radius := 0, isFatal := false, note := "") {
     global ActiveMode, MasterMode, PixelMultiplier, GameTitle
     
     StartTime := A_TickCount
@@ -503,7 +504,7 @@ WaitForPixel(text, ratioX, ratioY, targetColor, targetColorHDR := "", timeoutMs 
                 return false
             } else {
                 Process("Sync Warning: Pixel missed. Proceeding...", 2000)
-                ShowNotif("info", "Sync Warning", "A tracking pixel was missed. Continuing routine safely.")
+                ShowNotif("warning", "Sync Warning", "A tracking pixel was missed. `nContinuing routine safely...")
                 return true 
             }
         }
@@ -871,7 +872,7 @@ LaunchGame(ctrl, *) {
     
     try {
         Run(GameDir "\" GameExe)
-        ShowNotif("success", "Launcher", "Launching Forza Horizon 6...")
+        ShowNotif("info", "Launcher", "Launching Forza Horizon 6...")
     } catch Error as err {
         MsgBox("Failed to execute game binary:`n" err.Message, "Launcher Error", 16)
     }
@@ -881,8 +882,8 @@ FindGame() {
     global GameTitle
 
     if !WinExist(GameTitle) {
-        ShowNotif("error", "Error", "Game process could not be found.")
-        return 0
+        ShowNotif("error", "Game Detection", "Game process could not be found.")
+        return false
     }
 }
 
@@ -1103,7 +1104,6 @@ ScanMenu(timeoutDuration := 5000) {
     PressKey("up", 1000) ; Stop idling
 
     StartTime := A_TickCount
-    Process("Scanning for Menus...")
 
     menuProfiles := [
         { x: 0.027, y: 0.190, w: 0.221, h: 0.091, menu: "Home Menu", 
@@ -1142,12 +1142,71 @@ ScanMenu(timeoutDuration := 5000) {
     }
 
     Process("Timeout Error...")
-    ShowNotif("warning", "EventLab Race", "Scanning timed out!")
+    ShowNotif("error", "Menu Detection", "Scanning timed out!")
     ActiveMode := "", MasterMode := false
     return { menu: "", submenu: "" } ; Return empty object on timeout
 }
 
+CarVerifyCheck(title:="", car:="", stats:= 0, exit:=true) {
+    global GameTitle, ActiveMode, CarData, SelectedCar
+    static StatsNum := 0
+    
+    ; Early exit guard clause
+    if !WinExist(GameTitle) {
+        return
+    }
+
+    ExpectedNum := stats ? stats : CarData[SelectedCar].StatsNum
+    
+    ; Define both coordinate presets
+    mazdaCoords    := {x: 0.170, y: 0.455, w: 0.035, h: 0.245}
+    standardCoords := {x: 0.177, y: 0.457, w: 0.028, h: 0.250}
+
+    ; Determine primary and secondary based on selection
+    isMadMike := car ? car == "1974 Mazda" : (CarData[SelectedCar].AltName == "1974 Mazda")
+    primary   := isMadMike ? mazdaCoords : standardCoords
+    secondary := isMadMike ? standardCoords : mazdaCoords
+
+    ; 1. Primary Scan Attempt
+    StatsNumNew := ScanOCR(primary.x, primary.y, primary.w, primary.h, 100, , true, false)
+
+    ; 2. Cross-Scan Fallback (If primary failed, try the other car type's coordinates)
+    if (StrLen(StatsNumNew) < 10 || StatsNumNew = -1) {
+        StatsNumNew := ScanOCR(secondary.x, secondary.y, secondary.w, secondary.h, 100, , true, false)
+    }
+    
+    ; 3. Validation Checks (Only if a valid string length was achieved)
+    if (StrLen(StatsNumNew) >= 10 && StatsNumNew != -1) {
+        StatsNum        := StatsNumNew
+        SimilarityScore := Round(GetTextSimilarity(ExpectedNum, StatsNum))
+        
+        ; Match fails threshold -> Emergency Exit
+        if (SimilarityScore <= 80) {
+            Details := "Wrong Car Detected!`n`n"
+                     . "Scanning " SelectedCar " Stats Number...`n"
+                     . "Scanned: " StatsNum "`n"
+                     . "Expected: " ExpectedNum "`n"
+                     . "Similarity: " SimilarityScore "%"
+            if exit
+                EmergencyExit(Details)
+            else return false
+        }
+        
+        ; Match passes threshold -> Success Notification
+        ShowNotif("info", title, "Car Stats detected: `n" StatsNum " (" SimilarityScore "% match)")
+        return true
+    }
+
+    ; 4. Total Failure Notification
+    ShowNotif("warning", title, "Car Stats not detected: `nEnsure it is fully visible on screen.")
+    return false
+}
+
+
 EmergencyExit(LogDetails := "Unknown safety violation.") {
+    global ActiveMode
+
+    ShowNotif("critical", ActiveMode "Mode", LogDetails, true)
     SoundBeep(400, 500)
     MsgBox(
         "CRITICAL SAFETY INTERCEPT!`n`n" 
@@ -1156,5 +1215,5 @@ EmergencyExit(LogDetails := "Unknown safety violation.") {
         "MHI Emergency System",
         "IconX"
     )
-    Reload() 
+    Reload()
 }
