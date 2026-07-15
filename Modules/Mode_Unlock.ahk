@@ -8,7 +8,8 @@ StartUnlock() {
     global SWheelCount_UI, WheelCount_UI, CreditCount_UI, UnlockRunTime_UI
     global MiniSWheelCount_UI, MiniWheelCount_UI, MiniCreditCount_UI, MiniUnlockRunTime_UI
     global SuperBtn, RegularBtn
-    global CarData, SelectedCar
+    global CarData, SelectedCar 
+    global CustomCarCount, CarsToUnlock
 
     if FindGame() == 0
         return
@@ -31,6 +32,22 @@ StartUnlock() {
 
     car := CarData[SelectedCar]
 
+    if CustomCarCount
+        CarsToUnlock := CarCount_In.Value
+    else {
+        CarsToUnlock := CarsToTarget
+    }
+
+    CarsLabel_UI.Value := CarsToUnlock
+
+    if (CarsToUnlock <= 0) {
+        if (CustomCarCount && !MasterMode) {
+            ShowNotif("warning", "Unlock Mode", "Skipping Unlock Segment: No cars to unlock.", true)
+            ResetIndicators()
+            return
+        }
+    }
+
     UnlockRunSeconds := 0
 
     SWheelCount_UI.Value   := "0"
@@ -52,18 +69,22 @@ StartUnlock() {
         CreditCount_UI.SetFont("c" cHighlight)
 
     SetTimer(UnlockTimerTick, 1000)
+
+    DiscordStatusUpdate("info", "Unlock Mode Started", "Preparing Car Mastery...")
     UnlockLoop()
+    DiscordStatusUpdate("success", "Unlock Mode Ended", "Preparing Car Mastery...")
 
     ResetIndicators()
 }
 
 UnlockLoop() {
-    global UnlockCount := 0
     global TotalSWheel := 0
     global TotalWheel := 0
     global TotalCredit := 0
     global CarSorted := false
-    global CarData, SelectedCar, CarCount
+    global CarData, SelectedCar
+    global CarsToUnlock, CustomCarCount
+    global UnlockCount := 0
 
     car := CarData[SelectedCar]
     CheckAbort() {
@@ -73,9 +94,6 @@ UnlockLoop() {
     NotiFreqInterv  := 10
     UnlockStarted   := false
     
-    Sleep(500)
-    DiscordStatusUpdate("info", "Unlock Mode Started", "Preparing vehicle Car Mastery tree workspace...")
-
     Process("Starting Emergency Unlock Check", 500)
     SetTimer(EmergencyUnlockCheck, 400)
 
@@ -86,13 +104,13 @@ UnlockLoop() {
         UnlockNav()
         
         StartRewardsText := BuildRewardString(
-            CarCount * car.UnlockSWheel, 
-            CarCount * car.UnlockWheel, 
-            CarCount * car.UnlockCredit, 
+            CarsToUnlock * car.UnlockSWheel, 
+            CarsToUnlock * car.UnlockWheel, 
+            CarsToUnlock * car.UnlockCredit, 
             ""
         )
 
-        if (CarCount > 0) {
+        if (CarsToUnlock > 0) {
             ShowNotif("info", "Unlock Mode", "Obtaining " StartRewardsText)
         } else {
             ShowNotif("error", "Unlock Mode", "Obtaining no reward. `nAborting UInlock Mode.", true)
@@ -142,7 +160,7 @@ UnlockLoop() {
     if CheckAbort()
         return
 
-    DiscordStatusUpdate("info", "Unlocking Rewards", "Redeeming Car Mastery for: " SelectedCar)
+    DiscordStatusUpdate("info", "Redeeming Car Mastery", "Consuming " SelectedCar)
 
     ; ── MAIN UNLOCKING LOOP ───────────────────────────────────────────────────
     Loop {
@@ -165,16 +183,16 @@ UnlockLoop() {
         SkillPtsCount := SkillPtsCount_In.Value
 
         if !UnlockStarted {
-            if (!SkillPtsScanSuccess && !SkillPtsCount) {        
+            if (!SkillPtsScanSuccess && !SkillPtsCount && !CustomCarCount) {        
                 Process("Scanning Skill Points...")
                 UnlockSkillPtsScan(0.331, 0.851, 0.054, 0.033, "Home")
             }
             
-            if (CarCount > 0) {
+            if (CarsToUnlock > 0) {
                 StartRewardsText := BuildRewardString(
-                    CarCount * car.UnlockSWheel, 
-                    CarCount * car.UnlockWheel, 
-                    CarCount * car.UnlockCredit, 
+                    CarsToUnlock * car.UnlockSWheel, 
+                    CarsToUnlock * car.UnlockWheel, 
+                    CarsToUnlock * car.UnlockCredit, 
                     ""
                 )
                 ShowNotif("info", "Unlock Mode", "Obtaining " StartRewardsText)
@@ -247,16 +265,14 @@ UnlockLoop() {
                 PeriodicRewardsText := BuildRewardString(TotalSWheel, TotalWheel, TotalCredit, " obtained.")
                 ShowNotif("info", "Unlock Mode", PeriodicRewardsText)
             }
-
-            DiscordStatusUpdate("info", "Unlocking Rewards", "Redeeming Car Mastery for: " SelectedCar)
             
-            CarCount -= 1
+            CarsToUnlock -= 1
             SkillPtsCount -= CarData[SelectedCar].SkillPtsCost
             SkillPtsWant := Min(999 - SkillPtsCount_In.Value, MaxPoints)
             
             SkillPtsCount_In.Value := SkillPtsCount
             SkillPtsWant_In.Value := SkillPtsWant
-            CarCount_In.Value := CarCount
+            CarCount_In.Value := CarsToUnlock
 
             if CheckAbort()
                 break            
@@ -323,7 +339,7 @@ UnlockLoop() {
         PressKey("Esc", 1600) ; Navigate to Auction House Menu
         PressKey("Esc", 1600) ; Navigate to Home - Buy & Sell
 
-        if (CarCount = 0)
+        if (CarsToUnlock = 0)
             break
     }
 
@@ -473,14 +489,13 @@ FilterByDuplicates() {
     PressKey("Esc")         ; Return to All Cars
 }
 
+; ══════════════════════════════════════════════
+;  OCR TELEMETRY ENGINE WITH SYSTEM STATE HOOK
+; ══════════════════════════════════════════════
+
 UnlockSkillPtsScan(ratioX, ratioY, ratioW, ratioH, menu := "", waitTime := 3000) {
-    ; Declare all globals at the top for clean organization
-    global SkillPtsCount_In, SkillPtsWant_In, CarCount_In
-    global PointsLabel_UI, SectorLabel_UI, TimeLabel_UI, CarsLabel_UI
-    global MaxPoints, SkillPtsScanSuccess, SpinInFullLoop
-    global SkillPtsCount, SkillPtsWant, PointsGain, PointsTotal, CarCount, TimeTotal
-    global CarData, SelectedCar, EventLabData, EventLab
-    global ActiveMode
+    global SkillPtsCount_In, SkillPtsWant_In, ActiveMode, MaxPoints
+    global SkillPtsCount, SkillPtsWant, SkillPtsScanSuccess
 
     ; Run OCR Scan
     points := ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime, , true)
@@ -500,24 +515,14 @@ UnlockSkillPtsScan(ratioX, ratioY, ratioW, ratioH, menu := "", waitTime := 3000)
         EmergencyExit(failMsg)
     }
 
-    ; Perform Mode-Specific Math Modifications
-    car   := CarData[SelectedCar]
-    event := EventLabData[EventLab]
-
     SkillPtsWant := Min(999 - SkillPtsCount, MaxPoints)
-    PointsGain   := GetMinScore(SkillPtsWant)
-    PointsTotal  := Min(PointsGain + SkillPtsCount, 999)
-    CarCount     := Floor(SkillPtsCount / car.SkillPtsCost)
-    TimeTotal    := CalcTimeUnlock(CarCount) + (SpinInFullLoop ? CalcTimeSpin(CarCount) : 0)
-
-    ; Update Unified UI Elements
     SkillPtsWant_In.Value  := SkillPtsWant
+
+    UpdateSystemState(SkillPtsCount, SkillPtsWant)
+
     SkillPtsCount_In.Value := SkillPtsCount
-    CarCount_In.Value      := CarCount
-    
-    PointsLabel_UI.Value   := 0
-    SectorLabel_UI.Value   := 0
-    CarsLabel_UI.Value     := CarCount
+
+    TimeTotal    := CalcTimeUnlock(CarsToUnlock) + (SpinInFullLoop ? CalcTimeSpin(CarsToUnlock) : 0)
     TimeLabel_UI.Value     := Format("{:02}:{:02}", Floor(TimeTotal), Floor((TimeTotal - Floor(TimeTotal)) * 60))
 
     return points

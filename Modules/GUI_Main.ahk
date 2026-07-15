@@ -104,7 +104,6 @@ SetFixedFont(guiObj, pointSize, options := "", fontName := "Segoe UI") {
 ;  THEME TOGGLE
 ; ══════════════════════════════════════════════
 ToggleTheme() {
-    ; Added ', p' to the global declarations here
     global DarkMode, SpinGUI, MainGUI, p
     global ActiveMode, SkillPtsCount_In, SkillPtsWant_In, CarCount_In, LoopCount_In
     
@@ -128,7 +127,7 @@ ToggleTheme() {
     }
 
     DarkMode := !DarkMode
-    p := GetPalette() ; ◄─ REFRESH PALETTE DICTIONARY HERE WITH NEW COLORS
+    p := GetPalette()
     MainGUI.Destroy()
     BuildMainGui(saved)
     
@@ -144,7 +143,7 @@ ToggleTheme() {
 ; ══════════════════════════════════════════════
 BuildMainGui(savedVals := "") {
     ; Explicitly scoped globals for structural integrity and layout scaling
-    Global MainGUI, TabControl, ThemeBtn, CustomMin, CustomX, StatusText
+    Global MainGUI, TabControl, ThemeBtn, CustomMin, CustomX, StatusText, CustomCarToggle_UI
     Global SkillPtsCount_In, SkillPtsWant_In, LoopCount_In, CarCount_In
     Global CarSelect_UI, AddCarBtn, EditCarBtn, RadioRace, RadioBuy, RadioUnlock
     Global AllBtn, RaceBtn, BuyBtn, UnlockBtn, OpenSpinWindowBtn
@@ -155,7 +154,7 @@ BuildMainGui(savedVals := "") {
     Global CodeTune_UI, CodeEventLab_UI, ToggleBtn, ResoSelect_UI
     Global BrowseBtn, LaunchBtn, SpecialKCheck_UI, UpdateLink
     Global ScaleX, ScaleY, DarkMode, ActiveMode, StartLoopMode
-    Global CarList, SelectedCar, CarCount, EventLabList, EventLab
+    Global CarList, SelectedCar, EventLabList, EventLab
     Global PointsGain, PointsTotal, TimeTotal, ResoList, SelectedReso
     Global GameExe
 
@@ -175,44 +174,36 @@ BuildMainGui(savedVals := "") {
     TabControl := MainGUI.Add("Tab2", "x" Round(5*ScaleX) " y+15 w" tabW " +Buttons +0x400 c" p["accent"], ["📥 Inputs", "📊 Stats"])
     SendMessage(0x1329, 0, Floor((tabW - 12) / 2) | (Round(26 * ScaleY) << 16), TabControl)
 
-    ; 1. RENDER TAB CONTENTS (Instantiates controls, but does not hardcode global divider)
+    ; 1. RENDER TAB CONTENTS
     _AddInputTab(savedVals)
     _AddStatsTab()
     
     ; 2. DYNAMIC HEIGHT RESOLUTION ENGINE
-    ; Determine the maximum layout bounds between both tabs
     TabControl.UseTab(1)
     SpeedLabel_UI.GetPos(&InpX, &InpY, &InpW, &InpH)
-    Tab1Bottom := InpY + InpH + Round(16 * ScaleY) ; Bottom boundary of Tab 1
+    Tab1Bottom := InpY + InpH + Round(16 * ScaleY)
 
     TabControl.UseTab(2)
     CreditCount_UI.GetPos(&StX, &StY, &StW, &StH)
-    Tab2Bottom := StY + StH + Round(16 * ScaleY)   ; Bottom boundary of Tab 2
+    Tab2Bottom := StY + StH + Round(16 * ScaleY)
 
     ; Compute the absolute maximum boundary point
     MaxTabHeight := Max(Tab1Bottom, Tab2Bottom)
     
     ; 3. COMPENSATE & VERTICALLY CENTER CONTENT IN TAB 2
     if (Tab1Bottom > Tab2Bottom) {
-        ; Calculate missing whitespace height inside Tab 2
         VerticalOffset := (Tab1Bottom - Tab2Bottom) // 2
-        
-        ; Push Tab 2 elements down down cleanly to center them perfectly matching Tab 1
-        ; (Targets the first rendered text control inside Tab 2)
         StatsHeader_UI.Move(, StatsHeaderOrigY + VerticalOffset)
-        
-        ; Re-align all subsequent children metrics relatively to the header shift
         _RepositionStatsControls(VerticalOffset)
     }
 
-    ; Clear Tab contextual scope to bind shared global elements underneath
     TabControl.UseTab()
 
     ; 4. RENDER CONTEXTUAL FRAME DIVIDER ACCORDING TO MAX HEIGHT
     SetFixedFont(MainGUI, 9, "bold", "Semibold")
     MainGUI.Add("Text", "x" Round(14*ScaleX) " y" MaxTabHeight + Round(10*ScaleX) " w" Round(242*ScaleX) " Center BackgroundTrans c" p["divider"], "___________:━━━━━━━━━━━━━━━━:___________")
 
-    ; Build Shared Controls and Dashboard Panels (Rendered below our dynamic divider)
+    ; Build Shared Controls and Dashboard Panels
     _AddSharedDashboard(MaxTabHeight + 20)
     OptionsControls := _AddCollapsibleOptions()
     FooterControls  := _AddFooterLayout()
@@ -220,7 +211,7 @@ BuildMainGui(savedVals := "") {
     ; 4. Native Layout Compilation & Collapsible Animation Offsets
     MainGUI.Show("w" Round(270*ScaleX) " Hide")
     ToggleBtn.GetPos(, &tY, , &tH)
-    FooterControls[1].GetPos(, &fY) ; Targeting F_Divider
+    FooterControls[1].GetPos(, &fY)
     shiftY := fY - (tY + tH + Round(15*ScaleY))
     
     footerOrigY := []
@@ -248,11 +239,10 @@ BuildMainGui(savedVals := "") {
         btnObj.Opt("Background" (isOpen ? p["activeBg"] : p["btnBg2"]))
         btnObj.Text := isOpen ? "⚙️   OPTIONS   ⏶" : "⚙️   OPTIONS   ⏷"
         
-        ; FORCE REDRAW FOR CLEAN COMPACT TRANSITION
         btnObj.Redraw()
-        MainGUI.Show() ; Re-assert window presentation to avoid trailing frame shadows
+        MainGUI.Show()
     }
-    ; Bind and Initializing Starting Compact Sizing
+    
     ToggleBtn.OnEvent("Click", _OnOptionsToggle)
     for ctrl in OptionsControls
         ctrl.Visible := false
@@ -262,7 +252,7 @@ BuildMainGui(savedVals := "") {
     ; Window Runtime Assignments
     MainGUI.OnEvent("Close", (*) => ExitApp())
     MainGUI.OnEvent("Size", MainGUI_SizeChange)
-    MainGUI.Move(MonLeft + MonWidth - w - Round(35*ScaleX), MonTop + Round(35*ScaleX), w, compactH)
+    MainGUI.Move(MonLeft + MonWidth - w - Round(35*ScaleX), MonTop + Round(55*ScaleX), w, compactH)
     MainGUI.Show()
 }
 
@@ -277,7 +267,7 @@ _AddHeader() {
     SetFixedFont(MainGUI, 10, "norm")
     ThemeBtn := MainGUI.Add("Text", "x" Round(12*ScaleX) " y" Round(12*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], DarkMode ? "☀" : "🌙")
     ThemeBtn.OnEvent("Click", (*) => ToggleTheme())
-    ThemeBtn.ToolTipText := "Toogle Dark/Light Mode"
+    ThemeBtn.ToolTipText := "Toggle Dark/Light Mode"
 
     SetFixedFont(MainGUI, 10, "bold")
     CustomMin := MainGUI.Add("Text", "x" Round(225*ScaleX) " y" Round(12*ScaleY) " w" Round(16*ScaleX) " h" Round(16*ScaleY) " Center BackgroundTrans c" p["textDim"], "─")
@@ -294,9 +284,7 @@ _AddHeader() {
     SetFixedFont(MainGUI, 10, "bold", "Semibold")
     StatusText := MainGUI.Add("Text", "x0 y+" Round(10*ScaleY) " w" Round(270*ScaleX) " Center BackgroundTrans c" cStat, sLabel)
 
-    ; ══════════════════════════════════════════════
-    ;  GLOBAL LIVE DASHBOARD 
-    ; ══════════════════════════════════════════════
+    ; Live Dashboard Info
     SetFixedFont(MainGUI, 9, "norm", "Light")
     TotalRunTime_UI := MainGUI.Add("Text", "x0 y+8 w" Round(270*ScaleX) " Center BackgroundTrans c" p["cIdle"], "⏱   00:00")
     Key_UI          := MainGUI.Add("Text", "x0 y+4 w" Round(270*ScaleX) " Center BackgroundTrans c" p["cIdle"], "⌨   [   ]")
@@ -304,11 +292,11 @@ _AddHeader() {
 }
 
 _AddInputTab(savedVals) {
-    Global MainGUI, TabControl, SkillPtsCount_In, SkillPtsWant_In, LoopCount_In, CarCount_In
+    Global MainGUI, TabControl, SkillPtsCount_In, SkillPtsWant_In, LoopCount_In, CarCount_In, CustomCarToggle_UI
     Global SkillPtsCountText, SkillPtsWantText, LoopCountText, CarCountText
     Global CarSelect_UI, AddCarBtn, EditCarBtn, RadioRace, RadioBuy, RadioUnlock
     Global AllBtn, RaceBtn, BuyBtn, UnlockBtn, OpenSpinWindowBtn
-    Global ScaleX, ScaleY, SkillPtsCount, SkillPtsWant, LoopCount, CarCount, CarList, SelectedCar, StartLoopMode
+    Global ScaleX, ScaleY, SkillPtsCount, SkillPtsWant, LoopCount, CarList, SelectedCar, StartLoopMode, UseCustomCarCount
 
     TabControl.UseTab(1)
     MainGUI.Add("Text", "x0 y+5 w" Round(270*ScaleX) " h5 BackgroundTrans c" p["footer"], "")
@@ -323,17 +311,27 @@ _AddInputTab(savedVals) {
     LoopCount_In := MainGUI.Add("Edit", "x" Round(179*ScaleX) " yp+26 w" Round(63*ScaleX) " h" Round(20*ScaleY) " -E0x200 Center Number Background" p["editBg"] " c" p["text"], savedVals ? savedVals[4] : LoopCount)
     LoopCountText := MainGUI.Add("Text", "x" Round(30*ScaleX) " yp+3 w" Round(155*ScaleX) " BackgroundTrans c" p["text"], "⟡   Sequence Loop")
 
-    CarCount_In := MainGUI.Add("Edit", "x" Round(179*ScaleX) " yp+26 w" Round(63*ScaleX) " h" Round(20*ScaleY) " -E0x200 Center Number Background" p["editBg"] " c" p["text"], savedVals ? savedVals[3] : CarCount)
+    CarCount_In := MainGUI.Add("Edit", "x" Round(179*ScaleX) " yp+26 w" Round(63*ScaleX) " h" Round(20*ScaleY) " -E0x200 Center Number Background" p["editBg"] " c" p["text"], savedVals ? savedVals[3] : CarsToTarget)
     CarCountText := MainGUI.Add("Text", "x" Round(30*ScaleX) " yp+3 w" Round(155*ScaleX) " BackgroundTrans c" p["text"], "⟡   Car Amount")
 
-    SkillPtsCount_In.OnEvent("Change", (ctrl, *) => UpdateSkillPtsCount(ctrl))
-    SkillPtsWant_In.OnEvent("Change", (ctrl, *) => UpdateSkillPtsWant(ctrl))
+    SkillPtsCount_In.OnEvent("Change", (ctrl, *) => UpdateSkillPtsCountIn(ctrl))
+    SkillPtsWant_In.OnEvent("Change", (ctrl, *) => UpdateSkillPtsWantIn(ctrl))
     LoopCount_In.OnEvent("Change", (ctrl, *) => UpdateLoopCount(ctrl))
-    CarCount_In.OnEvent("Change", (ctrl, *) => UpdateCarCount(ctrl))
+    CarCount_In.OnEvent("Change", (ctrl, *) => UpdateCarCountIn(ctrl))
+
+    ; --- Use Custom Car Values Toggle ---
+    isCustomEnabled := CustomCarCount
+    customColor := isCustomEnabled ? p["accent"] : p["textDim"]
+    customText  := isCustomEnabled ? "▰  CUSTOM CAR VALUES: ON" : "▱  CUSTOM CAR VALUES: OFF"
+
+    SetFixedFont(MainGUI, 8, "bold", "Semibold")
+    CustomCarToggle_UI := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+12 w" Round(242*ScaleX) " h" Round(22*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" customColor, customText)
+    CustomCarToggle_UI.ToolTipText := "Toggle between automatic calculation based on Skill Points or custom manual car counts."
+    CustomCarToggle_UI.OnEvent("Click", CustomCarToggle_Click)
 
     ; Profile Database Dropdown
     SetFixedFont(MainGUI, 9, "bold")
-    AddCarBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+20 w" Round(25*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "＋")
+    AddCarBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+12 w" Round(25*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "＋")
     AddCarBtn.OnEvent("Click", (*) => ShowCarEditorGUI("New"))
     AddCarBtn.ToolTipText := "Add Car Profile"
 
@@ -388,7 +386,7 @@ _AddInputTab(savedVals) {
         _UpdateStartLoop(RadioRace, "Race")
     
     ; ══════════════════════════════════════════════
-    ;  ACTION MACRO TRIGGERS (PROPERLY HOOKED)
+    ;  ACTION MACRO TRIGGERS
     ; ══════════════════════════════════════════════
     SetFixedFont(MainGUI, 9, "bold", "Semibold")
     AllBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+6 w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnMainBg"] " c" p["btnMainText"], "⟲     FULL LOOP     /")
@@ -403,7 +401,6 @@ _AddInputTab(savedVals) {
 
     AddCustomSpeedSlider(MainGUI)
 
-    ; CRITICAL FIX: Explicitly bind the Click events to their automation routines
     AllBtn.OnEvent("Click", (*) => StartFullLoop())
     RaceBtn.OnEvent("Click", (*) => StartRace())
     BuyBtn.OnEvent("Click", (*) => StartBuy())
@@ -415,11 +412,8 @@ _AddStatsTab() {
     Global MainGUI, TabControl, PointsLabel_UI, SectorLabel_UI, TimeLabel_UI, CarsLabel_UI
     Global RaceRunTime_UI, PointsCount_UI, SectorCount_UI, BuyRunTime_UI, CarCount_UI
     Global UnlockRunTime_UI, SWheelCount_UI, WheelCount_UI, CreditCount_UI
-    ; ══════════════════════════════════════════════
-    ;  SPIN INTERFACE METRICS GLOBALS
-    ; ══════════════════════════════════════════════
     Global MainSpinRunTime_UI, MainSpinOpenCount_UI, MainSpinLeftCount_UI
-    Global ScaleX, ScaleY, PointsGain, TimeTotal, CarCount
+    Global ScaleX, ScaleY, PointsGain, TimeTotal, CarsToTarget
     Global StatsHeader_UI, StatsHeaderOrigY, StatsControlsList := []
 
     TabControl.UseTab(2)
@@ -444,7 +438,7 @@ _AddStatsTab() {
     StatsControlsList.Push(TimeLabel_UI   := _LinkNoirTelemetry(MainGUI.Add("Text", "x" Round(162*ScaleX) " yp w" Round(86*ScaleX) " Right BackgroundTrans c" p["text"]), TimeTotalText))
 
     StatsControlsList.Push(MainGUI.Add("Text", "x" Round(22*ScaleX) " y+4 w" Round(140*ScaleX) " Left BackgroundTrans c" p["textDim"], "⟡   Recommended Car"))
-    StatsControlsList.Push(CarsLabel_UI   := _LinkNoirTelemetry(MainGUI.Add("Text", "x" Round(162*ScaleX) " yp w" Round(86*ScaleX) " Right BackgroundTrans c" p["text"]), CarCount))
+    StatsControlsList.Push(CarsLabel_UI   := _LinkNoirTelemetry(MainGUI.Add("Text", "x" Round(162*ScaleX) " yp w" Round(86*ScaleX) " Right BackgroundTrans c" p["text"]), CarsToTarget))
 
     ; Live Engine Metrics Panel
     SetFixedFont(MainGUI, 9, "bold")
@@ -490,39 +484,7 @@ _AddStatsTab() {
 }
 
 _AddSharedDashboard(DividerYPosition) {
-    Global MainGUI, TabControl, ToggleBtn, ScaleX, ScaleY, EventLab, EventLabList
-    Global EventLabSelect_UI, CodeTune_UI, CodeEventLab_UI
-
-    SetFixedFont(MainGUI, 8, "bold", "Semibold")
-    MainGUI.Add("Text", "x" Round(14*ScaleX) " y" (DividerYPosition + Round(10 * ScaleY)) " w" Round(242*ScaleX) " Center BackgroundTrans c" p["textDim"], "EVENTLAB PROFILE")
-
-    SetFixedFont(MainGUI, 9, "bold")
-    EventLabSelect_UI := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+6 w" Round(242*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["editBg"] " c" p["text"])
-    EventLabSelect_UI.DefineProp("Value", {
-        get: (this) => this.HasOwnProp("ctrlIndex") ? this.ctrlIndex : 1,
-        set: (this, val) => (this.ctrlIndex := val, ControlSetText(EventLabList[val] "   ▼", this.Hwnd, this.Gui.Hwnd))
-    })
-    EventLabSelect_UI.DefineProp("Text", {
-        get: (this) => EventLabList[this.Value],
-        set: (this, val) => ControlSetText(val, this.Hwnd, this.Gui.Hwnd)
-    })
-    
-    startupIndex := 1
-    for index, name in EventLabList {
-        if (name == EventLab) {
-            startupIndex := index
-            break
-        }
-    }
-    EventLabSelect_UI.Value := startupIndex
-    EventLabSelect_UI.OnEvent("Click", ShowEventLabMenu)
-
-    SetFixedFont(MainGUI, 8, "bold")
-    CodeTune_UI     := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+4 w" Round(119*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "📋 TUNE CODE")
-    CodeEventLab_UI := MainGUI.Add("Text", "x" Round(137*ScaleX) " yp w" Round(119*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "📋 RACE CODE")
-    
-    CodeTune_UI.OnEvent("Click", (*) => _CopyToClip(EventLabData[EventLab].CodeTune, "Subaru 22B Tune Code"))
-    CodeEventLab_UI.OnEvent("Click", (*) => _CopyToClip(EventLabData[EventLab].CodeEvent, "EventLab Race Code"))
+    Global MainGUI, ToggleBtn, ScaleX, ScaleY
 
     SetFixedFont(MainGUI, 8, "bold", "Semibold")
     ToggleBtn := MainGUI.Add("Text", "x" Round(65*ScaleX) " y+16 w" Round(140*ScaleX) " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText"], "⚙️   OPTIONS   ⏷")
@@ -538,13 +500,48 @@ _RepositionStatsControls(yOffset) {
 
 _AddCollapsibleOptions() {
     Global MainGUI, ResoSelect_UI, BrowseBtn, LaunchBtn, SpecialKCheck_UI, ScaleX, ScaleY, ResoList, SelectedReso, GameExe
-    Global DiscordUrl_UI, DiscordCheck_UI
+    Global EventLabSelect_UI, CodeTune_UI, CodeEventLab_UI, EventLabList, EventLab
     
     ControlsArray := []
     margin       := Round(14 * ScaleX)
     fullWidth    := Round(242 * ScaleX)
     halfWidth    := Round(119 * ScaleX)
     btnHeight    := Round(26 * ScaleY)
+
+    ; ── PROFILE ──────────────────────────────────────────
+    SetFixedFont(MainGUI, 8, "bold", "Semibold")
+    ControlsArray.Push(MainGUI.Add("Text", "x" margin " y+14 w" fullWidth " Center BackgroundTrans c" p["textDim"], "FARM PROFILE"))
+    
+    SetFixedFont(MainGUI, 9, "bold")
+    ControlsArray.Push(EventLabSelect_UI := MainGUI.Add("Text", "x" margin " y+6 w" fullWidth " h" Round(24*ScaleY) " Center 0x200 Background" p["editBg"] " c" p["text"]))
+
+    ; Define properties for the moved control
+    EventLabSelect_UI.DefineProp("Value", {
+        get: (this) => this.HasOwnProp("ctrlIndex") ? this.ctrlIndex : 1,
+        set: (this, val) => (this.ctrlIndex := val, ControlSetText(EventLabList[val] "   ▼", this.Hwnd, this.Gui.Hwnd))
+    })
+    EventLabSelect_UI.DefineProp("Text", {
+        get: (this) => EventLabList[this.Value],
+        set: (this, val) => ControlSetText(val, this.Hwnd, this.Gui.Hwnd)
+    })
+
+    startupIndex := 1
+    for index, name in EventLabList {
+        if (name == EventLab) {
+            startupIndex := index
+            break
+        }
+    }
+
+    EventLabSelect_UI.Value := startupIndex
+    EventLabSelect_UI.OnEvent("Click", ShowEventLabMenu)
+
+    SetFixedFont(MainGUI, 8, "bold")
+    ControlsArray.Push(CodeTune_UI     := MainGUI.Add("Text", "x" margin " y+4 w" halfWidth " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "📋 TUNE CODE"))
+    ControlsArray.Push(CodeEventLab_UI := MainGUI.Add("Text", "x+4 yp w" halfWidth " h" Round(24*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" p["btnText2"], "📋 RACE CODE"))
+    
+    CodeTune_UI.OnEvent("Click", (*) => _CopyToClip(EventLabData[EventLab].CodeTune, "Subaru 22B Tune Code"))
+    CodeEventLab_UI.OnEvent("Click", (*) => _CopyToClip(EventLabData[EventLab].CodeEvent, "EventLab Race Code"))
 
     ; ── RESOLUTION SELECTOR ───────────────────────────────────────────────────
     SetFixedFont(MainGUI, 8, "bold", "Semibold")
@@ -597,18 +594,17 @@ _AddCollapsibleOptions() {
         WriteMacroIni("Settings", "NotifEnabled", NotifEnabled)
 
         if (ctrl.State) {
-            ctrl.Opt("c" p["accent"]) ; Clean cyber accent color
+            ctrl.Opt("c" p["accent"])
             ctrl.Text := "▰  DESKTOP"
             ctrl.Redraw()
         } else {
-            ctrl.Opt("c" p["textDim"]) ; Muted text color
+            ctrl.Opt("c" p["textDim"])
             ctrl.Text := "▱  DESKTOP"
             ctrl.Redraw()
         }
     }
 
     ; ── DISCORD NOTIFICATION PANEL ─────────────────────────────────────────────
-
     SetFixedFont(MainGUI, 8, "norm")
     isDiscordEnabled := (DiscordEnabled = "1")
     discordColor := isDiscordEnabled ? p["accent"] : p["textDim"]
@@ -622,11 +618,11 @@ _AddCollapsibleOptions() {
     
     DiscordCheck_UI.OnEvent("Click", DiscordToggle)
 
-    ; ──  NOTIFICATION PANEL ─────────────────────────────────────────────   
+    ; ── OTHERS PANEL ─────────────────────────────────────────────   
     SetFixedFont(MainGUI, 8, "bold", "Semibold")
     ControlsArray.Push(MainGUI.Add("Text", "x" margin " y+12 w" fullWidth " Center BackgroundTrans c" p["textDim"], "OTHERS"))
 
-    ; ── GAME DIRECTORY UTILITIES (Side-by-Side Split) ─────────────────────────
+    ; ── GAME DIRECTORY UTILITIES ─────────────────────────
     SetFixedFont(MainGUI, 8, "bold", "Semibold")
     ControlsArray.Push(BrowseBtn := MainGUI.Add("Text", "x" margin " y+10 w" halfWidth " h" btnHeight " Center 0x200 Background" p["btnBg2"] " c" p["btnText"], "📂  SET PATH"))
     BrowseBtn.OnEvent("Click", (*) => LocateGameDir(true))
@@ -758,7 +754,6 @@ DragSliderTimer() {
     currentValue := Round(rawVal)
     DelaySlider_UI.Value := currentValue
     
-    ; FIXED: Target the text property for reliability on Text layout objects
     if IsSet(SpeedLabel_UI)
         SpeedLabel_UI.Text := "Key Delay Multiplier: " currentValue "x"
     
@@ -814,195 +809,173 @@ MenuSelectReso(index, *) {
 }
 
 ; ══════════════════════════════════════════════
-;  UPDATE DROPDOWN VALUE
+;  UPDATE SYSTEM VALUE
 ; ══════════════════════════════════════════════
-
-UpdateCar(ctrl, *) {
-    global PointsTotal, CarSelect_UI, CarsLabel_UI, CarCount_In
-    global CarData, SelectedCar, CarCount
+UpdateSystemState(countInput := "", wantInput := "") {
+    ; --- Writeable Globals ---
+    global SkillPtsCount := (countInput !== "") ? countInput : SkillPtsCount
+    global SkillPtsWant  := (wantInput !== "")  ? wantInput  : SkillPtsWant
+    global PointsGain, PointsTotal, CarsToTarget, CarsToBuy, CarsToUnlock, TimeTotal
     
-    SelectedCar      := ctrl.Text
-
-    CarCount := Floor(PointsTotal / CarData[SelectedCar].SkillPtsCost)
-        
-    CarCount_In.Value  := CarCount
-    CarsLabel_UI.Value := CarCount
+    ; --- Readable Globals ---
+    global CustomCarCount
+    global CarData, SelectedCar, EventLabData, EventLab, StartLoopMode
+    global PointsLabel_UI, SectorLabel_UI, CarCount_In, CarsLabel_UI, TimeLabel_UI
+    global SkillPtsCount_In, SkillPtsWant_In
     
-    TimeTotal            := CalcTotalTime(SkillPtsWant_In.Value, CarCount)
-    TimeLabel_UI.Value   := Format("{:02}:{:02}", Floor(TimeTotal), Round((TimeTotal - Floor(TimeTotal)) * 60))
+    car := CarData[SelectedCar]
+    event := EventLabData[EventLab]
 
-    WriteMacroIni("Settings", "Car", SelectedCar)
+    ; 1. Calculate Skill Point variables
+    PointsGain  := GetMinScore(SkillPtsWant)
+    PointsTotal := Min(PointsGain + SkillPtsCount, 999)
+
+    ; 2. Calculate Car Target quantities
+    CarsToTarget := Floor(PointsTotal / car.SkillPtsCost)
+    CarsActual   := Floor(SkillPtsCount / car.SkillPtsCost)
+
+    if (!CustomCarCount) {
+        CarsToBuy    := CarsActual
+        CarsToUnlock := CarsActual
+    } else {
+        ; Use custom value if > 0, otherwise fallback to what the user can currently afford
+        CarsToBuy    := (CarsToBuy > 0) ? CarsToBuy : CarsActual
+        CarsToUnlock := (CarsToUnlock > 0) ? CarsToUnlock : CarsActual
+    }
+
+    ; 3. Calculate Time Requirements
+    TimeTotal := CalcTotalTime(PointsGain, CarsToTarget, CarsToBuy, CarsToUnlock)
+    
+    TotalSubUnits := Round(TimeTotal * 60)
+    MainUnit      := Floor(TotalSubUnits / 60)
+    SubUnit       := Mod(TotalSubUnits, 60)
+
+    ; 4. Push updates to the UI
+    PointsLabel_UI.Value := PointsGain
+    SectorLabel_UI.Value := Ceil(PointsGain / event.AveragePoints)
+    CarsLabel_UI.Value   := CarsToTarget
+    TimeLabel_UI.Value   := Format("{:02}:{:02}", MainUnit, SubUnit)
+
+    ; 5. Apply target values or active custom profiles to the UI edit box
+    UpdateCarInputState()
 }
 
-UpdateEventLab(ctrl, *) {
-    global EventLab, MaxPoints
-    global SkillPtsWant_In
+UpdateCarInputState() {
+    global CustomCarCount, StartLoopMode, CarCount_In, CarsToTarget, CarsToBuy, CarsToUnlock
 
-    EventLab := ctrl.Text
-    
-    SkillPtsWant_In.Value := UpdateSkillPtsWant({Value: MaxPoints}, false)
-
-    WriteMacroIni("Settings", "EventLab", EventLab)
-}
-
-UpdateReso(ctrl, *) {
-    global SelectedReso
-
-    SelectedReso := ctrl.Text
-
-    WriteMacroIni("Settings", "Resolution", SelectedReso)
+    if (!CustomCarCount) {
+        if (StartLoopMode == "Buy") {
+            CarCount_In.Value := CarsToBuy
+        } else if (StartLoopMode == "Unlock") {
+            CarCount_In.Value := CarsToUnlock
+        } else {
+            ; Fallback for Race/Full modes
+            CarCount_In.Value := CarsToTarget 
+        }
+    } else {
+        ; Mode ON: Display the specific target based on the selected loop entry
+        if (StartLoopMode == "Buy") {
+            CarCount_In.Value := CarsToBuy
+        } else if (StartLoopMode == "Unlock") {
+            CarCount_In.Value := CarsToUnlock
+        } else {
+            ; Fallback for Race/Full modes
+            CarCount_In.Value := CarsToTarget 
+        }
+    }
 }
 
 ; ══════════════════════════════════════════════
 ;  UPDATE INPUT VALUE
 ; ══════════════════════════════════════════════
+UpdateSkillPtsCountIn(ctrl) {
+    global SkillPtsWant_In, MaxPoints, CustomSkillPts
+    global SkillPtsCountText, SkillPtsWantText
 
-UpdateSkillPtsCount(ctrl, ManualInput:= true, *) {
-    global CarCount_In, SkillPtsWant_In, MaxPoints
-    global PointsLabel_UI, TimeLabel_UI, CarsLabel_UI, SectorLabel_UI, ActiveMode
-    global SkillPtsCountText, SkillPtsWantText, CarCountText
-    global CarData, SelectedCar, EventLabData, EventLab
-    car := CarData[SelectedCar]
-    event := EventLabData[EventLab]
-
-    if ManualInput {
-        global CustomSkillPts := 0
-        ShowNotif(
-            "info", "Current Skill Points Input", 
-            "Mode: Automatic Desired Skill Points." 
-            "`nPlease edit Desired Skill Points to revert."
-        )
-        SkillPtsCountText.Value := "✦   Current Skill Points"
-        SkillPtsWantText.Value := "⟡   Desired Skill Points"
-        CarCountText.Value := "⟡   Car Amount"
-    }
+    ShowNotif(
+        "info", "Current Skill Points Input", 
+        "Mode: Automatic Desired Skill Points." 
+        "`nPlease edit Desired Skill Points to revert."
+    )
+    SkillPtsCountText.Value := "✦   Current Skill Points"
+    SkillPtsWantText.Value := "⟡   Desired Skill Points"
 
     value := ctrl.Value
     value := (value = "") ? 0 : Min(999, value)
 
-    global CustomSkillPts := 0
-    global SkillPtsCount := value
-    global SkillPtsWant := (999 - value > MaxPoints) ? MaxPoints : 999 - value
-    SkillPtsWant_In.Value := SkillPtsWant
-
-    ; FIX: Strict string check detects leading zeros ("02" != "2")
-    if !(ctrl.Value == String(SkillPtsCount)) {
-        ctrl.Value := SkillPtsCount
-        
-        ; Only force caret to the end if the text was actually modified/cleaned up
-        len := StrLen(String(SkillPtsCount))
-        SendMessage(0xB1, len, len, ctrl.Hwnd)  ; EM_SETSEL
+    if !(ctrl.Value == String(value)) {
+        ctrl.Value := value
+        len := StrLen(String(value))
+        SendMessage(0xB1, len, len, ctrl.Hwnd)
     }
 
-    global PointsGain  := GetMinScore(SkillPtsWant)    
-    global PointsTotal := Min(PointsGain + value, 999)
-
-    PointsLabel_UI.Value := PointsGain
-    SectorLabel_UI.Value := (event.AveragePoints > 0) ? Ceil(PointsGain / event.AveragePoints) : 0
+    newWant := (999 - value > MaxPoints) ? MaxPoints : 999 - value
+    SkillPtsWant_In.Value := newWant
     
-    global CustomCarCount := 0
-    global CarCount := (car.SkillPtsCost > 0) ? Floor(PointsTotal / car.SkillPtsCost) : 0
-
-    CarCount_In.Value    := CarCount
-    CarsLabel_UI.Value   := CarCount
-
-    global TimeTotal            := CalcTotalTime(SkillPtsWant, CarCount)
-    
-    TotalSubUnits        := Round(TimeTotal * 60)
-    MainUnit             := Floor(TotalSubUnits / 60)
-    SubUnit              := Mod(TotalSubUnits, 60)
-    TimeLabel_UI.Value   := Format("{:02}:{:02}", MainUnit, SubUnit)
+    CustomSkillPts := 0 
+    UpdateSystemState(value, newWant)
 
     return value
 }
 
-UpdateSkillPtsWant(ctrl, ManualInput:= true, *) {
-    global CarCount_In, SkillPtsCount_In, SkillPtsWant_In, MaxPoints
-    global PointsLabel_UI, TimeLabel_UI, CarsLabel_UI, PointsCount_UI, SectorLabel_UI
-    global SkillPtsCountText, SkillPtsWantText, CarCountText
-    global EventLabData, EventLab
-    car := CarData[SelectedCar]
-    event := EventLabData[EventLab]
+UpdateSkillPtsWantIn(ctrl) {
+    global SkillPtsCount_In, MaxPoints, CustomSkillPts
 
-    if ManualInput {
-        global CustomSkillPts := 0
-        ShowNotif(
-            "info", "Desired Skill Points Input", 
-            "Mode: Custom Desired Skill Points." 
-            "`nPlease edit Current Skill Points to revert."
-        )
-        SkillPtsCountText.Value := "⟡   Current Skill Points"
-        SkillPtsWantText.Value := "✦   Desired Skill Points"
-        CarCountText.Value := "⟡   Car Amount"
-    }
+    ShowNotif(
+        "info", "Desired Skill Points Input", 
+        "Mode: Custom Desired Skill Points." 
+        "`nPlease edit Current Skill Points to revert."
+    )
+    SkillPtsCountText.Value := "⟡   Current Skill Points"
+    SkillPtsWantText.Value := "✦   Desired Skill Points"
+
+    currentCount := (SkillPtsCount_In.Value = "") ? 0 : SkillPtsCount_In.Value
 
     value := ctrl.Value
     value := (value = "") ? 0 : value
-    value := Min(value, 999 - SkillPtsCount_In.Value)
+    value := Min(value, 999 - currentCount)
     value := Min(value, MaxPoints)
 
-    global CustomSkillPts := value
-    global SkillPtsWant := CustomSkillPts
-    global SkillPtsCount := SkillPtsCount_In.Value
-
-    ; FIX: Strict string check detects leading zeros ("02" != "2")
-    if !(ctrl.Value == String(SkillPtsWant)) {
-        ctrl.Value := SkillPtsWant
-        
-        ; Only force caret to the end if the text was actually modified/cleaned up
-        len := StrLen(String(SkillPtsWant))
-        SendMessage(0xB1, len, len, ctrl.Hwnd)  ; EM_SETSEL
+    if !(ctrl.Value == String(value)) {
+        ctrl.Value := value
+        len := StrLen(String(value))
+        SendMessage(0xB1, len, len, ctrl.Hwnd)
     }
-    
-    ; Update other UI
-    global PointsGain  := GetMinScore(SkillPtsWant)
-    global PointsTotal := Min(PointsGain + SkillPtsCount, 999)
 
-    PointsLabel_UI.Value := PointsGain
-    SectorLabel_UI.Value := (event.AveragePoints > 0) ? Ceil(PointsGain / event.AveragePoints) : 0
-    
-    global CustomCarCount := 0
-    global CarCount := Floor(PointsTotal / car.SkillPtsCost)
-
-    CarCount_In.Value    := CarCount
-    CarsLabel_UI.Value   := CarCount
-
-    global TimeTotal := CalcTotalTime(SkillPtsWant, CarCount)
-    
-    TotalSubUnits        := Round(TimeTotal * 60)
-    MainUnit             := Floor(TotalSubUnits / 60)
-    SubUnit              := Mod(TotalSubUnits, 60)
-    TimeLabel_UI.Value   := Format("{:02}:{:02}", MainUnit, SubUnit)
+    CustomSkillPts := value
+    UpdateSystemState(currentCount, value)
 
     return value
 }
 
-UpdateCarCount(ctrl, *) {
-    global CarData, PointsTotal
-    global CarCountText
-    global CustomCarCount
+UpdateCarCountIn(ctrl, *) {
+    global CustomCarCount, StartLoopMode, CarsToBuy, CarsToUnlock, CarsToTarget
+
+    ; If custom mode is off, forcefully snap the value back to target if the user tries to type
+    if (!CustomCarCount) {
+        if (ctrl.Value != String(CarsToTarget))
+            ctrl.Value := CarsToTarget
+        return
+    }
+
+    ; Sanitize and parse the input
+    value := (ctrl.Value = "" || ctrl.Value < 0) ? 0 : Integer(ctrl.Value)
     
-    ShowNotif(
-        "info", "Car Amount Input", 
-        "Mode: Custom Car Amount." 
-        "`nPlease edit Skill Points to revert."
-    )
-    CarCountText.Value := "✦   Car Amount"
-    
-    data := CarData[SelectedCar]
+    ; [IMPROVED] Safely assign values to their respective variables without cross-contamination
+    if (StartLoopMode == "Buy") {
+        value := Min(value, 999) ; Hard cap for buying
+        CarsToBuy := value
+        CarsToUnlock := Min(value, CarsToTarget)
+    } else if (StartLoopMode == "Unlock") {
+        value := Min(value, CarsToTarget) ; Cannot unlock more cars than targeted/owned
+        CarsToUnlock := value
+    }
 
-    value := ctrl.Value
-    value := (value = "") ? 0 : Min(value, 999)
-
-    CustomCarCount := value
-
-    ; FIX: Strict string check detects leading zeros ("02" != "2")
-    if !(ctrl.Value == String(CustomCarCount)) {
-        ctrl.Value := CustomCarCount
-        
-        ; Only force caret to the end if the text was actually modified/cleaned up
-        len := StrLen(String(CustomCarCount))
-        ; SendMessage(0xB1, len, len, ctrl.Hwnd)  ; EM_SETSEL
+    ; Update UI and handle caret positioning cleanly
+    if (ctrl.Value != String(value)) {
+        ctrl.Value := value
+        len := StrLen(String(value))
+        SendMessage(0xB1, len, len, ctrl.Hwnd)
     }
 }
 
@@ -1010,31 +983,97 @@ UpdateLoopCount(ctrl, *) {
     value := ctrl.Value
     value := (value = "") ? 0 : Min(value, 999)
 
-    ; FIX: Strict string check detects leading zeros ("02" != "2")
     if !(ctrl.Value == String(value)) {
         ctrl.Value := value
-        
-        ; Only force caret to the end if the text was actually modified/cleaned up
         len := StrLen(String(value))
-        SendMessage(0xB1, len, len, ctrl.Hwnd)  ; EM_SETSEL
+        SendMessage(0xB1, len, len, ctrl.Hwnd)
     }
 }
 
 _UpdateStartLoop(clickedObj, modeName) {
     Global StartLoopMode := modeName
+    global CustomCarCount, SkillPtsCount_In, SkillPtsWant_In, CarCount_In, CarCountText
+    
     RadioRace.Opt("Background" p["btnBg2"] " c" p["textDim"])
     RadioBuy.Opt("Background" p["btnBg2"] " c" p["textDim"])
     RadioUnlock.Opt("Background" p["btnBg2"] " c" p["textDim"])
+    
     clickedObj.Opt("Background" p["btnMainBg"] " c" p["btnMainText"])
     RadioRace.Redraw(), RadioBuy.Redraw(), RadioUnlock.Redraw()
 
+    ; --- Dynamic Input Toggling based on Custom Toggle State ---
+    if (modeName == "Race" || modeName == "Full" || !CustomCarCount) {
+        ; SkillPtsCount_In.Enabled := true
+        ; SkillPtsWant_In.Enabled := true
+        
+        CarCount_In.Enabled := false
+        CarCountText.Value := "⟡   Targeted Cars" 
+    } 
+    else if ((modeName == "Buy" || modeName == "Unlock") && CustomCarCount) {
+        ; SkillPtsCount_In.Enabled := false
+        ; SkillPtsWant_In.Enabled := false
+        
+        CarCount_In.Enabled := true
+        CarCountText.Value := (modeName == "Buy") ? "⟡   Cars to Buy" : "⟡   Cars to Unlock"
+    }
+
     WriteMacroIni("Settings", "StartLoopMode", StartLoopMode)
+    UpdateCarInputState()
+}
+
+CustomCarToggle_Click(ctrl, *) {
+    global CustomCarCount, p, StartLoopMode, RadioRace, RadioBuy, RadioUnlock
+    
+    CustomCarCount := !CustomCarCount
+    WriteMacroIni("Settings", "CustomCarCount", CustomCarCount)
+    
+    ; FIXED: Check the actual boolean toggle variable instead of the numeric count
+    if (CustomCarCount) {
+        ctrl.Opt("c" p["accent"])
+        ctrl.Text := "▰  CUSTOM CAR VALUES: ON"
+        ShowNotif("info", "Custom Car Mode", "You can now manually set the car targets.")
+    } else {
+        ctrl.Opt("c" p["textDim"])
+        ctrl.Text := "▱  CUSTOM CAR VALUES: OFF"
+        ShowNotif("info", "Auto Car Mode", "Car targets will be auto-calculated from Skill Points.")
+    }
+    ctrl.Redraw()
+    
+    activeRadio := (StartLoopMode == "Buy") ? RadioBuy : (StartLoopMode == "Unlock" ? RadioUnlock : RadioRace)
+    _UpdateStartLoop(activeRadio, StartLoopMode)
+}
+
+; ══════════════════════════════════════════════
+;  UPDATE DROPDOWN VALUE
+; ══════════════════════════════════════════════
+UpdateCar(ctrl, *) {
+    global SelectedCar
+
+    SelectedCar := ctrl.Text
+    WriteMacroIni("Settings", "Car", SelectedCar)
+
+    UpdateSystemState()
+}
+
+UpdateEventLab(ctrl, *) {
+    global EventLab
+
+    EventLab := ctrl.Text
+    WriteMacroIni("Settings", "EventLab", EventLab)
+
+    UpdateSystemState()
+}
+
+UpdateReso(ctrl, *) {
+    global SelectedReso
+
+    SelectedReso := ctrl.Text
+    WriteMacroIni("Settings", "Resolution", SelectedReso)
 }
 
 ; ==========================================
 ; VERSION UPDATE
 ; ==========================================
-
 CheckForUpdates(linkCtrl) {
     try {
         whr := ComObject("WinHttp.WinHttpRequest.5.1")
@@ -1070,19 +1109,16 @@ CheckForUpdates(linkCtrl) {
         RegExMatch(jsonText, '"html_url":\s*"([^"]+)"', &matchHtml)
         htmlUrl := matchHtml ? matchHtml[1] : "https://github.com/" RepoOwner "/" RepoName "/releases"
 
-        ; Run our smart comparison math
         compResult := CompareVersions(CurrentVersion, latestVersion)
 
         if (compResult == 1) {
-            ; 🧪 LOCAL VERSION IS GREATER THAN GITHUB RELEASE
-            linkCtrl.DownloadUrl := ""  ; Empty url forces click to open the github changelog instead
+            linkCtrl.DownloadUrl := ""
             linkCtrl.AssetType := ""
             linkCtrl.HtmlUrl := htmlUrl
             linkCtrl.Text := CurrentVersion " | Beta Build 🧪"
             linkCtrl.ToolTipText := "Click to open Github Release"
         } 
         else if (compResult == -1) {
-            ; ⚠ LOCAL VERSION IS OLDER (UPDATE AVAILABLE)
             linkCtrl.DownloadUrl := downloadUrl
             linkCtrl.AssetType := assetType
             linkCtrl.HtmlUrl := htmlUrl
@@ -1090,7 +1126,6 @@ CheckForUpdates(linkCtrl) {
             linkCtrl.ToolTipText := "Click to Update"
         } 
         else {
-            ; ✓ PERFECT MATCH
             linkCtrl.DownloadUrl := ""
             linkCtrl.AssetType := ""
             linkCtrl.HtmlUrl := htmlUrl
@@ -1105,26 +1140,23 @@ CheckForUpdates(linkCtrl) {
     }
 }
 
-; ── Smart Semantic Version Comparator Helper ──
 CompareVersions(vLocal, vRemote) {
-    ; Strip out letters/prefixes (e.g., "v1.0.1-beta" -> "1.0.1")
     cleanL := RegExReplace(vLocal, "[^\d.]")
     cleanR := RegExReplace(vRemote, "[^\d.]")
     
     aLocal  := StrSplit(cleanL, ".")
     aRemote := StrSplit(cleanR, ".")
     
-    ; Loop through the longest section array length
     Loop Max(aLocal.Length, aRemote.Length) {
         nLocal  := (A_Index <= aLocal.Length  && aLocal[A_Index]  != "") ? Integer(aLocal[A_Index])  : 0
         nRemote := (A_Index <= aRemote.Length && aRemote[A_Index] != "") ? Integer(aRemote[A_Index]) : 0
         
         if (nLocal > nRemote)  
-            return 1  ; Local is newer (Beta / Prerelease)
+            return 1
         if (nLocal < nRemote)  
-            return -1 ; Local is older (Update available)
+            return -1
     }
-    return 0 ; Versions match exactly
+    return 0
 }
 
 ProcessUpdate(url, assetType) {
@@ -1140,7 +1172,6 @@ ProcessUpdate(url, assetType) {
         workingDir := A_ScriptDir
         
         if (!A_IsCompiled) {
-            ; --- ZIP UPDATE ROUTINE (.ahk script users) ---
             zipFile := workingDir "\update.tmp.zip"
             Download(url, zipFile)
             
@@ -1152,7 +1183,6 @@ ProcessUpdate(url, assetType) {
             Run('powershell -NoProfile -WindowStyle Hidden -Command ' . psCommand, , "Hide")
         } 
         else {
-            ; --- EXE UPDATE ROUTINE (.exe users) ---
             tempFile := scriptPath ".tmp"
             Download(url, tempFile)
             
@@ -1172,17 +1202,12 @@ ProcessUpdate(url, assetType) {
 ;  MOUSE HOVER CURSOR CONTROLLER
 ; ══════════════════════════════════════════════
 OnMessage(0x0020, WM_SETCURSOR)
-OnMessage(0x0200, WM_MOUSEMOVE)
 
 WM_SETCURSOR(wParam, lParam, msg, hwnd) {
-    ; 0x0200 corresponds to mouse move events within the client window area
     if ((lParam & 0xFFFF) == 1) { 
         try {
-            ; Check the ClassNN of the control currently under the mouse
             ctrlClass := ControlGetClassNN(wParam)
             
-            ; 1. Match native Tab Controls ("SysTabControl32")
-            ; 2. Match text elements ("Static") used as buttons/menus
             if InStr(ctrlClass, "SysTabControl32") {
                 charHand := DllCall("LoadCursor", "Ptr", 0, "Ptr", 32649, "Ptr")
                 DllCall("SetCursor", "Ptr", charHand)
@@ -1191,22 +1216,18 @@ WM_SETCURSOR(wParam, lParam, msg, hwnd) {
             else if InStr(ctrlClass, "Static") {
                 ctrlText := ControlGetText(wParam)
                 
-                ; 1. Filter out known passive text items
                 if (InStr(ctrlText, "━━━━") || InStr(ctrlText, "Forza Horizon"))
                     return
                     
-                ; 2. If it is a blank text control, check if it's the slider track or knob
                 if (ctrlText == "") {
                     try {
-                        ; Only allow the hand cursor if it matches our custom slider handles
                         if (wParam != SliderTrack.Hwnd && wParam != SliderKnob.Hwnd)
                             return 
                     } catch {
-                        return ; Fallback if the slider elements aren't initialized yet
+                        return
                     }
                 }
 
-                ; Load the standard Windows System Hand Cursor (IDC_HAND = 32649)
                 charHand := DllCall("LoadCursor", "Ptr", 0, "Ptr", 32649, "Ptr")
                 DllCall("SetCursor", "Ptr", charHand)
                 return true 
@@ -1215,28 +1236,24 @@ WM_SETCURSOR(wParam, lParam, msg, hwnd) {
     }
 }
 
+OnMessage(0x0200, WM_MOUSEMOVE)
+
 WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
     static lastHwnd := 0
     
-    ; Identify the specific control handle under the cursor
     MouseGetPos , , , &ctrlHwnd, 2
     
-    ; Prevent flickering: Only act if the mouse moved to a DIFFERENT control
     if (ctrlHwnd == lastHwnd)
         return
         
     lastHwnd := ctrlHwnd
-    
-    ; Clear any existing tooltip while moving between controls
     ToolTip()
     
-    ; If the control exists and has a custom 'ToolTipText' property, display it
     if (ctrlHwnd) {
         try {
             ctrlObj := GuiCtrlFromHwnd(ctrlHwnd)
             if (ctrlObj && ctrlObj.HasOwnProp("ToolTipText")) {
                 ToolTip(ctrlObj.ToolTipText)
-                ; Remove the tooltip automatically after 3 seconds so it doesn't hang around
                 SetTimer(() => ToolTip(), -3000)
             }
         }

@@ -8,13 +8,16 @@ StartFullLoop() {
     global LoopCount_In, SkillPtsScanSuccess
     global RadioRace, RadioBuy, RadioUnlock
     global DiscordWebhookRunning
+    
+    ; Add globals needed for calculation
+    global CarData, SelectedCar, CarCount_In, SkillPtsCount_In 
+    global CarsToUnlock, CarsToBuy
 
     if FindGame() = false
         return
 
     ; Initialize state variables
     StartLoop := StartLoopMode
-    FirstLoopMode := StartLoopMode
     SkillPtsScanSuccess := false
     LoopCount := 0
     CustomCarCount := 0
@@ -42,7 +45,7 @@ StartFullLoop() {
         ; 2. Buy Segment
         if (!StartLoop || StartLoop = "Buy") {
             _UpdateStartLoop(RadioBuy, "Buy")
-            StartBuy()
+            StartBuy() 
             StartLoop := ""
             if _CheckAbort()
                 break
@@ -51,7 +54,7 @@ StartFullLoop() {
         ; 3. Unlock Segment
         if (!StartLoop || StartLoop = "Unlock") {
             _UpdateStartLoop(RadioUnlock, "Unlock")
-            StartUnlock()
+            StartUnlock() 
             StartLoop := ""
             if _CheckAbort()
                 break
@@ -66,12 +69,10 @@ StartFullLoop() {
                 break
         }
 
-        ; Only fires if the entire loop sequence survived without hitting an abort
+        SetTimer(TotalTimerTick, 0)
         ShowNotif("success", "Full Loop", "Sequence " LoopCount " Finalized in " MiniTotalRunTime_UI.Value, , true)
         
         _UpdateStartLoop(RadioRace, "Race")
-
-        SetTimer(TotalTimerTick, 0)
 
         LoopCount_In.Value--
         if LoopCount_In.Value = 0
@@ -88,6 +89,7 @@ StartFullLoop() {
     _CheckAbort() {
         global MasterMode
         if (!MasterMode) {
+            SetTimer(TotalTimerTick, 0)
             ShowNotif("warning", "Full Loop", "Sequence " LoopCount " interrupted and stopped.", true)
             return true
         }

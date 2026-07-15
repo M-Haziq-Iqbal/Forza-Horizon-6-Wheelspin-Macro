@@ -1,7 +1,6 @@
-; ╔═════════════════════════════════════════╗
-; ║        MHI - FH6 Wheelspin Macro        ║
-; ║            Cyber Noir Edition           ║
-; ╚═════════════════════════════════════════╝
+; ══════════════════════════════════════════════
+;  AUTOMATION TRIGGER ENGINES
+; ══════════════════════════════════════════════
 
 StartRace() {
     global ActiveMode, StatusText, cActive, TotalRunSeconds, RaceRunSeconds, PointsGain
@@ -29,7 +28,7 @@ StartRace() {
         PointsCount_UI.Value := 0
         RaceRunTime_UI.Value := "00:00"
 
-        ; Update GUI
+        ; Update Mini Widget Canvas Panels
         MiniSectorCount_UI.Value := 0
         MiniPointsCount_UI.Value := 0
         MiniRaceRunTime_UI.Value := "00:00"
@@ -39,7 +38,10 @@ StartRace() {
         RaceRunTime_UI.SetFont("c" cHighlight)
         
         SetTimer(RaceTimerTick, 1000)
+
+        DiscordStatusUpdate("info", "Race Mode Started", "Starting " EventLab " EventLab circuit...")
         RaceLoop()
+        DiscordStatusUpdate("success", "Race Mode Ended", "Completed " EventLab " EventLab circuit...")
     }
     ResetIndicators()
 }
@@ -51,8 +53,11 @@ RaceLoop() {
     global MiniSectorCount_UI, MiniPointsCount_UI
     global Maxpoints, PointsGain, RaceRunSeconds
     global CarData, SelectedCar, EventLabData, EventLab
-    global PointsCount     := 0
-    global SectorCount     := 0
+    
+    ; Setup localized loop registers cleanly for AHK v2 variable scopes
+    global PointsCount, SectorCount
+    PointsCount := 0
+    SectorCount := 0
 
     car := CarData[SelectedCar]
     event := EventLabData[EventLab]
@@ -65,8 +70,6 @@ RaceLoop() {
     }
 
     While (ActiveMode = "Race") {
-        DiscordStatusUpdate("info", "Race Mode Started", "Starting " EventLab " EventLab circuit...")
-
         Process("Scanning Menu...")
         RaceNav()
 
@@ -79,73 +82,123 @@ RaceLoop() {
         if (PointsGain <= 0)
             break 
 
+        PressKey("Enter") ; Select Change Car
+
         if CheckAbort()
             break
 
-        Process("Navigating to Creative Hub Menu")
+        if GetInSubaru() = true {
+            WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 10000)
+            PressKey("Enter", 1000)
+            PressKey("PgDn", 100) 
+        }
+
+        if CheckAbort()
+            break
+
+        Process("Navigating to Creative Hub Menu", 500)
         Loop 3
             PressKey("PgDn", 100) 
 
         Process("Opening EventLab Menu...", 500)
         PressKey("Enter", 1000)     ; Select EventLab
-        PressKey("Enter", 3000)     ; Select Play Event
 
-        if CheckAbort()
-            break
+        if EventLab = "AAMIRUSMANDUS" {
+            PressKey("Down", 1000) ; Navigate to Play Challenge
+            PressKey("Enter", 3000) ; Select Play Challenge
+            PressKey("Backspace") ; Search
+            PressKey("Up")
+            PressKey("Enter")
+            PasteNumberToGamingUI("140849306")
+            PressKey("Down")
+            PressKey("Enter")
+            WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 10000, 200)
+            PressKey("Enter")
 
-        Process("Navigating to Favourited Events...")
-        Loop 7
-            PressKey("PgDn", 100)
+            Loop {
+                Process("Waiting for the challenge to start...")
+                WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 40000)
 
-        WaitForPixel("Waiting for EventLab to load...", 0.283, 0.198, "0xFCC500", , 10000)
+                if CheckAbort(){
+                    Process("Quitting the Event...", 2000)
+                    PressKey("Esc", 1000)   ; Pause Menu
+                    PressKey("Right")       ; Navigate to Quit
+                    PressKey("Enter")       ; Quit Event
+                    PressKey("Enter")       ; Confirm Quit
+                    break
+                }
 
-        PressKey("Enter")           ; Select Event
+                Process("Throttling...")
+                PressKey("w down", 15000)
+                WaitForText("Enter", 0.039, 0.916, 0.104-0.039, 0.947-0.916, 10000)
 
-        if CheckAbort()
-            break
+                SectorCount++
 
-        WaitForPixel("Choosing Race Type...", 0.331, 0.567, "0xFFFFFF", , 10000)
+                if (Mod(SectorCount, NotiFreqInterv) == 0)
+                    ShowNotif("info", "Race Mode", SectorCount " sectors of EventLab Race completed.")
 
-        PressKey("Enter", 3000) ; Select Race Type
+                PointsCount := Floor(SectorCount * event.AveragePoints) 
 
-        if CheckAbort()
-            break
+                ; Live Real-time UI Telemetry Updates
+                PointsCount_UI.Value     := PointsCount
+                SectorCount_UI.Value     := SectorCount
+                MiniPointsCount_UI.Value := PointsCount
+                MiniSectorCount_UI.Value := SectorCount
 
-        Process("Select Favourited Car...")
-        PressKey("Y")               ; Filter
-        PressKey("Enter")           ; Toggle
-        PressKey("Esc", 1000)       ; Back to My Cars
+                if CheckAbort() || PointsCount >= PointsGain {
+                    PressKey("Esc") ; Quit
+                    break
+                }
 
-        if CheckAbort()
-            break
-
-        Loop {
-            Process("Verifying 1998 Subaru with the correct tune.", 500)
-            CarVerify := CarVerifyCheck("Race Mode", "1998 Subaru", 816997639471, false)
-            if !CarVerify
-                PressKey("Right", 50)
-            else {
-                PressKey("Enter", 50)
-                break
+                PressKey("Enter") ; Retry
             }
+            WaitForPixel("Liking the challenge...", 0.347, 0.532, "0x000000", , 10000, 3000)
+            PressKey("Enter") ; Like
 
-            if A_Index > 15
-                EmergencyExit("No 1998 Subaru with the correct tune detected.")
         }
-        
-        Process("Loading EventLab...")
-        WaitForPixel("Waiting for track to load...", 0.158, 0.678, "0xFFFFFF", , 30000)
 
-        Process("Start Race Event...")
-        PressKey("Enter", 2000) 
-        
-        if CheckAbort()
-            break
+        if EventLab != "AAMIRUSMANDUS" {
+            PressKey("Enter", 3000)     ; Select Play Challenge
+            if CheckAbort()
+                break
 
-        DiscordStatusUpdate("info", "Race Mode Active", "Driving " EventLab " EventLab circuit...")
+            Process("Navigating to Favourited Events...")
+            Loop 7
+                PressKey("PgDn", 100)
 
-        PressKey("W", 50) 
-        Process("Countdown...", 3000)
+            WaitForPixel("Waiting for EventLab to load...", 0.283, 0.198, "0xFCC500", , 10000)
+
+            PressKey("Enter") ; Select Event
+
+            if CheckAbort()
+                break
+
+            WaitForPixel("Choosing Race Type...", 0.331, 0.567, "0xFFFFFF", , 10000)
+
+            PressKey("Enter")     ; Select Race Type
+
+            if CheckAbort()
+                break
+
+            GetInSubaru()
+
+            if CheckAbort()
+                break
+
+            Process("Loading EventLab...")
+            WaitForPixel("Waiting for track to load...", 0.158, 0.678, "0xFFFFFF", , 30000)
+
+            Process("Start Race Event...")
+            PressKey("Enter", 2000) 
+            
+            if CheckAbort()
+                break
+
+            DiscordStatusUpdate("info", "Driving EventLab", "Wrecking " EventLab " circuit...")
+
+            PressKey("W", 50) 
+            Process("Countdown...", 3000)
+        }
 
         if (EventLab == "LIQUIDPOTATO") {
             While (PointsCount < PointsGain) {
@@ -160,7 +213,7 @@ RaceLoop() {
                 SectorCount++
                 PointsCount := Floor(SectorCount * event.AveragePoints) 
 
-                ; Update GUI
+                ; Live Real-time UI Telemetry Updates
                 PointsCount_UI.Value     := PointsCount
                 SectorCount_UI.Value     := SectorCount
                 MiniPointsCount_UI.Value := PointsCount
@@ -174,8 +227,6 @@ RaceLoop() {
 
                 if (Mod(SectorCount, NotiFreqInterv) == 0)
                     ShowNotif("info", "Race Mode", SectorCount " sectors of EventLab Race completed.")
-
-                DiscordStatusUpdate("info", "Race Mode Active", "Driving " EventLab " EventLab circuit...")
             }
 
             Process("Quitting the Event...", 2000)
@@ -230,7 +281,7 @@ RaceLoop() {
 
                 PointsCount := Floor(SectorCount * event.AveragePoints) 
 
-                ; Update GUI
+                ; Live Real-time UI Telemetry Updates
                 PointsCount_UI.Value     := PointsCount
                 SectorCount_UI.Value     := SectorCount
                 MiniPointsCount_UI.Value := PointsCount
@@ -278,8 +329,6 @@ RaceLoop() {
                     PressKey("W down", 50) 
                     Process("Countdown...", 3000)
                 }
-
-                DiscordStatusUpdate("info", "Race Mode Active", "Driving " EventLab " EventLab circuit...")
             }
 
             if (!AlreadyQuit) {
@@ -295,7 +344,9 @@ RaceLoop() {
 
         ShowNotif("success", "Race Mode", SectorCount " sectors EventLab Race completed.")
 
-        WaitForPixel("Returning to Free Roam...", 0.061, 0.945, "0xFFFFFF", "", 30000)
+        Process("Returning to Free Roam...")
+        WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 40000)
+        ; WaitForPixel("Returning to Free Roam...", 0.061, 0.945, "0xFFFFFF", "", 30000)
 
         if CheckAbort()
             break
@@ -311,7 +362,7 @@ RaceLoop() {
         PressKey("PgDn")        ; Navigate to My Horizon Menu
         PressKey("Enter")       ; Select Return Home
         PressKey("Enter")       ; Confirm Travel to Home
-
+    
         WaitForPixel("Returning to Home...", 0.168, 0.722, "0xFFFFFF", "", 20000)
 
         RaceRunTime_UI.SetFont("c" cIdle)
@@ -321,15 +372,13 @@ RaceLoop() {
     }
 }
 
-RaceSkillPtsScan(ratioX, ratioY, ratioW, ratioH, finish:=false waitTime := 1000) {
-    global SkillPtsCount_In, SkillPtsWant_In, CarCount_In
-    global PointsLabel_UI, SectorLabel_UI, TimeLabel_UI, CarsLabel_UI
-    global ActiveMode, MaxPoints, CustomSkillPts
-    global SkillPtsCount, SkillPtsWant, PointsGain, PointsTotal, CarCount, TimeTotal
-    global CarData, SelectedCar, EventLabData, EventLab
+; ══════════════════════════════════════════════
+;  OCR TELEMETRY ENGINE WITH SYSTEM STATE HOOK
+; ══════════════════════════════════════════════
 
-    car := CarData[SelectedCar]
-    event := EventLabData[EventLab]
+RaceSkillPtsScan(ratioX, ratioY, ratioW, ratioH, finish := false, waitTime := 1000) {
+    global SkillPtsCount_In, SkillPtsWant_In, ActiveMode, MaxPoints, CustomSkillPts
+    global SkillPtsCount, SkillPtsWant, PointsTotal, CarData, SelectedCar, EventLabData, EventLab
 
     SkillPtsCountOld := SkillPtsCount_In.Value
     
@@ -346,19 +395,11 @@ RaceSkillPtsScan(ratioX, ratioY, ratioW, ratioH, finish:=false waitTime := 1000)
         }
 
         SkillPtsWant := CustomSkillPts ? Min(CustomSkillPts, MaxPoints - SkillPtsCount) : Min(999 - SkillPtsCount, MaxPoints)
-        SkillPtsWant_In.Value  := SkillPtsWant
+        SkillPtsWant_In.Value := SkillPtsWant
 
-        PointsGain  := GetMinScore(SkillPtsWant)
-        PointsTotal := Min(PointsGain + SkillPtsCount, 999)
-        CarCount    := Floor(PointsTotal / CarData[SelectedCar].SkillPtsCost)
-        TimeTotal   := CalcTotalTime(SkillPtsWant, CarCount)
+        ; Modernized Integration: Fire the master pipeline to cleanly update all layout timings and thresholds
+        UpdateSystemState(SkillPtsCount, SkillPtsWant)
 
-        CarCount_In.Value      := CarCount
-
-        PointsLabel_UI.Value := PointsGain
-        SectorLabel_UI.Value := Ceil(PointsGain / event.AveragePoints)
-        TimeLabel_UI.Value   := Format("{:02}:{:02}", Floor(TimeTotal), Floor((TimeTotal - Floor(TimeTotal)) * 60))
-        CarsLabel_UI.Value   := CarCount
     } else if finish {
         if (points == -1) {
             SkillPtsCount := PointsTotal - 10
@@ -372,10 +413,12 @@ RaceSkillPtsScan(ratioX, ratioY, ratioW, ratioH, finish:=false waitTime := 1000)
 
         SkillPtsWant := Min(999 - SkillPtsCount, MaxPoints)
         SkillPtsWant_In.Value := SkillPtsWant
+
+        ; Modernized Integration: Fire master pipeline post-race
+        UpdateSystemState(SkillPtsCount, SkillPtsWant)
     }
 
     SkillPtsCount_In.Value := SkillPtsCount
-
     return points
 }
 
@@ -421,5 +464,37 @@ RaceNav() {
         Loop nav.count {
             PressKey(nav.key, 100)
         }
+    }
+}
+
+GetInSubaru() {
+    WaitForText("My Cars", 0.060, 0.090, 0.096, 0.045, 5000)
+
+    Process("Select Favourited Car...", 500)
+    PressKey("Y")               ; Filter
+    PressKey("Enter")           ; Toggle
+    PressKey("Esc", 1000)       ; Back to My Cars
+
+    Process("Verifying 1998 Subaru.", 500)
+    Loop {
+        CarVerify := CarVerifyCheck("Race Mode", "1998 Subaru", [816997639471, 594970474057], false)
+        if !CarVerify 
+            PressKey("Right", 50)
+        else {
+            PressKey("Enter")
+            if WaitForText("Get In Car", 0.462, 0.415, 0.536-0.462, 0.453-0.415, 3000) {
+                Process("Entering 1998 Subaru...")
+                PressKey("Enter", 50)
+                return true
+            }
+            else {
+                PressKey("Esc")
+                PressKey("Esc")
+                return false
+            }
+        }
+
+        if A_Index > 15
+            EmergencyExit("No 1998 Subaru detected.")
     }
 }

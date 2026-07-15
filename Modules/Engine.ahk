@@ -154,8 +154,8 @@ GetMinScore(score) {
     return Floor(Ceil(score / step) * step)
 }
 
-CalcTotalTime(score, car) {
-    return CalcTimeRace(score) + CalcTimeBuy(car) + CalcTimeUnlock(car) + CalcTimeSpin(car) 
+CalcTotalTime(PointsGain, CarsToTarget, CarsToBuy:=CarsToTarget, CarsToUnlock:=CarsToTarget) {
+    return CalcTimeRace(PointsGain) + CalcTimeBuy(CarsToBuy) + CalcTimeUnlock(CarsToUnlock) + CalcTimeSpin(CarsToUnlock) 
 }
 
 CalcTimeRace(score) {
@@ -166,10 +166,9 @@ CalcTimeRace(score) {
     secPerSection       := event.SecPerSection
     secPerRow           := event.SecPerRow
     sectionsPerRow      := event.SectionsPerRow
-
-    StartLoadingTime := 52
-    MidLoadingTime   := 20
-    FinLoadingTime   := 40
+    StartLoadingTime    := event.StartLoadingTime
+    MidLoadingTime      := event.MidLoadingTime
+    FinLoadingTime      := event.FinLoadingTime
 
     sections  := Ceil(score / AveragePoints)
     rows      := Ceil(sections / sectionsPerRow)
@@ -670,6 +669,95 @@ PressKey(key, delay := 500, delayEnable:= true) {
     Sleep(currentMultiplier * actualDelay)
 }
 
+SendToGamingUI(numberString) {
+    ; Target the window by class so we don't accidentally send to explorer.exe
+    target := "ahk_class ApplicationFrameWindow"
+    
+    ; 1. Check if the window exists
+    if (!WinExist(target)) {
+        ShowNotif("error", "Target Error", "Gaming UI window not found.")
+        return
+    }
+
+    ; 2. SetKeyDelay is CRITICAL for UWP/Gaming UI
+    ; Gaming UI apps are slow to process input. 
+    ; 50ms press duration, 50ms between keys prevents dropped characters.
+    SetKeyDelay(50, 50)
+
+    try {
+        ; Send the number string followed by Enter
+        ; The empty parameter for Control causes it to send to the window's main input area
+        ControlSend(numberString "{Enter}", , target)
+    } catch as e {
+        ShowNotif("error", "ControlSend Error", "Failed to send to Gaming UI: " e.Message)
+    }
+}
+
+TypeStringViaPressKey(str) {
+    global GameHwnd, GameExe
+    
+    ; 1. Find the Gaming UI window specifically
+    targetHwnd := WinExist("Gaming UI ahk_class ApplicationFrameWindow")
+    
+    if (!targetHwnd) {
+        ShowNotif("error", "Target Error", "Gaming UI window not found.")
+        return
+    }
+
+    ; 2. Temporarily swap the GameHwnd to the Gaming UI
+    originalHwnd := GameHwnd
+    GameHwnd := targetHwnd
+
+    ; 3. Loop through each character in the string
+    Loop Parse, str {
+        PressKey(A_LoopField)
+        Sleep(50) ; Small delay between keystrokes to ensure the UI catches them
+    }
+
+    ; 4. Press Enter
+    PressKey("Enter")
+
+    ; 5. Restore the original GameHwnd so your main game keeps working
+    GameHwnd := originalHwnd
+}
+
+PasteNumberToGamingUI(numberToPaste) {
+    ; We define the target using both Title and Class for high accuracy
+    targetWin := "Gaming UI ahk_class ApplicationFrameWindow"
+    Sleep(500)
+    
+    ; 1. Check if the window exists
+    if !WinExist(targetWin) {
+        ShowNotif("error", "Target Error", "Gaming UI window not found.")
+        return
+    }
+
+    ; 2. Bring window to focus
+    ; Using WinActivate with the specific title/class ensures we don't hit the wrong explorer.exe process
+    WinActivate(targetWin)
+    
+    ; Wait for the window to actually be active (up to 500ms)
+    if !WinWaitActive(targetWin, , 0.5) {
+        ShowNotif("error", "Focus Error", "Could not bring Gaming UI to foreground.")
+        return
+    }
+
+    ; 3. Perform the paste
+    ; Store original clipboard, put the number in, send Ctrl+V, then restore
+    oldClip := ClipboardAll()
+    A_Clipboard := numberToPaste
+    
+    Sleep(100) ; Small pause to ensure the UI is ready to accept input
+    Send("^v")
+    Sleep(100)
+    Send("{Enter}")
+    
+    ; Restore original clipboard
+    A_Clipboard := oldClip
+
+    Sleep(500)
+}
+
 Process(text, delay := 0) {
     global Process_UI
 
@@ -1147,7 +1235,23 @@ ScanMenu(timeoutDuration := 5000) {
     return { menu: "", submenu: "" } ; Return empty object on timeout
 }
 
-CarVerifyCheck(title:="", car:="", stats:= 0, exit:=true) {
+WaitForText(targetText, x, y, w, h, timeoutDuration := 5000) {
+    startTime := A_TickCount
+    
+    while (A_TickCount - startTime <= timeoutDuration) {
+        ocrText := ScanOCR(x, y, w, h, 200)
+        
+        if (InStr(ocrText, targetText)) {
+            return true ; Text found!
+        }
+        
+        Sleep(50) ; Small delay to prevent CPU spiking
+    }
+    
+    return false ; Timed out
+}
+
+CarVerifyCheck(title:="", car:="", stats:="", exit:=true) {
     global GameTitle, ActiveMode, CarData, SelectedCar
     static StatsNum := 0
     
@@ -1156,7 +1260,28 @@ CarVerifyCheck(title:="", car:="", stats:= 0, exit:=true) {
         return
     }
 
-    ExpectedNum := stats ? stats : CarData[SelectedCar].StatsNum
+    expectedList := []
+    
+    ; 1. Process the stats parameter (handles both single values and arrays)
+    if (stats != 0 && stats != "") {
+        if IsObject(stats) { ; If you passed an array like ["num1", "num2"]
+            for item in stats
+                expectedList.Push(item)
+        } else { ; If you passed a single number/string
+            expectedList.Push(stats)
+        }
+    }
+    
+    ; 2. Fallback to global CarData if the parameter was omitted
+    if (expectedList.Length == 0) {
+        cData := CarData[SelectedCar]
+        if IsObject(cData.StatsNum) {
+            for item in cData.StatsNum
+                expectedList.Push(item)
+        } else if (cData.StatsNum != 0 && cData.StatsNum != "") {
+            expectedList.Push(cData.StatsNum)
+        }
+    }
     
     ; Define both coordinate presets
     mazdaCoords    := {x: 0.170, y: 0.455, w: 0.035, h: 0.245}
@@ -1167,41 +1292,52 @@ CarVerifyCheck(title:="", car:="", stats:= 0, exit:=true) {
     primary   := isMadMike ? mazdaCoords : standardCoords
     secondary := isMadMike ? standardCoords : mazdaCoords
 
-    ; 1. Primary Scan Attempt
+    ; Primary Scan Attempt
     StatsNumNew := ScanOCR(primary.x, primary.y, primary.w, primary.h, 100, , true, false)
 
-    ; 2. Cross-Scan Fallback (If primary failed, try the other car type's coordinates)
+    ; Cross-Scan Fallback
     if (StrLen(StatsNumNew) < 10 || StatsNumNew = -1) {
         StatsNumNew := ScanOCR(secondary.x, secondary.y, secondary.w, secondary.h, 100, , true, false)
     }
     
-    ; 3. Validation Checks (Only if a valid string length was achieved)
+    ; Validation Checks
     if (StrLen(StatsNumNew) >= 10 && StatsNumNew != -1) {
-        StatsNum        := StatsNumNew
-        SimilarityScore := Round(GetTextSimilarity(ExpectedNum, StatsNum))
+        StatsNum := StatsNumNew
+        
+        BestScore := 0
+        BestExpected := ""
+        
+        ; Find the closest match out of all expected numbers
+        for expNum in expectedList {
+            currentScore := Round(GetTextSimilarity(expNum, StatsNum))
+            if (currentScore > BestScore) {
+                BestScore := currentScore
+                BestExpected := expNum
+            }
+        }
         
         ; Match fails threshold -> Emergency Exit
-        if (SimilarityScore <= 80) {
+        if (BestScore <= 80) {
             Details := "Wrong Car Detected!`n`n"
                      . "Scanning " SelectedCar " Stats Number...`n"
                      . "Scanned: " StatsNum "`n"
-                     . "Expected: " ExpectedNum "`n"
-                     . "Similarity: " SimilarityScore "%"
+                     . "Closest Expected Match: " BestExpected "`n"
+                     . "Similarity: " BestScore "%"
             if exit
                 EmergencyExit(Details)
-            else return false
+            else 
+                return false
         }
         
         ; Match passes threshold -> Success Notification
-        ShowNotif("info", title, "Car Stats detected: `n" StatsNum " (" SimilarityScore "% match)")
+        ShowNotif("info", title, "Car Stats detected: `n" StatsNum " (" BestScore "% match)")
         return true
     }
 
-    ; 4. Total Failure Notification
+    ; Total Failure Notification
     ShowNotif("warning", title, "Car Stats not detected: `nEnsure it is fully visible on screen.")
     return false
 }
-
 
 EmergencyExit(LogDetails := "Unknown safety violation.") {
     global ActiveMode

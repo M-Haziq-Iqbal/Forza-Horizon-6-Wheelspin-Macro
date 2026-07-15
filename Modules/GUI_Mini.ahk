@@ -235,7 +235,7 @@ MainGUI_SizeChange(thisGui, minMax, *) {
         
         ; Align using precise work area boundaries (MonRight & MonTop)
         miniX := MonRight - TargetWidgetWidth - WidgetPadding
-        miniY := MonTop + WidgetPadding
+        miniY := MonTop + WidgetPadding + 15
         
         MiniGui.Show("x" miniX " y" miniY " w" TargetWidgetWidth " h" CurrentWidgetHeight " NoActivate")
         WinSetTransparent(180, MiniGui.Hwnd)
@@ -453,7 +453,7 @@ TogglePreview(ctrl) {
         ShowNotif("error","Mini Preview", "Game window could not be found.")
         return
     }
-
+    
     UpdateMonitorMetrics()
 
     PreviewWidth := Round(230 * ScaleX)

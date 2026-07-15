@@ -59,8 +59,12 @@ StartSpin() {
         SpinRunTime_UI.SetFont("c" cHighlight)
         SpinLeftCount_UI.SetFont("c" cHighlight)
         SpinOpenCount_UI.SetFont("c" cHighlight)
+
         SetTimer(SpinTimerTick, 1000)
+
+        DiscordStatusUpdate("info", "Spin Mode Started", "Opening My Horizon wheelspin menu...")
         SpinLoop()
+        DiscordStatusUpdate("success", "Spin Mode Ended", "Closed My Horizon wheelspin menu...")
     }
     try {
         SuperBtn.Opt("-Disabled")
@@ -71,8 +75,6 @@ StartSpin() {
 }
 
 SpinLoop() {
-    DiscordStatusUpdate("info", "Spin Mode Started", "Opening My Horizon wheelspin menu...")
-
     global ActiveMode, MasterMode
     global SpinInFullLoop, SpinType, SpinMode, SpinCount_In
     global TotalSWheel, TotalWheel
@@ -202,8 +204,6 @@ SpinLoop() {
             
             if Mod(SpinOpenCount, 10) = 0
                 ShowNotif("info", "Spin Mode", SpinOpenCount " " SpinName " opened.")
-
-            DiscordStatusUpdate("info", "Opening Wheelspins", "Rolling car gacha...")
 
             if SpinOpenCount >= SpinCount || SpinOpenCount >= SpinLoopCount
                 break

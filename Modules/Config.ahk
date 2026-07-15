@@ -11,6 +11,27 @@
 ;  ENVIRONMENT & GAME SETTINGS
 ; ══════════════════════════════════════════════
 
+; Define state tracking variables in one neat package
+global MacroState := {
+    PointsGain: 0,
+    PointsTotal: 0,
+    CarsToTarget: 0,
+    CarsToBuy: 0,
+    CarsToUnlock :0,
+    RunSeconds: 0,
+    ActiveMode: "None",
+    MasterMode: false,
+    Spin: {
+        Count: 0,
+        Name: "Super Wheelspin",
+        OpenCount: 0,
+        LeftCount: 0
+    }
+}
+
+; Create an empty container for UI elements
+global UI := {}
+
 global CurrentVersion   := "v1.9.4"
 global RepoOwner        := "M-Haziq-Iqbal"
 global RepoName         := "Forza-Horizon-6-Wheelspin-Macro"
@@ -32,8 +53,21 @@ global NotifEnabled := ReadMacroIni("Settings", "NotifEnabled", 1)
 ; ══════════════════════════════════════════════
 ;  EVENTLAB PRESETS & DATA SOURCING
 ; ══════════════════════════════════════════════
-global EventLabList     := ["AMMAGEDON", "LIQUIDPOTATO"]
+global EventLabList     := ["AAMIRUSMANDUS", "AMMAGEDON", "LIQUIDPOTATO"]
 global EventLabData     := Map(
+    "AAMIRUSMANDUS", {
+        CodeTune: "",
+        CodeEvent: "140849306",
+        MaxPoints: 999,
+        MaxSections: 110,
+        AveragePoints: 9.2,
+        SecPerSection: 20,
+        SecPerRow: 30,
+        SectionsPerRow: 1,
+        StartLoadingTime : 42,
+        MidLoadingTime : 25,
+        FinLoadingTime : 33,
+    },
     "AMMAGEDON", {
         CodeTune: "206657706",
         CodeEvent: "102089819",
@@ -42,7 +76,10 @@ global EventLabData     := Map(
         AveragePoints: 9.8,
         SecPerSection: 20,
         SecPerRow: 4,
-        SectionsPerRow: 1
+        SectionsPerRow: 1,
+        StartLoadingTime : 52,
+        MidLoadingTime : 20,
+        FinLoadingTime : 40,
     },
     "LIQUIDPOTATO", {
         CodeTune: "293391902",
@@ -52,7 +89,10 @@ global EventLabData     := Map(
         AveragePoints: 9.8,
         SecPerSection: 30,
         SecPerRow: 7,
-        SectionsPerRow: 4
+        SectionsPerRow: 4,
+        StartLoadingTime : 52,
+        MidLoadingTime : 20,
+        FinLoadingTime : 40,
     }
 )
 
@@ -138,16 +178,21 @@ global PauseMode        := ""
 global SkillPtsCount := 0
 global SkillPtsWant  := MaxPoints
 global LoopCount     := 99
-global CarCount      := Floor(MaxPoints / CarData[SelectedCar].SkillPtsCost)
+
+; Split into separate configuration parameters
+global CarsToTarget  := Floor(MaxPoints / CarData[SelectedCar].SkillPtsCost)
+global CarsActual  := Floor(SkillPtsCount / CarData[SelectedCar].SkillPtsCost)
+global CarsToBuy     := CarsActual
+global CarsToUnlock  := CarsActual
+global CustomCarCount := false
 
 global BuyCount      := 0
 global UnlockCount   := 0
 
 global PointsGain       := GetMinScore(SkillPtsWant)
 global PointsTotal      := Min(PointsGain + SkillPtsCount, 999)
-global TimeTotal        := CalcTotalTime(SkillPtsWant, CarCount)
+global TimeTotal        := CalcTotalTime(PointsGain, CarsToTarget)
 
-global CustomCarCount   := false
 global CustomSkillPts   := false
 global SkillPtsScanSuccess := false
 

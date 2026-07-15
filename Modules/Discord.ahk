@@ -25,14 +25,21 @@ DiscordStatusUpdate(type := "", title := "", message := "") {
     static lastType := "info"     
     static lastTitle := "Running"
     static lastMessage := ""
+    static FinalMsgId := ""
 
     if (DiscordEnabled != "1" || DiscordWebhookUrl = "")
         return
 
     isNewLoop     := InStr(title, "Full Loop Started")
     isFinalUpdate := (InStr(title, "Full Loop") && InStr(message, "Finalized"))
+    
+    if isFinalUpdate {
+        FinalMsgId := DashboardState.msgId
+        Sleep(1000)
+    }
 
-    if (isNewLoop) {
+    if isNewLoop {
+        FinalMsgId := ""
         DashboardState.msgId := ""
         DashboardState.generation++
     }

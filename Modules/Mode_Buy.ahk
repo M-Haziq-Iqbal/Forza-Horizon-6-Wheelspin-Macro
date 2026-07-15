@@ -4,14 +4,13 @@
 ; ╚═════════════════════════════════════════╝
 
 StartBuy() {
-
     global ActiveMode, StatusText, BuyRunSeconds
     global SpinOpenCount_UI, SpinLeftCount_UI, SpinRunTime_UI
     global CarCount_UI, BuyRunTime_UI
     global MiniCarCount_UI, MiniBuyRunTime_UI
     global SuperBtn, RegularBtn
     global CarData, SelectedCar
-    global BuyCount
+    global CustomCarCount, CarsToBuy
 
     if (FindGame() = 0)
         return
@@ -34,16 +33,16 @@ StartBuy() {
 
     car := CarData[SelectedCar]
 
-    if CustomCarCount && !MasterMode
-        CarCount := CarCount_In.Value
+    if CustomCarCount
+        CarsToBuy := CarCount_In.Value
     else {
-        CarCount := Floor(SkillPtsCount / car.SkillPtsCost)
-        CarCount_In.Value := CarCount
+        CarsToBuy := Floor(SkillPtsCount / car.SkillPtsCost)
+        CarCount_In.Value := CarsToBuy
     }
 
-    CarsLabel_UI.Value := CarCount
+    CarsLabel_UI.Value := CarsToBuy
 
-    if (CarCount <= 0) {
+    if (CarsToBuy <= 0) {
         if (CustomCarCount && !MasterMode) {
             ShowNotif("warning", "Buy Mode", "Skipping Buy Segment: No cars purchased.", true)
             ResetIndicators()
@@ -52,7 +51,7 @@ StartBuy() {
     }
 
     BuyRunSeconds := 0
-    BuyCount := 0
+    
     CarCount_UI.Value       := "0"
     BuyRunTime_UI.Value     := "00:00"
     MiniCarCount_UI.Value   := "0"
@@ -62,24 +61,25 @@ StartBuy() {
     BuyRunTime_UI.SetFont("c" cHighlight)
     
     SetTimer(BuyTimerTick, 1000)
+    DiscordStatusUpdate("info", "Buy Mode Started", "Acquiring: " SelectedCar)
     BuyLoop()
+    DiscordStatusUpdate("success", "Buy Mode Ended", "Acquired: " SelectedCar)
 
     ResetIndicators()
 }
 
 BuyLoop() {
     global SkillPtsCount, SkillPtsCount_In
-    global CarCount, CustomCarCount
+    global CarsToBuy, CustomCarCount
     global CarData, SelectedCar
-    global BuyCount
+    
+    global BuyCount := 0
 
     car := CarData[SelectedCar]
 
     CheckAbort() {
         return ActiveMode != "Buy" && !MasterMode
     }
-
-    DiscordStatusUpdate("info", "Buy Mode Started", "Navigating to Car Collection Journal...")
 
     Process("Scanning Menu...")
     BuyNav()
@@ -111,7 +111,7 @@ BuyLoop() {
         PressKey("PgUp")       ; Navigate to Campaign Menu
     }
 
-    if (CarCount > 0) {
+    if (CarsToBuy > 0) {
         ShowNotif("info", "Buy Mode", "Purchasing " CarCount_In.Value " " SelectedCar "`nIncludes one extra car as a safeguard.")
     } else {
         ShowNotif("error", "Buy Mode", "Purchasing 0 " SelectedCar "`nAborting Buy Mode.", true)
@@ -145,8 +145,8 @@ BuyLoop() {
     EmergencyBuyCheck()
 
     targetCount := CarCount_In.Value + 1
-    DiscordStatusUpdate("info", "Purchasing Vehicles", "Acquiring: " SelectedCar)
 
+    DiscordStatusUpdate("info", "Acquiring Cars", targetCount " " SelectedCar " targeted")
     Loop {
         PressKey("Space")      ; Purchase Car
         PressKey("Down")       ; Navigate to Yes
@@ -154,11 +154,10 @@ BuyLoop() {
         PressKey("Enter")      ; Select Yes (Buy Car)
         PressKey("Enter")      ; Select Yes (Ok)
         
+        ; Live Operation Runtime Telemetry Updates
         BuyCount++
         CarCount_UI.Value := BuyCount
         MiniCarCount_UI.Value := BuyCount
-
-        DiscordStatusUpdate("info", "Purchasing Vehicles", "Acquiring: " SelectedCar)
 
         if BuyCount >= targetCount
             break
@@ -289,14 +288,13 @@ BuyNav() {
     }
 }
 
+; ══════════════════════════════════════════════
+;  OCR TELEMETRY ENGINE WITH SYSTEM STATE HOOK
+; ══════════════════════════════════════════════
+
 BuySkillPtsScan(ratioX, ratioY, ratioW, ratioH, menu := "", waitTime := 3000) {
-    ; Declare all globals at the top for clean organization
-    global SkillPtsCount_In, SkillPtsWant_In, CarCount_In
-    global PointsLabel_UI, SectorLabel_UI, TimeLabel_UI, CarsLabel_UI
-    global MaxPoints, SkillPtsScanSuccess, SpinInFullLoop
-    global SkillPtsCount, SkillPtsWant, PointsGain, PointsTotal, CarCount, TimeTotal
-    global CarData, SelectedCar, EventLabData, EventLab
-    global ActiveMode
+    global SkillPtsCount_In, SkillPtsWant_In, ActiveMode, MaxPoints
+    global SkillPtsCount, SkillPtsWant, SkillPtsScanSuccess
 
     ; Run OCR Scan
     points := ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime, , true)
@@ -307,7 +305,7 @@ BuySkillPtsScan(ratioX, ratioY, ratioW, ratioH, menu := "", waitTime := 3000) {
 
     global SkillPtsScanSuccess := (points != -1)
 
-    ; 3. Handle Notifications & Base Count Assignment
+    ; Handle Notifications & Base Count Assignment
     if SkillPtsScanSuccess {
         SkillPtsCount := points
         ShowNotif("info", ActiveMode " Mode", SkillPtsCount " Skill Points detected.", true)
@@ -316,24 +314,14 @@ BuySkillPtsScan(ratioX, ratioY, ratioW, ratioH, menu := "", waitTime := 3000) {
         EmergencyExit(failMsg)
     }
 
-    ; Perform Mode-Specific Math Modifications
-    car   := CarData[SelectedCar]
-    event := EventLabData[EventLab]
-
     SkillPtsWant := Min(999 - SkillPtsCount, MaxPoints)
-    PointsGain   := GetMinScore(SkillPtsWant)
-    PointsTotal  := Min(PointsGain + SkillPtsCount, 999)
-    CarCount     := Floor(SkillPtsCount / car.SkillPtsCost)
-    TimeTotal    := CalcTimeUnlock(CarCount) + (SpinInFullLoop ? CalcTimeSpin(CarCount) : 0)
+    SkillPtsWant_In.Value := SkillPtsWant
 
-    ; Update Unified UI Elements
-    SkillPtsWant_In.Value  := SkillPtsWant
+    UpdateSystemState(SkillPtsCount, SkillPtsWant)
+
     SkillPtsCount_In.Value := SkillPtsCount
-    CarCount_In.Value      := CarCount
-    
-    PointsLabel_UI.Value   := 0
-    SectorLabel_UI.Value   := 0
-    CarsLabel_UI.Value     := CarCount
+
+    TimeTotal    := CalcTimeBuy(CarsToBuy) + CalcTimeUnlock(CarsToUnlock) + (SpinInFullLoop ? CalcTimeSpin(CarsToUnlock) : 0)
     TimeLabel_UI.Value     := Format("{:02}:{:02}", Floor(TimeTotal), Floor((TimeTotal - Floor(TimeTotal)) * 60))
 
     return points
