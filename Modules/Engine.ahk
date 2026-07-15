@@ -697,16 +697,16 @@ TypeStringViaPressKey(str) {
     global GameHwnd, GameExe
     
     ; 1. Find the Gaming UI window specifically
-    targetHwnd := WinExist("Gaming UI ahk_class ApplicationFrameWindow")
+    ; targetHwnd := WinExist("Gaming UI ahk_class ApplicationFrameWindow")
     
-    if (!targetHwnd) {
-        ShowNotif("error", "Target Error", "Gaming UI window not found.")
-        return
-    }
+    ; if (!targetHwnd) {
+    ;     ShowNotif("error", "Target Error", "Gaming UI window not found.")
+    ;     return
+    ; }
 
     ; 2. Temporarily swap the GameHwnd to the Gaming UI
-    originalHwnd := GameHwnd
-    GameHwnd := targetHwnd
+    ; originalHwnd := GameHwnd
+    ; GameHwnd := targetHwnd
 
     ; 3. Loop through each character in the string
     Loop Parse, str {
@@ -718,7 +718,7 @@ TypeStringViaPressKey(str) {
     PressKey("Enter")
 
     ; 5. Restore the original GameHwnd so your main game keeps working
-    GameHwnd := originalHwnd
+    ; GameHwnd := originalHwnd
 }
 
 PasteNumberToGamingUI(numberToPaste) {
@@ -728,7 +728,8 @@ PasteNumberToGamingUI(numberToPaste) {
     
     ; 1. Check if the window exists
     if !WinExist(targetWin) {
-        ShowNotif("error", "Target Error", "Gaming UI window not found.")
+        ShowNotif("warning", "Target Error", "Gaming UI window not found.")
+        TypeStringViaPressKey(numberToPaste)
         return
     }
 
@@ -1238,11 +1239,20 @@ ScanMenu(timeoutDuration := 5000) {
 WaitForText(targetText, x, y, w, h, timeoutDuration := 5000) {
     startTime := A_TickCount
     
+    ; 1. Convert single string to a temporary array for uniform processing
+    targets := IsObject(targetText) ? targetText : [targetText]
+    isMultiple := IsObject(targetText)
+
     while (A_TickCount - startTime <= timeoutDuration) {
         ocrText := ScanOCR(x, y, w, h, 200)
         
-        if (InStr(ocrText, targetText)) {
-            return true ; Text found!
+        ; 2. Check each target text against the scanned OCR result
+        for textItem in targets {
+            if (InStr(ocrText, textItem)) {
+                ; If user passed an array, return the text that matched.
+                ; If they passed a single string, return true to keep old code working perfectly.
+                return isMultiple ? textItem : true 
+            }
         }
         
         Sleep(50) ; Small delay to prevent CPU spiking

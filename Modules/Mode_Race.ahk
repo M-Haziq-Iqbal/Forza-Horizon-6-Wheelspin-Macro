@@ -1,7 +1,9 @@
 ; ══════════════════════════════════════════════
 ;  AUTOMATION TRIGGER ENGINES
 ; ══════════════════════════════════════════════
-
+; MsgBox(ScanOCR( 0.039, 0.916, 0.104-0.039, 0.947-0.916))
+; MsgBox(ScanOCR(0.071, 0.912, 0.120-0.071, 0.947-0.912))
+; MsgBox(ScanOCR(0.071, 0.914, 0.104-0.071, 0.949-0.914))
 StartRace() {
     global ActiveMode, StatusText, cActive, TotalRunSeconds, RaceRunSeconds, PointsGain
     global RaceRunTime_UI, PointsCount_UI, SectorCount_UI
@@ -130,7 +132,8 @@ RaceLoop() {
 
                 Process("Throttling...")
                 PressKey("w down", 15000)
-                WaitForText("Enter", 0.039, 0.916, 0.104-0.039, 0.947-0.916, 10000)
+                option := WaitForText(["Continue", "Retry"], 0.071, 0.912, 0.120-0.071, 0.947-0.912, 10000)
+                PressKey("w up")
 
                 SectorCount++
 
@@ -146,15 +149,24 @@ RaceLoop() {
                 MiniSectorCount_UI.Value := SectorCount
 
                 if CheckAbort() || PointsCount >= PointsGain {
-                    PressKey("Esc") ; Quit
+                    if option = "Retry"
+                        PressKey("Esc") ; Quit
+                    else if option = "Continue"
+                        PressKey("Enter") ; Continue
                     break
                 }
 
-                PressKey("Enter") ; Retry
+                if option = "Retry" {
+                    ; ShowNotif("info", "Race Mode", "Challenge Failed!")
+                    PressKey("Enter") ; Retry
+                }
+                else if option = "Continue"{
+                    ; ShowNotif("info", "Race Mode", "Challenge Complete!")
+                    PressKey("Esc")  ; Retry
+                }
             }
-            WaitForPixel("Liking the challenge...", 0.347, 0.532, "0x000000", , 10000, 3000)
+            WaitForPixel("Liking the challenge...", 0.347, 0.532, "0x000000", , 10000, 1000)
             PressKey("Enter") ; Like
-
         }
 
         if EventLab != "AAMIRUSMANDUS" {

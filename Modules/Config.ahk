@@ -96,7 +96,7 @@ global EventLabData     := Map(
     }
 )
 
-global EventLab         := ReadMacroIni("Settings", "EventLab", EventLabList[1])
+global EventLab         := "AAMIRUSMANDUS"
 
 global MaxPoints        := EventLabData[EventLab].MaxPoints
 
@@ -151,7 +151,7 @@ RegisterCar("Viper GTS ACR", {
 RegisterCar("#123 Mad Mike 808", {
     AltName: "1974 Mazda",
     StatsNum: 725047495145,
-    BuyMfrPath: [["Up", 10]],
+    BuyMfrPath: [["Up", 10], ["Right", 1]],
     BuyCarPath: [["Down", 1], ["Left", 2]],  
     UnlockPath: [["Right", 2], ["Up", 3]],
     SkillPtsCost: 21,
@@ -176,11 +176,11 @@ global ActiveMode       := ""
 global PauseMode        := ""
 
 global SkillPtsCount := 0
-global SkillPtsWant  := MaxPoints
+global SkillPtsWant  := EventLabData[EventLab].MaxPoints
 global LoopCount     := 99
 
 ; Split into separate configuration parameters
-global CarsToTarget  := Floor(MaxPoints / CarData[SelectedCar].SkillPtsCost)
+global CarsToTarget  := Floor(EventLabData[EventLab].MaxPoints / CarData[SelectedCar].SkillPtsCost)
 global CarsActual  := Floor(SkillPtsCount / CarData[SelectedCar].SkillPtsCost)
 global CarsToBuy     := CarsActual
 global CarsToUnlock  := CarsActual
