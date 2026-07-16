@@ -133,6 +133,7 @@ BuyLoop() {
     if CheckAbort()
         return
 
+    Process("Selecting " SelectedCar "...", 100)
     NavigateToCar(SelectedCar)
 
     if CheckAbort()

@@ -201,7 +201,7 @@ BuildMainGui(savedVals := "") {
 
     ; 4. RENDER CONTEXTUAL FRAME DIVIDER ACCORDING TO MAX HEIGHT
     SetFixedFont(MainGUI, 9, "bold", "Semibold")
-    MainGUI.Add("Text", "x" Round(14*ScaleX) " y" MaxTabHeight + Round(10*ScaleX) " w" Round(242*ScaleX) " Center BackgroundTrans c" p["divider"], "___________:━━━━━━━━━━━━━━━━:___________")
+    MainGUI.Add("Text", "x" Round(14*ScaleX) " y" MaxTabHeight + Round(10*ScaleX) " w" Round(242*ScaleX) " h0 Center BackgroundTrans c" p["divider"], "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
     ; Build Shared Controls and Dashboard Panels
     _AddSharedDashboard(MaxTabHeight + 20)

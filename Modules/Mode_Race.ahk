@@ -541,6 +541,7 @@ GetInFavCar() {
     Process("Searching for Subaru car...", 500)
     Loop {
         if ScanOCR(0.067, 0.315, 0.199-0.067, 0.358-0.315, 200, "SUBARU", , false) = false
+        ; if ScanOCR(0.063, 0.324, 0.204-0.063, 0.368-0.324, 200, "PEUGEOT", , false) = false
             PressKey("Right", 50)
         else {
             Loop 3
@@ -579,3 +580,5 @@ GetInFavCar() {
         }
     }
 }
+; MsgBox(ScanOCR(0.063, 0.324, 0.204-0.063, 0.368-0.324))
+; MsgBox(ScanOCR(0.177, 0.457, 0.028, 0.250))

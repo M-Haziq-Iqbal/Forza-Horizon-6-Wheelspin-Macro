@@ -21,7 +21,7 @@ Welcome to the ultimate progression companion for Forza Horizon 6! This is a hig
   * [⚙️ 1. Difficulty Settings](#%EF%B8%8F-1-difficulty-settings)
   * [📟 2. HUD & Gameplay Settings](#-2-hud--gameplay-settings)
   * [🖥️ 3. Video & Graphics Settings](#%EF%B8%8F-3-video--graphics-settings)
-  * [🎯 4. EventLab Menu Configuration](#-4-eventlab-menu-configuration)
+  * [🎯 4. Challenge / EventLab Menu Configuration](#-4-challenge--eventlab-menu-configuration)
   * [🚗 5. Garage Car Tuning Configuration](#-5-garage-car-tuning-configuration)
   * [🌆 6. Special K Background Play Setup (Optional Alternative)](#-6-special-k-background-play-setup-optional-alternative)
   * [🏁 7. Choosing Your In-Game Starting Positions](#-7-choosing-your-in-game-starting-positions)
@@ -72,7 +72,7 @@ Choose a car profile from the dashboard dropdown depending on your current budge
 | **1999 Dodge Viper GTS ACR** | 68,000 CR | 64,600 CR | 150,000 Cash Credits | 30 Points | **Credit Flipping:** Quickly converts your banked skill points straight back into raw cash credits. |
 | **1974 Mazda #123 Mad Mike 808 Wagon 'FURSTY' \*** | 100,000 CR | 95,000 CR | 1x Super Wheelspin | 21 Points | **Point-Efficient:** Requires the absolute lowest skill points per Super Wheelspin to drain your bank fast. |
 
-> \* **Important Note on DLC / Premium Editions:** If your game contains DLC vehicles (such as the Car Pass or Premium Add-ons), your in-game Car Journal order may look different from a standard game installation. Because **Buy Mode** relies on navigating through a standard car grid layout, you may need to use the macro's built-in Editor to tweak the **Manufacturer Path** or **Car Path** to perfectly match your specific garage layout.
+> \* **Important Note on DLC / Premium Editions:** If your game contains DLC vehicles (such as the Car Pass or Premium Add-ons), your in-game Car Journal order may look different from a standard game installation. Because **Buy Mode** relies on navigating through a standard car grid layout, you may need to use the macro's built-in Editor to tweak the **Manufacturer Path** or **Car Path** to perfectly match your specific garage layout. (Note: Menu sequences have been heavily optimized in the latest update).
 
 ---
 
@@ -82,12 +82,13 @@ This utility merges smart automation techniques with an accessible user interfac
 
 * **True Background Automation:** Built with a specialized background screen-capture engine. The macro can read menus, check colors, and send keypresses **even when the game window is entirely covered or out of focus**.
 * **Anti-Pause Protection:** Intercepts system focus changes. When you click away to work or browse, the macro keeps the game engine awake, bypassing the game's default rule that pauses the action when you switch windows.
-* **Modern UI & Theme Options:** Built on a completely overhauled mode framework. You can switch between a sleek **Cyber Noir Dark Mode** and a clean **Light Mode** palette on the fly.
-* **Live Discord Webhook Telemetry:** Built-in network engine hook that instantly pushes local `ShowNotif()` toast updates straight to your private Discord channel. Tracks loops, purchase validations, unlocks, and errors with system timestamp tracking and safe, locale-independent UTF-8 byte arrays.
-* **Fuzzy Text Matching & Safety Intercepts:** Uses an intelligent text-matching pipeline. If a network drop, unexpected lag spike, or menu mismatch occurs, the script notes it. If text matching drops below a safe **80% accuracy threshold** during a critical loop, the script triggers an emergency hard cutoff to safeguard your profile and resources.
-* **Live Statistics Overlay (Mini GUI):** When minimized, the control dashboard shrinks into a tiny, floating desktop overlay tracking live farming stats, total running time, and remaining prize queues.
+* **Modern UI & Theme Options:** Built on a completely overhauled mode framework. You can switch between a sleek **Cyber Noir Dark Mode** and a clean **Light Mode** palette on the fly. Detailed **UI Tooltips** are available across the Main GUI for settings, buttons, and system toggles.
+* **Live Discord Webhook Telemetry:** Built-in network engine hook that instantly pushes local updates straight to your private Discord channel. Features a live asynchronous dashboard, synchronous milestone tracking, and historical logging for loops, purchase validations, unlocks, and errors.
+* **UWP/Gaming UI Injection:** Advanced input handling (`SendToGamingUI`, `TypeStringViaPressKey`) reliably sends keystrokes and pastes strings directly into Windows Gaming UI overlays.
+* **Advanced OCR & Safety Intercepts:** Features `WaitForText` for multi-target OCR scanning and a `CarVerifyCheck` function to explicitly scan and validate vehicle stats numbers with a fuzzy matching threshold. If accuracy drops below safe levels, an emergency cutoff is triggered.
+* **Live Statistics Overlay (Mini GUI):** When minimized, the control dashboard shrinks into a tiny, floating desktop overlay tracking live farming stats, total running time, and remaining prize queues. (Timer calculations dynamically adjust based on precise EventLab loading times).
 * **Speed Multiplier Slider:** Adjust the overall macro processing speed from **0.25x to 4.0x** to perfectly match your PC's loading drive speed (SSD vs. HDD) and system power.
-* **Integrated Update Checker:** Automatically compares your running build version against the live GitHub repository to fetch, download, and apply performance updates instantly.
+* **Integrated Update Checker:** Automatically compares your running build version (using strict semantic digit comparison) against the live GitHub repository to fetch, download, and apply performance updates instantly.
 
 ---
 
@@ -95,7 +96,7 @@ This utility merges smart automation techniques with an accessible user interfac
 
 The macro is split into four core standalone modes that can be fired individually or chained into an automated infinite loop:
 
-* **🏁 Race Mode (Hotkey: `\`):** Automates the skill point farming loop. It navigates directly into the **Creative Hub**, pulls up your custom EventLab map, and handles automatic steering and braking.
+* **🏁 Race Mode (Hotkey: `\`):** Automates the skill point farming loop. It navigates directly into the **Creative Hub**, pulls up your custom Challenge map, and handles automatic steering and braking.
 * **🚗 Buy Mode (Hotkey: `[`):** Automatically purchases target cars in bulk from the Autoshow. It calculates how many units it can afford based on your current balance and verifies every purchase using screen text recognition to avoid transaction mistakes.
 * **🛞 Unlock Mode (Hotkey: `]`):** Opens your garage, navigates the vehicle skill trees, unlocks the targeted wheelspin or cash rewards, and safely cleans out used inventory.
 * **🎰 Standalone Wheelspin Mode (Hotkey: `=`):** For burning through an existing backlog of accumulated wheelspins. Hover over your wheelspins tile in the game's **My Horizon** menu, choose your preferences (**KEEP** items, **SELL** duplicates for cash, or automatically **GIFT** rewards to other players), and let it run.
@@ -117,6 +118,7 @@ The macro is split into four core standalone modes that can be fired individuall
 | `F12` | Force a complete emergency **Reload/Reset** of the macro software |
 | `Ctrl + Shift + C` | Developer tool: Copy active screen coordinates and color hex code |
 | `Alt + Left Click` | Easily drag the game client window around your desktop |
+| `Ctrl + Click` | Use on Race, Buy, and Unlock UI segments to trigger isolated, independent tasks |
 
 ---
 
@@ -168,14 +170,16 @@ To maintain accurate screen parsing and tracking timing, match these options:
 
 ---
 
-### 🎯 4. EventLab Menu Configuration
+### 🎯 4. Challenge / EventLab Menu Configuration
 
-The macro automatically navigates to your favorites page to start the farming tracks. Set it up manually once:
+Following the July 13th, 2026 FH6 update, standard EventLab farming was heavily nerfed (legacy maps like AMMAGEDON and LIQUIDPOTATO will now only yield 1 SP no matter how long you play). **Challenge farms like AAMIRUSMANDUS are now the only functional options.**
 
-1. Search for your preferred farming track in-game using the share codes below.
-2. **IMPORTANT:** Add the track to your **Favorites** list and ensure it sits at the **very first slot (Index 1)**.
-3. **AMMAGEDON (Recommended Default):** High-yield track that awards up to 980 skill points per 100 runs.
-4. **LIQUIDPOTATO:** Alternative blueprint choice designed for steady overnight farming.
+You now have two options to launch the AAMIRUSMANDUS Challenge farm, selectable via a toggle in the **Options -> Farm Profile** section of the GUI:
+
+* **Method A: Select by Creator (Recommended):** The script navigates to your "Followed Creators" page and selects the Challenge. This is **100% compatible with background play**.
+  * *Setup:* You must manually search the event code once, View Profile, Follow the creator, and restart your game if the creator has not immediately appeared in your followed list.
+* **Method B: Search by Code:** The script manually enters the share code every loop.
+  * *Note:* Entering the code requires the Xbox non-native virtual keyboard, which causes **around 1 second of background play interruption** every time a new loop starts. This may be inconvenient if you are actively working in another window.
 
 <p align="center">
   <img width="1941" height="896" alt="Favorites Layout Mapping" src="https://github.com/user-attachments/assets/c0dab41f-01bf-4975-99a9-bf48ff36028a" />
@@ -185,15 +189,20 @@ The macro automatically navigates to your favorites page to start the farming tr
 
 ### 🚗 5. Garage Car Tuning Configuration
 
-* Set your targeted **Subaru Impreza 22B-STi** as your **ONLY favorited vehicle** inside your primary garage container. Remove any other favorites to prevent grid selection errors.
-* Fully purchase and max out all available car mastery tree perks on this chosen car.
+You can now have multiple favorited vehicles in your garage (though keeping the list short is highly recommended for speed). The script will automatically scan and navigate through your favorited cars to select the **Subaru Impreza 22B-STi** (either running the provided tune or stock).
+
+* **Requirement:** The Subaru will still need all mastery perks unlocked for the SP multiplication bonus.
+* **Critical Limit:** You can only favorite up to a **maximum of 3 cars from the Subaru manufacturer**. Having more will break the script's selection logic.
 
 #### Track Share & Upgrade Setup Codes
 
+> ⚠️ **JULY 13th, 2026 UPDATE NOTICE:** The recent FH6 update heavily nerfed legacy EventLabs. The Challenge farm below is now required.
+
 *(You can click these directly inside the macro window footer to copy them instantly)*
 
-* **AMMAGEDON Profile:** Tune Code: `206 657 706` | EventLab Map Code: `102 089 819`
-* **LIQUIDPOTATO Profile:** Tune Code: `293 391 902` | EventLab Map Code: `124 198 343`
+* **AAMIRUSMANDUS Profile (Active):** Tune Code: `206 657 706` | Event Code: `140 849 306`
+* ~~**AMMAGEDON Profile (Patched):**~~ Tune Code: `206 657 706` | EventLab Map Code: `102 089 819`
+* ~~**LIQUIDPOTATO Profile (Patched):**~~ Tune Code: `293 391 902` | EventLab Map Code: `124 198 343`
 
 <p align="center">
   <img width="2559" height="1439" alt="Tuning Application Layout" src="https://github.com/user-attachments/assets/ad315cec-1740-4984-9902-8cd97be366df" />
@@ -250,7 +259,7 @@ Thanks to the integrated **Heuristic Menu Awareness Engine (`ScanMenu()`)**, the
 
 #### 🎛️ Master Control Dashboard Overview
 
-Use the main dashboard application window to calibrate timing delays, adjust session targets, customize vehicle presets, and run automation loops.
+Use the main dashboard application window to calibrate timing delays, adjust session targets, customize vehicle presets, and run automation loops. The Main GUI acts dynamically, automatically adjusting window height and tab compensation to keep stats perfectly centered. *(Note: The Car Editor acts as a modal owner to prevent background misclicks while active).*
 
 #### 1. Session Parameter Setup
 
@@ -260,6 +269,7 @@ Use the main dashboard application window to calibrate timing delays, adjust ses
 
 * **Current Skill Points:** Type in or check your active skill point total balance.
 * **Desired Skill Points:** Set your goal ceiling target (e.g., `980`). The macro will auto-exit once this point calculation limit is met.
+* **Custom Car Values:** Manually define car purchase/unlock target counts instead of relying on auto-calculations.
 * **Car Amount:** Define exactly how many vehicles the macro should purchase back-to-back during a standalone Buy loop.
 * **Sequence Loop:** Sets how many times the overall multi-stage continuous loops repeat.
 
@@ -290,8 +300,9 @@ You can add / edit custom reward cars or adjust underlying movement paths effort
 </p>
 
 * **Loop Entry Selection:** Choose where your automated loop begins (`🏁 RACE`, `🚗 BUY`, or `🛞 UNLOCK`).
+* **Dynamic Primary Button:** The start button actively updates its text string (e.g., "START FULL LOOP" vs. "START FROM BUY") based on your active mode.
 * **FULL LOOP:** Launches the continuous endless chain sequence [**Race ➔ Buy ➔ Unlock**].
-* **RACE / BUY / UNLOCK:** Starts that specific mode immediately as an isolated standalone process.
+* **Isolated Execution:** Use `Ctrl + Click` on the RACE, BUY, or UNLOCK UI segments to trigger isolated, independent single tasks.
 * **OPEN SPIN INTERFACE:** Spawns the dedicated prize clearing interface panel.
 
 #### 4. Automated Bulk Wheelspin Terminal
@@ -332,6 +343,7 @@ You can add / edit custom reward cars or adjust underlying movement paths effort
 Clicking the **⚙️ OPTIONS** chevron button reveals the streamlined micro-configuration tray:
 
 * **Game Resolution Selector:** Lock or select the optimized render resolution profile matching your window configuration.
+* **Farm Profile Options (Search By Code):** Toggle how the script enters Challenge maps (via Followed Creator or by typing the Share Code directly) and configure dedicated switches for Desktop and Discord notifications.
 * **Set Game Path / Launch:** Instantly point to your local installation directories to boot, center, and align your automation loops directly out of the interface.
 * **Special K Integration Engine:** Safe UI-bound toggle to hook global background inputs directly via injected wrappers if native keyboard handling fails on your hardware.
 * **Discord Notification Integration:** Paste your Discord channel webhook URL into the input panel and click the interactive button. When active, it toggles into a bright theme accent state (**▰ DISCORD NOTIFICATIONS: ON**) and sends live remote toasts of your macro events, rewards, and connection drops directly to your server.

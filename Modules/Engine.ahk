@@ -270,7 +270,7 @@ GetCoordsColor() {
     SetTimer(() => ToolTip(), -3000)
 }
 
-ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchNumber := false, notif :=  true) {
+ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchNumber := false, notif := true) {
     global GameTitle
 
     ; Failsafe: Exit early if the game isn't running
@@ -278,7 +278,7 @@ ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchN
         ShowNotif("error", "OCR Error", "Game window '" GameTitle "' is not running.")
         return -1
     }
-    
+
     deadline := A_TickCount + waitTime
 
     Loop {
@@ -288,49 +288,80 @@ ScanOCR(ratioX, ratioY, ratioW, ratioH, waitTime := 0, targetText := "", searchN
             scannedText := Trim(result)
 
             if (scannedText != "") {
-                ; Condition A: Looking for a specific phrase/word
-                if (targetText != "" && InStr(scannedText, targetText)) {
-                    return scannedText
+
+                ; Condition A: Looking for one or more specific phrases
+                if (targetText != "") {
+                    ; Multiple target texts
+                    if IsObject(targetText) {
+                        for text in targetText {
+                            if InStr(scannedText, text)
+                                return scannedText
+                        }
+                    }
+                    ; Single target text
+                    else if InStr(scannedText, targetText) {
+                        return scannedText
+                    }
                 }
-                
+
                 ; Condition B: Looking for a number/digit data type
                 if (searchNumber) {
-                    if InStr(scannedText, "No") {
+                    if InStr(scannedText, "No")
                         return 0 ; Custom "No available skills" fallback
-                    }
-                    
-                    cleanNumber := RegExReplace(scannedText, "\D") 
-                    if (cleanNumber != "") {
+
+                    cleanNumber := RegExReplace(scannedText, "\D")
+                    if (cleanNumber != "")
                         return Number(cleanNumber)
-                    }
                 }
-                
+
                 ; Condition C: If user passed no targets or flags, just return raw string instantly
-                if (targetText == "" && !searchNumber) {
+                if (targetText == "" && !searchNumber)
                     return scannedText
-                }
             }
         } catch {
             ; Suppressed background window state capture exception
         }
-        
-        if (A_TickCount >= deadline) {
+
+        if (A_TickCount >= deadline)
             break
-        }
-        
+
         Sleep(50) ; Brief rest to keep CPU usage low
     }
-    
+
     ; Trigger notifications on timeout
     if (waitTime > 0 && notif) {
         if (targetText != "") {
-            ShowNotif("warning", "OCR Timeout", "Failed to find text: '" targetText "' within " Round(waitTime/1000, 1) "s")
+
+            if IsObject(targetText)
+                target := '"' StrJoin(targetText, '", "') '"'
+            else
+                target := "'" targetText "'"
+
+            ShowNotif(
+                "warning",
+                "OCR Timeout",
+                "Failed to find text: " target " within " Round(waitTime / 1000, 1) "s"
+            )
+
         } else if (searchNumber) {
-            ShowNotif("warning", "OCR Timeout", "Failed to find a valid number within " Round(waitTime/1000, 1) "s")
+
+            ShowNotif(
+                "warning",
+                "OCR Timeout",
+                "Failed to find a valid number within " Round(waitTime / 1000, 1) "s"
+            )
+
         }
     }
-    
-    return (searchNumber) ? -1 : false 
+
+    return searchNumber ? -1 : false
+}
+
+StrJoin(arr, separator := ", ") {
+    result := ""
+    for i, value in arr
+        result .= (i > 1 ? separator : "") value
+    return result
 }
 
 GetBackgroundOCR(ratioX, ratioY, ratioW, ratioH) {

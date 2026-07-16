@@ -57,7 +57,7 @@ global SearchByCode := ReadMacroIni("Settings", "SearchByCode", false)
 global EventLabList     := ["AAMIRUSMANDUS", "AMMAGEDON", "LIQUIDPOTATO"]
 global EventLabData     := Map(
     "AAMIRUSMANDUS", {
-        CodeTune: "",
+        CodeTune: "206657706",
         CodeEvent: "140849306",
         MaxPoints: 999,
         MaxSections: 110,
@@ -98,7 +98,7 @@ global EventLabData     := Map(
 )
 
 global EventLab         := "AAMIRUSMANDUS"
-global EventCar         := [816997639471, 594970474057]
+global EventCar         := [816997639471, 594970474057, 725598108369]
 global MaxPoints        := EventLabData[EventLab].MaxPoints
 
 ; ══════════════════════════════════════════════
