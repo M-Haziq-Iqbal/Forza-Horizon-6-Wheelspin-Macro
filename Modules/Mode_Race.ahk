@@ -84,19 +84,18 @@ RaceLoop() {
         if (PointsGain <= 0)
             break 
 
-        PressKey("Enter") ; Select Change Car
+        If EventLabData[EventLab].Type = "Challenge" {
+            PressKey("Enter") ; Select Change Car
 
-        if CheckAbort()
-            break
+            if CheckAbort()
+                break
 
-        if GetInFavCar() = true {
-            WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 10000)
-            PressKey("Esc", 1000)
-            PressKey("PgDn", 100) 
+            if GetInFavCar() = true {
+                WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 10000)
+                PressKey("Esc", 1000)
+                PressKey("PgDn", 100) 
+            }
         }
-
-        if CheckAbort()
-            break
 
         Process("Navigating to Creative Hub Menu", 500)
         Loop 3
@@ -105,7 +104,7 @@ RaceLoop() {
         Process("Opening EventLab Menu...", 500)
         PressKey("Enter", 1000)     ; Select EventLab
 
-        if EventLab = "AAMIRUSMANDUS" {
+        if EventLabData[EventLab].Type = "Challenge" {
             PressKey("Down", 1000) ; Navigate to Play Challenge
             PressKey("Enter") ; Select Play Challenge
             WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 10000, 200)
@@ -114,7 +113,7 @@ RaceLoop() {
                 PressKey("Backspace") ; Search
                 PressKey("Up")
                 PressKey("Enter")
-                PasteNumberToGamingUI("140849306")          
+                PasteNumberToGamingUI(EventLabData[EventLab].CodeEvent)          
                 PressKey("Down")
                 PressKey("Enter")
                 WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 10000, 200)
@@ -133,8 +132,8 @@ RaceLoop() {
                         PressKey("Right", 50)
                     }
 
-                    if A_Index > 15 {
-                        EmergencyExit("Unable to find the 10SP 20Sec Challenge by AAMIRUSMANDUS!")
+                    if A_Index > 20 {
+                        EmergencyExit("Unable to find the Challenge by " EventLab "!")
                     }
                 }
             }
@@ -153,19 +152,16 @@ RaceLoop() {
 
                 DiscordStatusUpdate("info", "Driving EventLab", "Wrecking " EventLab " circuit...")
                 Process("Throttling...")
-                if challenge = "Always Win"{
-                    PressKey("w down", 22000)
-                    Process("Restarting the Event...")
-                    PressKey("Esc", 1000)   ; Pause Menu
-                    PressKey("Left")       ; Navigate to Restart
-                    PressKey("Enter")       ; Select Restart
-                    PressKey("Enter")       ; Confirm Restart
-                }
 
-                if challenge = "July 14 2026"{
-                    PressKey("w down", 15000)
-                    option := WaitForText(["Continue", "Retry"], 0.071, 0.912, 0.120-0.071, 0.947-0.912, 15000)
+                if EventLab = "AAMIRUSMANDUS" {
+                    Loop 3
+                        PressKey("w down", 5000)
+                } else if EventLab = "JWRREN" {
+                    Loop 20
+                        PressKey("w down", 15000)
                 }
+                    
+                option := WaitForText(["Continue", "Retry"], 0.071, 0.912, 0.120-0.071, 0.947-0.912, 15000)
 
                 PressKey("w up")
 
@@ -181,17 +177,8 @@ RaceLoop() {
                 SectorCount_UI.Value     := SectorCount
                 MiniPointsCount_UI.Value := PointsCount
                 MiniSectorCount_UI.Value := SectorCount
-
-                if challenge = "Always Win" && (CheckAbort() || PointsCount >= PointsGain) {
-                    Process("Quitting the Event...", 2000)
-                    PressKey("Esc", 1000)   ; Pause Menu
-                    PressKey("Right")       ; Navigate to Quit
-                    PressKey("Enter")       ; Quit Event
-                    PressKey("Enter")       ; Confirm Quit
-                    break
-                } 
                 
-                if challenge = "July 14 2026" && (CheckAbort() || PointsCount >= PointsGain) {
+                if CheckAbort() || PointsCount >= PointsGain {
                     if option = "Retry"
                         PressKey("Esc") ; Quit
                     else if option = "Continue"
@@ -212,7 +199,7 @@ RaceLoop() {
             PressKey("Enter") ; Like
         }
 
-        if EventLab != "AAMIRUSMANDUS" {
+        if EventLabData[EventLab].Type = "EventLab" {
             PressKey("Enter", 3000)     ; Select Play Challenge
             if CheckAbort()
                 break
@@ -540,8 +527,7 @@ GetInFavCar() {
 
     Process("Searching for Subaru car...", 500)
     Loop {
-        if ScanOCR(0.067, 0.315, 0.199-0.067, 0.358-0.315, 200, "SUBARU", , false) = false
-        ; if ScanOCR(0.063, 0.324, 0.204-0.063, 0.368-0.324, 200, "PEUGEOT", , false) = false
+        if ScanOCR(0.067, 0.315, 0.199-0.067, 0.358-0.315, 200, EventManufact, , false) = false
             PressKey("Right", 50)
         else {
             Loop 3

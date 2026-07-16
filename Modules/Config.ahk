@@ -54,11 +54,26 @@ global SearchByCode := ReadMacroIni("Settings", "SearchByCode", false)
 ; ══════════════════════════════════════════════
 ;  EVENTLAB PRESETS & DATA SOURCING
 ; ══════════════════════════════════════════════
-global EventLabList     := ["AAMIRUSMANDUS", "AMMAGEDON", "LIQUIDPOTATO"]
+global EventLabList     := ["JWRREN", "AAMIRUSMANDUS", "AMMAGEDON", "LIQUIDPOTATO"]
 global EventLabData     := Map(
+    "JWRREN", {
+        CodeTune: "206657706",
+        CodeEvent: "593235325",
+        Type: "Challenge",
+        MaxPoints: 999,
+        MaxSections: 13,
+        AveragePoints: 80,
+        SecPerSection: 300,
+        SecPerRow: 25,
+        SectionsPerRow: 1,
+        StartLoadingTime : 42,
+        MidLoadingTime : 0,
+        FinLoadingTime : 33,
+    },
     "AAMIRUSMANDUS", {
         CodeTune: "206657706",
         CodeEvent: "140849306",
+        Type: "Challenge",
         MaxPoints: 999,
         MaxSections: 110,
         AveragePoints: 9.4,
@@ -72,6 +87,7 @@ global EventLabData     := Map(
     "AMMAGEDON", {
         CodeTune: "206657706",
         CodeEvent: "102089819",
+        Type: "EventLab",
         MaxPoints: 980,
         MaxSections: 100,
         AveragePoints: 9.8,
@@ -85,6 +101,7 @@ global EventLabData     := Map(
     "LIQUIDPOTATO", {
         CodeTune: "293391902",
         CodeEvent: "124198343",
+        Type: "EventLab",
         MaxPoints: 940,
         MaxSections: 96,
         AveragePoints: 9.8,
@@ -97,8 +114,9 @@ global EventLabData     := Map(
     }
 )
 
-global EventLab         := "AAMIRUSMANDUS"
+global EventLab         := "JWRREN"
 global EventCar         := [816997639471, 594970474057, 725598108369]
+global EventManufact    := "SUBARU"
 global MaxPoints        := EventLabData[EventLab].MaxPoints
 
 ; ══════════════════════════════════════════════
