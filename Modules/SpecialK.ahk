@@ -55,7 +55,7 @@ SpecialKToggle(ctrl, *) {
         ctrl.Opt("c" p["textDim"])
         ctrl.Text := "🔒 SPECIAL K (GAME RUNNING)"
         ctrl.Redraw()
-        ShowNotif("warning", "System Locked", "Please close Forza Horizon 6 entirely before editing side-load options.")
+        ShowNotif("warning", "Special K", "System Locked: `nPlease close Forza Horizon 6 entirely.")
         return 
     }
 
@@ -125,7 +125,6 @@ SpecialKEnable(ctrl) {
             ctrl.Redraw()
             
             if (!DownloadAndExtractSpecialK(GameDir)) {
-                ShowNotif("danger", "Network Error", "Failed to retrieve or unpack official repository files.")
                 ctrl.State := 0
                 ctrl.Opt("c" p["textDim"])
                 ctrl.Text := "▱  SPECIAL K: INACTIVE"
@@ -360,12 +359,12 @@ DownloadAndExtractSpecialK(TargetDir) {
         
         if FileExist(ExtractedDir "\SpecialK64.dll") {
             FileCopy(ExtractedDir "\SpecialK64.dll", TargetDir "\SpecialK64.dll", 1)
-            ShowNotif("info", "Special K", "Special K downloaded successfully...")
+            ShowNotif("info", "Special K", "Download and Extraction successful.")
             Success := true
         } else
-            ShowNotif("error", "Special K", "Extraction failed: SpecialK64.dll not found in archive.")
+            ShowNotif("error", "Special K", "Extraction failed: `nSpecialK64.dll not found in archive.")
     } catch {
-        ShowNotif("error", "Special K", "Special K download failed...")
+        ShowNotif("error", "Special K", "Network Error: `nFailed to retrieve or unpack official files.")
         Success := false
     }
     

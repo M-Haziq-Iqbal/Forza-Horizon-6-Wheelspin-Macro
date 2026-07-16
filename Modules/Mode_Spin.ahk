@@ -4,18 +4,35 @@
 ; ╚═════════════════════════════════════════╝
 
 StartSpin() {
-    global ActiveMode, StatusText, cActive, SpinRunSeconds
+    global ActiveMode, StatusText, SpinRunSeconds
     global SpinOpenCount_UI, SpinLeftCount_UI, SpinRunTime_UI
     global MiniSpinOpenCount_UI, MiniSpinLeftCount_UI, MiniSpinRunTime_UI
     global MainSpinOpenCount_UI, MainSpinLeftCount_UI, MainSpinRunTime_UI
     global SuperBtn, RegularBtn
+    global CarData, SelectedCar
+    global UnlockCount
+
+    car := CarData[SelectedCar]
 
     if FindGame() = 0
         return
+
+    if MasterMode && UnlockCount = 0 {
+        ShowNotif("error", "Spin Mode", "Opening 0 Wheelspin. `nAborting Spin Mode.", true)
+        return
+    }
     
     if !ToggleMode("Spin") {
         StatusText.Value := "⬤  Stopping..."
         StatusText.SetFont("cFFB347")
+    }
+
+    if (ActiveMode != "Spin")
+        return
+    
+    if !CarData.Has(SelectedCar) {
+        MsgBox("Error: Selected car '" SelectedCar "' not found in database.", "Error", 16)
+        return
     }
 
     StartIndicators()
@@ -42,8 +59,12 @@ StartSpin() {
         SpinRunTime_UI.SetFont("c" cHighlight)
         SpinLeftCount_UI.SetFont("c" cHighlight)
         SpinOpenCount_UI.SetFont("c" cHighlight)
+
         SetTimer(SpinTimerTick, 1000)
+
+        DiscordStatusUpdate("info", "Spin Mode Started", "Opening My Horizon wheelspin menu...")
         SpinLoop()
+        DiscordStatusUpdate("success", "Spin Mode Ended", "Closed My Horizon wheelspin menu...")
     }
     try {
         SuperBtn.Opt("-Disabled")
@@ -54,16 +75,15 @@ StartSpin() {
 }
 
 SpinLoop() {
-
     global ActiveMode, MasterMode
     global SpinInFullLoop, SpinType, SpinMode, SpinCount_In
     global TotalSWheel, TotalWheel
 
     global SpinCount       := SpinCount_In.Value
+    global SpinLeftCount   := SpinCount
     global SpinOpenCount   := 0
-
-    SpinLeftCount   := SpinCount
-    SpinLoopCount       := 100
+    
+    SpinLoopCount   := 100
     
     SpinName        := SpinType = "SUPER" ? "Super Wheelspin" : "Regular Wheelspin"
 
@@ -72,16 +92,18 @@ SpinLoop() {
         SpinCount := SpinCount_In.Value
     }
 
-    if SpinCount_In.Value = 0 {
-        ShowNotif("error", SpinName , "0 " SpinName " detected. `nAborting Spin Mode...")
+    if SpinCount = 0 {
+        ShowNotif("warning", "Spin Mode", "0 " SpinName " detected. `nAborting Spin Mode.")
         return
     }
 
-    CheckAbort() => ActiveMode != "Spin" && !MasterMode
+    CheckAbort() {
+        return ActiveMode != "Spin" && !MasterMode
+    }
 
-    ShowNotif("info", SpinName , "Starting " SpinName "...")
+    ShowNotif("info", "Spin Mode", "Opening " SpinName)
 
-    SpinNav(SpinName)
+    SpinNav()
 
     Process("Opening " SpinName " menu...")
     SpinType = "SUPER" ? PressKey("left", 100) : PressKey("right", 100)
@@ -106,6 +128,7 @@ SpinLoop() {
     MainSpinOpenCount_UI.Value    := SpinOpenCount
     MainSpinLeftCount_UI.Value    := SpinLeftCount
 
+    DiscordStatusUpdate("info", "Opening Wheelspins", "Rolling car gacha...")
     Loop {
         loop Min(SpinCount, SpinLeftCount) {            
             Process("Skipping...")
@@ -178,9 +201,9 @@ SpinLoop() {
                 else
                     break
             }
-
-            if Mod(SpinOpenCount, 5) = 0
-                ShowNotif("info", SpinName, "Opened " SpinOpenCount " " SpinName)
+            
+            if Mod(SpinOpenCount, 10) = 0
+                ShowNotif("info", "Spin Mode", SpinOpenCount " " SpinName " opened.")
 
             if SpinOpenCount >= SpinCount || SpinOpenCount >= SpinLoopCount
                 break
@@ -191,13 +214,10 @@ SpinLoop() {
         Process("Returning to Free Roam...", 1000)
         PressKey("Esc", 1000) ; Return to Free Roam to avoid Inactivity Status
 
-        if !WaitForPixel("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 20000, 1000) {
-            Process("Sync Error: Unable to detect Free Roam!")
-            break
-        }
-
+        WaitForPixel("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 20000, 1000)
+        
         if SpinOpenCount >= SpinCount {
-            ShowNotif("info", SpinName, "Opened " SpinOpenCount " " SpinName)
+            ShowNotif("success", "Spin Mode", SpinOpenCount " " SpinName " opened.", true)
             break
         }
 
@@ -404,10 +424,8 @@ OpenSpinPanel(*) {
     SpinGUI.Show("x" sX " y" sY " w" sW " h" sH)
 }
 
-SpinNav(NotifTitle) {
+SpinNav() {
     Scanned := ScanMenu()
-
-    ShowNotif("info", NotifTitle, "Navigating to My Horizon Menu...")
 
     ; 1. Safety Check: Handle timeout immediately
     if (Scanned.menu == "") {
@@ -429,25 +447,23 @@ SpinNav(NotifTitle) {
     switch Scanned.menu {
         case "Home Menu":
             Process("Navigating to Free Roam...")
-            ShowNotif("info", NotifTitle, "Home Menu detected. `nReturning to free roam...")
+            ShowNotif("info", "Spin Mode", "Home Menu detected!")
             PressKey("Esc") ; Return to Free Roam
             
-            if !WaitForPixel("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 20000, 1000) {
-                Process("Sync Error: Unable to detect Free Roam!")
-                return
-            }
+            WaitForPixel("Returning to Free Roam...", 0.137, 0.950, "0xFFFFFF", , 20000, 1000)
+
             PressKey("Esc", 1000) ; Open Free Roam Menu (Lands on default Campaign tab)
             Scanned.submenu := "Free Roam Menu - Campaign"
 
         case "Free Roam":
             Process("Navigating to Free Roam Menu...")
-            ShowNotif("info", NotifTitle, "Free Roam detected! `nNavigating to Free Roam Menu...")
+            ShowNotif("info", "Spin Mode", "Free Roam detected!")
             PressKey("Esc", 1000) ; Open Free Roam Menu (Lands on default Campaign tab)
             Scanned.submenu := "Free Roam Menu - Campaign"
             
         case "Free Roam Menu":
             ; Already in the menu structure; Scanned.submenu is already accurately set by ScanMenu()
-            ShowNotif("info", NotifTitle, "Free Roam Menu detected!")
+            ShowNotif("info", "Spin Mode", "Free Roam Menu detected!")
     }
 
     ; 4. Unified Tab Navigation Execution

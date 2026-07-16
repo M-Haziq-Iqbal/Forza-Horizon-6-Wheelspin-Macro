@@ -33,24 +33,31 @@ BuildMiniGui() {
     MiniGui.SetFont("s" (10 * FontScale) " bold")
     RestoreBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c64748B", "⛶")
     RestoreBtn.OnEvent("Click", RestoreMainWindow)
+    RestoreBtn.ToolTipText := "Open Main GUI"
 
     ReloadBtn := MiniGui.Add("Text", "x" Round(173*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "⭮")
     ReloadBtn.OnEvent("Click", (*) => Reload())
+    ReloadBtn.ToolTipText := "Reload GUI"
 
     PreviewBtn := MiniGui.Add("Text", "x" Round(151*ScaleX) " y" Round(10*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E c94A3B8", "🎞️")
     PreviewBtn.OnEvent("Click", (ctrl, *) => TogglePreview(ctrl))
+    PreviewBtn.ToolTipText := "Mini Live Preview"
 
     AlwaysOnTopBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(32*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameAlwaysOnTop ? "cF7507F" : "c94A3B8"), "📌")
     AlwaysOnTopBtn.OnEvent("Click", (ctrl, *) => AlwaysOnTopEnable(ctrl))
+    AlwaysOnTopBtn.ToolTipText := "Always on Top"
 
     LockBtn := MiniGui.Add("Text", "x" Round(173*ScaleX) " y" Round(32*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameLocked ? "cF59E0B" : "c94A3B8"), "🔒")
     LockBtn.OnEvent("Click", (ctrl, *) => ToggleWindowLock(ctrl))
+    LockBtn.ToolTipText := "Lock Game Client"
 
     ResoSetBtn := MiniGui.Add("Text", "x" Round(151*ScaleX) " y" Round(32*ScaleY) " w" Round(20*ScaleX) " h" Round(20*ScaleY) " Center Background22252E " (IsGameWindowed ? "c3B82F6" : "c94A3B8"), "🗗")
     ResoSetBtn.OnEvent("Click", (ctrl, *) => ResizeGameClient(ctrl))
+    ResoSetBtn.ToolTipText := "Resize Game Client"
 
     InitStartBtn := MiniGui.Add("Text", "x" Round(195*ScaleX) " y" Round(70*ScaleY) " w" Round(18*ScaleX) " h" Round(18*ScaleY) " Center Background22252E c94A3B8", "⬤")
     InitStartBtn.OnEvent("Click", (ctrl, *) => MiniInitStartMacro(ctrl))
+    InitStartBtn.ToolTipText := "Start Full Loop"
 
     ; Flat Premium Action Buttons (Header Control Bar)
     MiniGui.SetFont("s" (9 * FontScale) " bold")
@@ -191,25 +198,24 @@ MiniTogglePause(ctrl) {
 }
 
 MiniStopMacro(ctrl) {
-    global MasterMode, ActiveMode, PauseBtn
-
-    if MasterMode
-        StartFullLoop()
-    else
-        switch ActiveMode {
-            case "Race": StartRace()
-            case "Buy": StartBuy()
-            case "Unlock": StartUnlock()
-            default: 
-        }
+    global MasterMode, ActiveMode, PauseMode
     
-    if !ActiveMode && !MasterMode {
-        ctrl.Opt("c94A3B8")
+    if MasterMode || ActiveMode {
+        ; 1. Turn off all execution flags completely
+        MasterMode := false
+        ActiveMode := ""
+        PauseMode  := false
+        
+        ; 2. Send an immediate notification
+        ShowNotif("warning", "Macro Stopped", "All execution loops terminated.", true)
     }
+    ; 3. (Optional but Recommended) Hard reset the macro thread to kill stuck loops:
+    ; Reload() 
 }
 
 MiniInitStartMacro(ctrl) {
-
+    global MasterMode
+    
     ctrl.Opt("c22C55E")
     StartFullLoop()
     ctrl.Opt("c94A3B8")
@@ -229,7 +235,7 @@ MainGUI_SizeChange(thisGui, minMax, *) {
         
         ; Align using precise work area boundaries (MonRight & MonTop)
         miniX := MonRight - TargetWidgetWidth - WidgetPadding
-        miniY := MonTop + WidgetPadding
+        miniY := MonTop + WidgetPadding + 15
         
         MiniGui.Show("x" miniX " y" miniY " w" TargetWidgetWidth " h" CurrentWidgetHeight " NoActivate")
         WinSetTransparent(180, MiniGui.Hwnd)
@@ -244,8 +250,17 @@ RestoreMainWindow(*) {
 ; ════════════════════
 ;  NOTIFICATION TOAST
 ; ════════════════════
-ShowNotif(type, title, message := "") {
-    global ScaleX, ScaleY, FontScale, MonRight, MonBottom
+ShowNotif(type, title := StrTitle(type), message := "", mirrorToDiscord := false, LivetoDiscord := false) {
+    global ScaleX, ScaleY, FontScale, MonRight, MonBottom, ActiveMode, NotifEnabled
+
+    if (mirrorToDiscord)
+        DiscordNotify(type, title, message)
+
+    if (LivetoDiscord)
+        DiscordStatusUpdate(type, title, message)
+
+    if !NotifEnabled
+        return
 
     switch StrLower(type) {
         case "success":
@@ -256,6 +271,14 @@ ShowNotif(type, title, message := "") {
             accentColor := "FF3333"
             icon        := "❌ "
             duration    := -5000
+        case "warning", "warn":
+            accentColor := "FFAA00"
+            icon        := "⚠️ "
+            duration    := -6000
+        case "critical", "fatal", "panic":
+            accentColor := "CC0000" ; Deep crimson red
+            icon        := "🚨 "
+            duration    := -15000 ; Stays on screen longer (15s) because it requires immediate attention
         default:
             accentColor := "00D2FF"
             icon        := "ℹ️ "
@@ -430,7 +453,7 @@ TogglePreview(ctrl) {
         ShowNotif("error","Mini Preview", "Game window could not be found.")
         return
     }
-
+    
     UpdateMonitorMetrics()
 
     PreviewWidth := Round(230 * ScaleX)
@@ -550,4 +573,27 @@ CheckAlwaysOnTop() {
         return true
     else
         return false
+}
+
+ResetMiniGuiTelemetry() {
+    global MiniRaceRunTime_UI, MiniPointsCount_UI, MiniSectorCount_UI
+    global MiniBuyRunTime_UI, MiniCarCount_UI
+    global MiniUnlockRunTime_UI, MiniSWheelCount_UI, MiniWheelCount_UI, MiniCreditCount_UI
+    global MiniSpinRunTime_UI, MiniSpinOpenCount_UI, MiniSpinLeftCount_UI
+
+    MiniRaceRunTime_UI.Value   := "00:00"
+    MiniPointsCount_UI.Value   := "0"
+    MiniSectorCount_UI.Value   := "0"
+    
+    MiniBuyRunTime_UI.Value    := "00:00"
+    MiniCarCount_UI.Value      := "0"
+    
+    MiniUnlockRunTime_UI.Value := "00:00"
+    MiniSWheelCount_UI.Value   := "0"
+    MiniWheelCount_UI.Value    := "0"
+    MiniCreditCount_UI.Value   := "0 CR"
+    
+    MiniSpinRunTime_UI.Value   := "00:00"
+    MiniSpinOpenCount_UI.Value := "0"
+    MiniSpinLeftCount_UI.Value := "0"
 }

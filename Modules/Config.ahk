@@ -3,7 +3,7 @@
 ; ║            Cyber Noir Edition           ║
 ; ╚═════════════════════════════════════════╝
 
-;@Ahk2Exe-SetVersion 1.9.3.1
+;@Ahk2Exe-SetVersion 1.9.4
 ;@Ahk2Exe-SetDescription MHI - FH6 Wheelspin Macro
 ;@Ahk2Exe-SetMainIcon assets\icon.ico
 
@@ -11,27 +11,64 @@
 ;  ENVIRONMENT & GAME SETTINGS
 ; ══════════════════════════════════════════════
 
-global CurrentVersion := "v1.9.3.1"
-global RepoOwner      := "M-Haziq-Iqbal"
-global RepoName       := "Forza-Horizon-6-Wheelspin-Macro"
+; Define state tracking variables in one neat package
+; global MacroState := {
+;     PointsGain: 0,
+;     PointsTotal: 0,
+;     CarsToTarget: 0,
+;     CarsToBuy: 0,
+;     CarsToUnlock :0,
+;     RunSeconds: 0,
+;     ActiveMode: "None",
+;     MasterMode: false,
+;     Spin: {
+;         Count: 0,
+;         Name: "Super Wheelspin",
+;         OpenCount: 0,
+;         LeftCount: 0
+;     }
+; }
 
-global GameExe          := "forzahorizon6.exe"
-global GameTitle        := "ahk_exe" GameExe
-global MacroIni         := "mhiacro.ini"
-global MacroCarIni      := "mhicar.ini"
-global GameDir          := FindGameDirFromProfiles()
-global GameMonitor      := 1
-global GameHwnd         := 0
+; Create an empty container for UI elements
+global UI := {}
+
+global CurrentVersion   := "v1.9.4"
+global RepoOwner        := "M-Haziq-Iqbal"
+global RepoName         := "Forza-Horizon-6-Wheelspin-Macro"
+
+global GameExe      := "forzahorizon6.exe"
+global GameTitle    := "ahk_exe" GameExe
+global MacroIni     := "mhiacro.ini"
+global MacroCarIni  := "mhicar.ini"
+global GameDir      := FindGameDirFromProfiles()
+global GameMonitor  := 1
+global GameHwnd     := 0
 
 global IsGameWindowed       := CheckWindowed()
 global IsGameLocked         := CheckLocked()
 global IsGameAlwaysOnTop    := CheckAlwaysOnTop()
 
+global NotifEnabled := ReadMacroIni("Settings", "NotifEnabled", 1)
+global SearchByCode := ReadMacroIni("Settings", "SearchByCode", false)
+
 ; ══════════════════════════════════════════════
 ;  EVENTLAB PRESETS & DATA SOURCING
 ; ══════════════════════════════════════════════
-global EventLabList     := ["AMMAGEDON", "LIQUIDPOTATO"]
+global EventLabList     := ["AAMIRUSMANDUS", "AMMAGEDON", "LIQUIDPOTATO"]
 global EventLabData     := Map(
+    "AAMIRUSMANDUS", {
+        CodeTune: "206657706",
+        CodeEvent: "140849306",
+        MaxPoints: 999,
+        MaxSections: 110,
+        AveragePoints: 9.4,
+        SecPerSection: 20,
+        SecPerRow: 25,
+        SectionsPerRow: 1,
+        StartLoadingTime : 42,
+        MidLoadingTime : 0,
+        FinLoadingTime : 33,
+    },
     "AMMAGEDON", {
         CodeTune: "206657706",
         CodeEvent: "102089819",
@@ -40,7 +77,10 @@ global EventLabData     := Map(
         AveragePoints: 9.8,
         SecPerSection: 20,
         SecPerRow: 4,
-        SectionsPerRow: 1
+        SectionsPerRow: 1,
+        StartLoadingTime : 52,
+        MidLoadingTime : 20,
+        FinLoadingTime : 40,
     },
     "LIQUIDPOTATO", {
         CodeTune: "293391902",
@@ -50,26 +90,22 @@ global EventLabData     := Map(
         AveragePoints: 9.8,
         SecPerSection: 30,
         SecPerRow: 7,
-        SectionsPerRow: 4
+        SectionsPerRow: 4,
+        StartLoadingTime : 52,
+        MidLoadingTime : 20,
+        FinLoadingTime : 40,
     }
 )
 
-; Read and initialize active EventLab configuration
-_iniEventLab            := ReadMacroIni("Settings", "EventLab", "")
-global EventLab         := _iniEventLab ? _iniEventLab : EventLabList[1]
-
-global CodeTune         := EventLabData[EventLab].CodeTune
-global CodeEventLab     := EventLabData[EventLab].CodeEvent
-global AveragePoints    := EventLabData[EventLab].AveragePoints
+global EventLab         := "AAMIRUSMANDUS"
+global EventCar         := [816997639471, 594970474057, 725598108369]
 global MaxPoints        := EventLabData[EventLab].MaxPoints
-global MaxSections      := EventLabData[EventLab].MaxSections
 
 ; ══════════════════════════════════════════════
 ;  HARDWARE & PROFILE TUNING
 ; ══════════════════════════════════════════════
 global ResoList         := ["854 x 480", "960 x 540", "1024 x 576", "1280 x 720", "1366 x 768", "1920 x 1080", "2048 x 1152", "3200 x 1800", "3840 x 2160", "5120 x 2880", "7680 x 4320"]
-_iniReso                := ReadMacroIni("Settings", "Resolution", "")
-global SelectedReso     := _iniReso ? _iniReso : ResoList[4]
+global SelectedReso     := ReadMacroIni("Settings", "Resolution", ResoList[4])
 
 global CarList := []
 global CarData := Map()
@@ -80,7 +116,7 @@ global IsScriptStarting := true ; Track if the script is running its initial sta
 RegisterCar("Impreza 22B-STi", {
     AltName: "1998 Subaru",
     StatsNum: 594970474057,
-    BuyMfrPath: [["Up", 3], ["Right", 3]],
+    BuyMfrPath: [["Up", 2]],
     BuyCarPath: [["Down", 1]],
     UnlockPath: [["Right", 1], ["Up", 3], ["Left", 1]],
     SkillPtsCost: 30,
@@ -92,7 +128,7 @@ RegisterCar("Impreza 22B-STi", {
 RegisterCar("Revuelto", {
     AltName: "2024 Lamborghini",
     StatsNum: 867299107749,
-    BuyMfrPath: [["Down", 10], ["Right", 1]],
+    BuyMfrPath: [["Down", 10], ["Right", 2]],
     BuyCarPath: [["Left", 1]],
     UnlockPath: [["Up", 3], ["Right", 2]],
     SkillPtsCost: 39,
@@ -104,7 +140,7 @@ RegisterCar("Revuelto", {
 RegisterCar("Viper GTS ACR", {
     AltName: "1999 Dodge",
     StatsNum: 694952414050,
-    BuyMfrPath: [["Down", 5], ["Right", 2]],
+    BuyMfrPath: [["Down", 5], ["Right", 3]],
     BuyCarPath: [["Down", 1]],
     UnlockPath: [["Right", 1], ["Up", 3], ["Right", 1]],
     SkillPtsCost: 30,
@@ -116,7 +152,7 @@ RegisterCar("Viper GTS ACR", {
 RegisterCar("#123 Mad Mike 808", {
     AltName: "1974 Mazda",
     StatsNum: 725047495145,
-    BuyMfrPath: [["Up", 10]],
+    BuyMfrPath: [["Up", 10], ["Right", 1]],
     BuyCarPath: [["Down", 1], ["Left", 2]],  
     UnlockPath: [["Right", 2], ["Up", 3]],
     SkillPtsCost: 21,
@@ -127,20 +163,11 @@ RegisterCar("#123 Mad Mike 808", {
 
 IsScriptStarting := false
 
-_iniCar                 := ReadMacroIni("Settings", "Car", "")
-global SelectedCar      := _iniCar ? _iniCar : CarList[1]
-
-_iniSpinInFullMode      := ReadMacroIni("Settings", "SpinInFullLoop", "")
-global SpinInFullLoop   := _iniSpinInFullMode ? _iniSpinInFullMode : 0
-
-_iniSpinType            := ReadMacroIni("Settings", "SpinType", "")
-global SpinType         := _iniSpinType ? _iniSpinType : "SUPER"
-
-_iniSpinMode            := ReadMacroIni("Settings", "SpinMode", "")
-global SpinMode         := _iniSpinMode ? _iniSpinMode : "SELL"
-
-_iniStartLoopMode       := ReadMacroIni("Settings", "StartLoopMode", "")
-global StartLoopMode    := _iniStartLoopMode ? _iniStartLoopMode : "Race"
+global SelectedCar      := ReadMacroIni("Settings", "Car", CarList[1])
+global SpinInFullLoop   := ReadMacroIni("Settings", "SpinInFullLoop", 0)
+global SpinType         := ReadMacroIni("Settings", "SpinType", "SUPER")
+global SpinMode         := ReadMacroIni("Settings", "SpinMode", "SELL")
+global StartLoopMode    := ReadMacroIni("Settings", "StartLoopMode", "Race")
 
 ; ══════════════════════════════════════════════
 ;  MACRO RUNTIME & OPERATIONAL STATES
@@ -150,16 +177,23 @@ global ActiveMode       := ""
 global PauseMode        := ""
 
 global SkillPtsCount := 0
-global SkillPtsWant  := MaxPoints
+global SkillPtsWant  := EventLabData[EventLab].MaxPoints
 global LoopCount     := 99
-global CarCount      := Floor(MaxPoints / CarData[SelectedCar].SkillPtsCost)
+
+; Split into separate configuration parameters
+global CarsToTarget  := Floor(EventLabData[EventLab].MaxPoints / CarData[SelectedCar].SkillPtsCost)
+global CarsActual  := Floor(SkillPtsCount / CarData[SelectedCar].SkillPtsCost)
+global CarsToBuy     := CarsActual
+global CarsToUnlock  := CarsActual
+global CustomCarCount := false
+
+global BuyCount      := 0
+global UnlockCount   := 0
 
 global PointsGain       := GetMinScore(SkillPtsWant)
 global PointsTotal      := Min(PointsGain + SkillPtsCount, 999)
-global TimeTotal        := CalcTotalTime(SkillPtsWant, CarCount)
+global TimeTotal        := CalcTotalTime(PointsGain, CarsToTarget)
 
-global RaceStart        := ""
-global CustomCarCount   := false
 global CustomSkillPts   := false
 global SkillPtsScanSuccess := false
 
@@ -189,10 +223,8 @@ global cIdle            := "7A4A60"
 global cTextDim         := "7A4A60"
 
 global Multipliers      := [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4]
-_iniKeyMultiplier       := ReadMacroIni("Settings", "KeyMultiplier", "")
-_iniPixelMultiplier     := ReadMacroIni("Settings", "PixelMultiplier", "")
-global KeyMultiplier    := _iniKeyMultiplier ? _iniKeyMultiplier : 1
-global PixelMultiplier  := _iniPixelMultiplier ? _iniPixelMultiplier : 1
+global KeyMultiplier    := ReadMacroIni("Settings", "KeyMultiplier", 1)
+global PixelMultiplier  := ReadMacroIni("Settings", "PixelMultiplier", 1)
 
 ; ══════════════════════════════════════════════
 ;  SPECIAL K INJECTION SETTINGS
@@ -200,6 +232,13 @@ global PixelMultiplier  := _iniPixelMultiplier ? _iniPixelMultiplier : 1
 global SpecialKEnabled      := "0"
 global TargetDLL            := "" 
 global WindowHook           := 0
+
+; ══════════════════════════════════════════════
+;  DISCORD WEBHOOK SETTINGS
+; ══════════════════════════════════════════════
+global DiscordEnabled       := ReadMacroIni("Settings", "DiscordEnabled", 0)
+global DiscordWebhookUrl    := ReadMacroIni("Settings", "DiscordWebhookUrl", "")
+global DiscordWebhookRunning := false
 
 global SK_ConfigMap     := Map(
     "SpecialK.System", Map("Silent", "true"),
