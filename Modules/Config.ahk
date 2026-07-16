@@ -12,22 +12,22 @@
 ; ══════════════════════════════════════════════
 
 ; Define state tracking variables in one neat package
-global MacroState := {
-    PointsGain: 0,
-    PointsTotal: 0,
-    CarsToTarget: 0,
-    CarsToBuy: 0,
-    CarsToUnlock :0,
-    RunSeconds: 0,
-    ActiveMode: "None",
-    MasterMode: false,
-    Spin: {
-        Count: 0,
-        Name: "Super Wheelspin",
-        OpenCount: 0,
-        LeftCount: 0
-    }
-}
+; global MacroState := {
+;     PointsGain: 0,
+;     PointsTotal: 0,
+;     CarsToTarget: 0,
+;     CarsToBuy: 0,
+;     CarsToUnlock :0,
+;     RunSeconds: 0,
+;     ActiveMode: "None",
+;     MasterMode: false,
+;     Spin: {
+;         Count: 0,
+;         Name: "Super Wheelspin",
+;         OpenCount: 0,
+;         LeftCount: 0
+;     }
+; }
 
 ; Create an empty container for UI elements
 global UI := {}
@@ -49,6 +49,7 @@ global IsGameLocked         := CheckLocked()
 global IsGameAlwaysOnTop    := CheckAlwaysOnTop()
 
 global NotifEnabled := ReadMacroIni("Settings", "NotifEnabled", 1)
+global SearchByCode := ReadMacroIni("Settings", "SearchByCode", false)
 
 ; ══════════════════════════════════════════════
 ;  EVENTLAB PRESETS & DATA SOURCING
@@ -60,12 +61,12 @@ global EventLabData     := Map(
         CodeEvent: "140849306",
         MaxPoints: 999,
         MaxSections: 110,
-        AveragePoints: 9.2,
+        AveragePoints: 9.4,
         SecPerSection: 20,
-        SecPerRow: 30,
+        SecPerRow: 25,
         SectionsPerRow: 1,
         StartLoadingTime : 42,
-        MidLoadingTime : 25,
+        MidLoadingTime : 0,
         FinLoadingTime : 33,
     },
     "AMMAGEDON", {
@@ -97,7 +98,7 @@ global EventLabData     := Map(
 )
 
 global EventLab         := "AAMIRUSMANDUS"
-
+global EventCar         := [816997639471, 594970474057]
 global MaxPoints        := EventLabData[EventLab].MaxPoints
 
 ; ══════════════════════════════════════════════
@@ -115,7 +116,7 @@ global IsScriptStarting := true ; Track if the script is running its initial sta
 RegisterCar("Impreza 22B-STi", {
     AltName: "1998 Subaru",
     StatsNum: 594970474057,
-    BuyMfrPath: [["Up", 3], ["Right", 3]],
+    BuyMfrPath: [["Up", 2]],
     BuyCarPath: [["Down", 1]],
     UnlockPath: [["Right", 1], ["Up", 3], ["Left", 1]],
     SkillPtsCost: 30,
@@ -127,7 +128,7 @@ RegisterCar("Impreza 22B-STi", {
 RegisterCar("Revuelto", {
     AltName: "2024 Lamborghini",
     StatsNum: 867299107749,
-    BuyMfrPath: [["Down", 10], ["Right", 1]],
+    BuyMfrPath: [["Down", 10], ["Right", 2]],
     BuyCarPath: [["Left", 1]],
     UnlockPath: [["Up", 3], ["Right", 2]],
     SkillPtsCost: 39,
@@ -139,7 +140,7 @@ RegisterCar("Revuelto", {
 RegisterCar("Viper GTS ACR", {
     AltName: "1999 Dodge",
     StatsNum: 694952414050,
-    BuyMfrPath: [["Down", 5], ["Right", 2]],
+    BuyMfrPath: [["Down", 5], ["Right", 3]],
     BuyCarPath: [["Down", 1]],
     UnlockPath: [["Right", 1], ["Up", 3], ["Right", 1]],
     SkillPtsCost: 30,

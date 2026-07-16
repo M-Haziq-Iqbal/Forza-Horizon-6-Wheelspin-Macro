@@ -511,8 +511,7 @@ UnlockSkillPtsScan(ratioX, ratioY, ratioW, ratioH, menu := "", waitTime := 3000)
         SkillPtsCount := points
         ShowNotif("info", ActiveMode " Mode", SkillPtsCount " Skill Points detected.", true)
     } else {
-        failMsg := "Skill Points not detected: `nManual input required."
-        EmergencyExit(failMsg)
+        EmergencyExit("Skill Points not detected: `nManual input required.")
     }
 
     SkillPtsWant := Min(999 - SkillPtsCount, MaxPoints)

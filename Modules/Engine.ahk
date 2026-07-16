@@ -155,7 +155,7 @@ GetMinScore(score) {
 }
 
 CalcTotalTime(PointsGain, CarsToTarget, CarsToBuy:=CarsToTarget, CarsToUnlock:=CarsToTarget) {
-    return CalcTimeRace(PointsGain) + CalcTimeBuy(CarsToBuy) + CalcTimeUnlock(CarsToUnlock) + CalcTimeSpin(CarsToUnlock) 
+    return CalcTimeRace(PointsGain) + CalcTimeBuy(CarsToBuy) + CalcTimeUnlock(CarsToUnlock) + (SpinInFullLoop ? CalcTimeSpin(CarsToUnlock) : 0)
 }
 
 CalcTimeRace(score) {

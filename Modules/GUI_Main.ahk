@@ -292,10 +292,11 @@ _AddHeader() {
 }
 
 _AddInputTab(savedVals) {
+    ; Explicitly scoped globals for structural integrity and layout scaling
     Global MainGUI, TabControl, SkillPtsCount_In, SkillPtsWant_In, LoopCount_In, CarCount_In, CustomCarToggle_UI
     Global SkillPtsCountText, SkillPtsWantText, LoopCountText, CarCountText
     Global CarSelect_UI, AddCarBtn, EditCarBtn, RadioRace, RadioBuy, RadioUnlock
-    Global AllBtn, RaceBtn, BuyBtn, UnlockBtn, OpenSpinWindowBtn
+    Global AllBtn, OpenSpinWindowBtn
     Global ScaleX, ScaleY, SkillPtsCount, SkillPtsWant, LoopCount, CarList, SelectedCar, StartLoopMode, UseCustomCarCount
 
     TabControl.UseTab(1)
@@ -374,9 +375,14 @@ _AddInputTab(savedVals) {
     RadioBuy    := MainGUI.Add("Text", "x+4 yp w" segW " h" segH " Center 0x200 Background" p["btnBg2"] " c" p["textDim"], "🚗 BUY")
     RadioUnlock := MainGUI.Add("Text", "x+4 yp w" segW " h" segH " Center 0x200 Background" p["btnBg2"] " c" p["textDim"], "🛞 UNLOCK")
     
-    RadioRace.OnEvent("Click",   (obj, *) => _UpdateStartLoop(obj, "Race"))
-    RadioBuy.OnEvent("Click",    (obj, *) => _UpdateStartLoop(obj, "Buy"))
-    RadioUnlock.OnEvent("Click", (obj, *) => _UpdateStartLoop(obj, "Unlock"))
+    ; Power-user tooltips indicating the dual interaction options
+    RadioRace.ToolTipText   := "Click to set sequence start point.`nCtrl + Click to execute Isolated RACE Mode."
+    RadioBuy.ToolTipText    := "Click to set sequence start point.`nCtrl + Click to execute Isolated BUY Mode."
+    RadioUnlock.ToolTipText := "Click to set sequence start point.`nCtrl + Click to execute Isolated UNLOCK Mode."
+
+    RadioRace.OnEvent("Click",   (obj, *) => _HandleSegmentClick(obj, "Race"))
+    RadioBuy.OnEvent("Click",    (obj, *) => _HandleSegmentClick(obj, "Buy"))
+    RadioUnlock.OnEvent("Click", (obj, *) => _HandleSegmentClick(obj, "Unlock"))
     
     if (StartLoopMode == "Buy")
         _UpdateStartLoop(RadioBuy, "Buy")
@@ -386,26 +392,43 @@ _AddInputTab(savedVals) {
         _UpdateStartLoop(RadioRace, "Race")
     
     ; ══════════════════════════════════════════════
-    ;  ACTION MACRO TRIGGERS
+    ;  DYNAMIC MASTER TRIGGER ACTIONS
     ; ══════════════════════════════════════════════
     SetFixedFont(MainGUI, 9, "bold", "Semibold")
-    AllBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+6 w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnMainBg"] " c" p["btnMainText"], "⟲     FULL LOOP     /")
+    AllBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+12 w" Round(242*ScaleX) " h" Round(36*ScaleY) " Center 0x200 Background" p["btnMainBg"] " c" p["btnMainText"], "⟲     START FULL LOOP     /")
 
-    MainGUI.Add("Text", "x" Round(14*ScaleX) " y+3 w" Round(242*ScaleX) " Center BackgroundTrans c" p["divider"], "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-    RaceBtn   := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+3 w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🏁     RACE     \")
-    BuyBtn    := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+6 w" Round(119*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🚗     BUY     [")
-    UnlockBtn := MainGUI.Add("Text", "x" Round(137*ScaleX) " yp w" Round(119*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🛞     UNLOCK     ]")
+    MainGUI.Add("Text", "x" Round(14*ScaleX) " y+4 w" Round(242*ScaleX) " Center BackgroundTrans c" p["divider"], "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     
-    OpenSpinWindowBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+6 w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg3"] " c" p["btnText3"], "🎰   OPEN SPIN INTERFACE")
+    OpenSpinWindowBtn := MainGUI.Add("Text", "x" Round(14*ScaleX) " y+4 w" Round(242*ScaleX) " h" Round(32*ScaleY) " Center 0x200 Background" p["btnBg3"] " c" p["btnText3"], "🎰   OPEN SPIN INTERFACE")
 
     AddCustomSpeedSlider(MainGUI)
 
     AllBtn.OnEvent("Click", (*) => StartFullLoop())
-    RaceBtn.OnEvent("Click", (*) => StartRace())
-    BuyBtn.OnEvent("Click", (*) => StartBuy())
-    UnlockBtn.OnEvent("Click", (*) => StartUnlock())
     OpenSpinWindowBtn.OnEvent("Click", (*) => OpenSpinPanel())
+}
+
+; ══════════════════════════════════════════════
+;  UNIFIED INTERCEPT ROUTER & STATE PIPELINE
+; ══════════════════════════════════════════════
+_HandleSegmentClick(clickedObj, modeName) {
+    ; Check for alternative user execution logic via Ctrl Key tracking
+    if GetKeyState("Ctrl", "P") {
+        ; 1. Dynamically select/highlight the mode button and update the main button text first
+        _UpdateStartLoop(clickedObj, modeName)
+        
+        ; 2. Fire the isolated notification and execute the script block
+        ShowNotif("warning", "Isolated Task Triggered", "Running independent process: " StrUpper(modeName))
+        
+        switch modeName {
+            case "Race":   StartRace()
+            case "Buy":    StartBuy()
+            case "Unlock": StartUnlock()
+        }
+        return
+    }
+
+    ; If standard click pattern verified, alter the loop tracking pipeline target context normally
+    _UpdateStartLoop(clickedObj, modeName)
 }
 
 _AddStatsTab() {
@@ -500,7 +523,7 @@ _RepositionStatsControls(yOffset) {
 
 _AddCollapsibleOptions() {
     Global MainGUI, ResoSelect_UI, BrowseBtn, LaunchBtn, SpecialKCheck_UI, ScaleX, ScaleY, ResoList, SelectedReso, GameExe
-    Global EventLabSelect_UI, CodeTune_UI, CodeEventLab_UI, EventLabList, EventLab
+    Global EventLabSelect_UI, CodeTune_UI, CodeEventLab_UI, EventLabList, EventLab, SearchByCode
     
     ControlsArray := []
     margin       := Round(14 * ScaleX)
@@ -542,6 +565,37 @@ _AddCollapsibleOptions() {
     
     CodeTune_UI.OnEvent("Click", (*) => _CopyToClip(EventLabData[EventLab].CodeTune, "Subaru 22B Tune Code"))
     CodeEventLab_UI.OnEvent("Click", (*) => _CopyToClip(EventLabData[EventLab].CodeEvent, "EventLab Race Code"))
+
+    ; ── SEARCH/SELECT CHALLENGE ─────────────────────────────────────────────
+    SetFixedFont(MainGUI, 8, "norm")
+    isSearchByCode := (SearchByCode = "1")
+    SearchColor := SearchByCode ? p["accent"] : p["textDim"]
+    SearchText  := SearchByCode ? "▰  SEARCH BY CODE" : "▱  SELECT BY CREATOR"
+
+    SetFixedFont(MainGUI, 9, "bold", "Semibold")
+    SearchByCode_UI := MainGUI.Add("Text", "x" margin " y+6 w" fullWidth " h" Round(22*ScaleY) " Center 0x200 Background" p["btnBg2"] " c" SearchColor, SearchText)
+    SearchByCode_UI.State := isSearchByCode
+    ControlsArray.Push(SearchByCode_UI)
+    
+    SearchByCode_UI.OnEvent("Click", SearchToggle)
+
+    SearchToggle(ctrl, *) {
+        global NotifEnabled, p, SearchByCode
+
+        ctrl.State := !ctrl.State
+        SearchByCode := ctrl.State
+        WriteMacroIni("Settings", "SearchByCode", SearchByCode)
+
+        if (ctrl.State) {
+            ctrl.Opt("c" p["accent"])
+            ctrl.Text := "▰  SEARCH BY CODE"
+            ctrl.Redraw()
+        } else {
+            ctrl.Opt("c" p["textDim"])
+            ctrl.Text := "▱  SELECT BY CREATOR"
+            ctrl.Redraw()
+        }
+    }
 
     ; ── RESOLUTION SELECTOR ───────────────────────────────────────────────────
     SetFixedFont(MainGUI, 8, "bold", "Semibold")
@@ -844,7 +898,7 @@ UpdateSystemState(countInput := "", wantInput := "") {
     }
 
     ; 3. Calculate Time Requirements
-    TimeTotal := CalcTotalTime(PointsGain, CarsToTarget, CarsToBuy, CarsToUnlock)
+    TimeTotal := CalcTotalTime(PointsGain, CarsToTarget)
     
     TotalSubUnits := Round(TimeTotal * 60)
     MainUnit      := Floor(TotalSubUnits / 60)
@@ -992,7 +1046,7 @@ UpdateLoopCount(ctrl, *) {
 
 _UpdateStartLoop(clickedObj, modeName) {
     Global StartLoopMode := modeName
-    global CustomCarCount, SkillPtsCount_In, SkillPtsWant_In, CarCount_In, CarCountText
+    global CustomCarCount, SkillPtsCount_In, SkillPtsWant_In, CarCount_In, CarCountText, AllBtn
     
     RadioRace.Opt("Background" p["btnBg2"] " c" p["textDim"])
     RadioBuy.Opt("Background" p["btnBg2"] " c" p["textDim"])
@@ -1001,20 +1055,24 @@ _UpdateStartLoop(clickedObj, modeName) {
     clickedObj.Opt("Background" p["btnMainBg"] " c" p["btnMainText"])
     RadioRace.Redraw(), RadioBuy.Redraw(), RadioUnlock.Redraw()
 
+    ; Dynamically adapt the Primary Master Button action text string (Slashes Removed)
+    if IsSet(AllBtn) && AllBtn {
+        switch modeName {
+            case "Race":   AllBtn.Text := "⟲     START FULL LOOP"
+            case "Buy":    AllBtn.Text := "▶     START FROM BUY"
+            case "Unlock": AllBtn.Text := "▶     START FROM UNLOCK"
+        }
+        AllBtn.Redraw()
+    }
+
     ; --- Dynamic Input Toggling based on Custom Toggle State ---
     if (modeName == "Race" || modeName == "Full" || !CustomCarCount) {
-        ; SkillPtsCount_In.Enabled := true
-        ; SkillPtsWant_In.Enabled := true
-        
         CarCount_In.Enabled := false
         CarCountText.Value := "⟡   Targeted Cars" 
     } 
     else if ((modeName == "Buy" || modeName == "Unlock") && CustomCarCount) {
-        ; SkillPtsCount_In.Enabled := false
-        ; SkillPtsWant_In.Enabled := false
-        
         CarCount_In.Enabled := true
-        CarCountText.Value := (modeName == "Buy") ? "⟡   Cars to Buy" : "⟡   Cars to Unlock"
+        CarCountText.Value := (modeName == "Buy") ? "▰   Cars to Buy" : "▰   Cars to Unlock"
     }
 
     WriteMacroIni("Settings", "StartLoopMode", StartLoopMode)

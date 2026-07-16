@@ -1,9 +1,7 @@
 ; ══════════════════════════════════════════════
 ;  AUTOMATION TRIGGER ENGINES
 ; ══════════════════════════════════════════════
-; MsgBox(ScanOCR( 0.039, 0.916, 0.104-0.039, 0.947-0.916))
-; MsgBox(ScanOCR(0.071, 0.912, 0.120-0.071, 0.947-0.912))
-; MsgBox(ScanOCR(0.071, 0.914, 0.104-0.071, 0.949-0.914))
+
 StartRace() {
     global ActiveMode, StatusText, cActive, TotalRunSeconds, RaceRunSeconds, PointsGain
     global RaceRunTime_UI, PointsCount_UI, SectorCount_UI
@@ -49,7 +47,7 @@ StartRace() {
 }
 
 RaceLoop() {
-    global ActiveMode, MasterMode, EventLab
+    global ActiveMode, MasterMode, EventLab, SearchByCode
     global cActive, cHighlight, cIdle
     global SectorCount_UI, PointsCount_UI, CarCount_UI, RaceRunTime_UI
     global MiniSectorCount_UI, MiniPointsCount_UI
@@ -66,6 +64,8 @@ RaceLoop() {
 
     FailedTurn      := 0
     NotiFreqInterv  := 10
+    challenge := "July 14 2026"
+    option := "Continue"
 
     CheckAbort() {
         return ActiveMode != "Race" && !MasterMode
@@ -89,9 +89,9 @@ RaceLoop() {
         if CheckAbort()
             break
 
-        if GetInSubaru() = true {
+        if GetInFavCar() = true {
             WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 10000)
-            PressKey("Enter", 1000)
+            PressKey("Esc", 1000)
             PressKey("PgDn", 100) 
         }
 
@@ -107,16 +107,37 @@ RaceLoop() {
 
         if EventLab = "AAMIRUSMANDUS" {
             PressKey("Down", 1000) ; Navigate to Play Challenge
-            PressKey("Enter", 3000) ; Select Play Challenge
-            PressKey("Backspace") ; Search
-            PressKey("Up")
-            PressKey("Enter")
-            PasteNumberToGamingUI("140849306")
-            PressKey("Down")
-            PressKey("Enter")
+            PressKey("Enter") ; Select Play Challenge
             WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 10000, 200)
-            PressKey("Enter")
 
+            if SearchByCode {
+                PressKey("Backspace") ; Search
+                PressKey("Up")
+                PressKey("Enter")
+                PasteNumberToGamingUI("140849306")          
+                PressKey("Down")
+                PressKey("Enter")
+                WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 10000, 200)
+                PressKey("Enter")
+            }
+            else {
+
+                Loop 6
+                    PressKey("PgDn", 50) ; Navigate to Favourite Creator
+                WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 15000, 200)
+                Loop {
+                    if WaitForText(challenge, 0.260, 0.635, 0.413-0.260, 0.776-0.635, 200) {
+                        PressKey("Enter")
+                        break
+                    } else {
+                        PressKey("Right", 50)
+                    }
+
+                    if A_Index > 15 {
+                        EmergencyExit("Unable to find the 10SP 20Sec Challenge by AAMIRUSMANDUS!")
+                    }
+                }
+            }
             Loop {
                 Process("Waiting for the challenge to start...")
                 WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 40000)
@@ -130,9 +151,22 @@ RaceLoop() {
                     break
                 }
 
+                DiscordStatusUpdate("info", "Driving EventLab", "Wrecking " EventLab " circuit...")
                 Process("Throttling...")
-                PressKey("w down", 15000)
-                option := WaitForText(["Continue", "Retry"], 0.071, 0.912, 0.120-0.071, 0.947-0.912, 10000)
+                if challenge = "Always Win"{
+                    PressKey("w down", 22000)
+                    Process("Restarting the Event...")
+                    PressKey("Esc", 1000)   ; Pause Menu
+                    PressKey("Left")       ; Navigate to Restart
+                    PressKey("Enter")       ; Select Restart
+                    PressKey("Enter")       ; Confirm Restart
+                }
+
+                if challenge = "July 14 2026"{
+                    PressKey("w down", 15000)
+                    option := WaitForText(["Continue", "Retry"], 0.071, 0.912, 0.120-0.071, 0.947-0.912, 15000)
+                }
+
                 PressKey("w up")
 
                 SectorCount++
@@ -148,7 +182,16 @@ RaceLoop() {
                 MiniPointsCount_UI.Value := PointsCount
                 MiniSectorCount_UI.Value := SectorCount
 
-                if CheckAbort() || PointsCount >= PointsGain {
+                if challenge = "Always Win" && (CheckAbort() || PointsCount >= PointsGain) {
+                    Process("Quitting the Event...", 2000)
+                    PressKey("Esc", 1000)   ; Pause Menu
+                    PressKey("Right")       ; Navigate to Quit
+                    PressKey("Enter")       ; Quit Event
+                    PressKey("Enter")       ; Confirm Quit
+                    break
+                } 
+                
+                if challenge = "July 14 2026" && (CheckAbort() || PointsCount >= PointsGain) {
                     if option = "Retry"
                         PressKey("Esc") ; Quit
                     else if option = "Continue"
@@ -192,7 +235,7 @@ RaceLoop() {
             if CheckAbort()
                 break
 
-            GetInSubaru()
+            GetInFavCar()
 
             if CheckAbort()
                 break
@@ -479,34 +522,60 @@ RaceNav() {
     }
 }
 
-GetInSubaru() {
+GetInFavCar() {
+    global EventCar
+    
     WaitForText("My Cars", 0.060, 0.090, 0.096, 0.045, 5000)
+
+    Process("Verifying if 1998 Subaru is Current Car...", 200)
+    if CarVerifyCheck("Race Mode", "1998 Subaru", EventCar, false) {
+        PressKey("Esc")
+        return false
+    }
 
     Process("Select Favourited Car...", 500)
     PressKey("Y")               ; Filter
     PressKey("Enter")           ; Toggle
     PressKey("Esc", 1000)       ; Back to My Cars
 
-    Process("Verifying 1998 Subaru.", 500)
+    Process("Searching for Subaru car...", 500)
     Loop {
-        CarVerify := CarVerifyCheck("Race Mode", "1998 Subaru", [816997639471, 594970474057], false)
-        if !CarVerify 
+        if ScanOCR(0.067, 0.315, 0.199-0.067, 0.358-0.315, 200, "SUBARU", , false) = false
             PressKey("Right", 50)
         else {
+            Loop 3
+                PressKey("Up", 50)
+            break
+        }
+            
+        if A_Index >= 20
+            EmergencyExit("No Subaru car found!")
+    }
+
+    Loop {
+        Process("Verifying 1998 Subaru...")
+        CarVerify := CarVerifyCheck("Race Mode", "1998 Subaru", EventCar, false)
+        if !CarVerify {
+            PressKey("Down", 50)
+        }
+        else {
+            Process("Entering 1998 Subaru...", 500)
             PressKey("Enter")
-            if WaitForText("Get In Car", 0.462, 0.415, 0.536-0.462, 0.453-0.415, 3000) {
-                Process("Entering 1998 Subaru...")
-                PressKey("Enter", 50)
-                return true
-            }
-            else {
-                PressKey("Esc")
-                PressKey("Esc")
-                return false
-            }
+            PressKey("Enter", 50)
+            return true
         }
 
-        if A_Index > 15
-            EmergencyExit("No 1998 Subaru detected.")
+        if A_Index >= 3 {
+            StatsList := ""
+            for Stat in EventCar
+                StatsList .= "`n• " Stat
+
+            EmergencyExit(
+                "No compatible 1998 Subaru detected!"
+                "`n`nYou can only add up to 3 Subaru cars to your Favorites."
+                "`nAt least one of your 1998 Subaru cars must have one of the following Stats IDs:"
+                StatsList
+            )
+        }
     }
 }
