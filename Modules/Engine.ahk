@@ -753,41 +753,99 @@ TypeStringViaPressKey(str) {
 }
 
 PasteNumberToGamingUI(numberToPaste) {
-    ; We define the target using both Title and Class for high accuracy
-    targetWin := "Gaming UI ahk_class ApplicationFrameWindow"
-    Sleep(500)
+    ; Access the game's executable name defined globally in your script[cite: 1]
+    global GameExe 
+
+    ; 1. Bookmark whatever the user is looking at RIGHT NOW
+    originalActiveWin := WinExist("A")
     
-    ; 1. Check if the window exists
+    ; 2. Dynamically locate the actual game window using its process name[cite: 1]
+    gameWin := 0
+    if (IsSet(GameExe) && GameExe && WinExist("ahk_exe " GameExe)) {
+        gameWin := WinExist("ahk_exe " GameExe)
+    }
+    
+    ; If the game is hiding in the background, bring it forward first
+    if (gameWin && originalActiveWin != gameWin) {
+        WinActivate(gameWin)
+        WinWaitActive(gameWin, , 1.0)
+    }
+
+    ; Define the target overlay window
+    targetWin := "Gaming UI ahk_class ApplicationFrameWindow"
+    
+    ; Check if the overlay window exists
     if !WinExist(targetWin) {
         ShowNotif("warning", "Target Error", "Gaming UI window not found.")
         TypeStringViaPressKey(numberToPaste)
         return
     }
 
-    ; 2. Bring window to focus
-    ; Using WinActivate with the specific title/class ensures we don't hit the wrong explorer.exe process
+    ; --- CRITICAL FIX: Snatch the unique Process ID (PID) of the Gaming UI ---
+    targetPID := WinGetPID(targetWin)
+
+    ; Focus the overlay
     WinActivate(targetWin)
-    
-    ; Wait for the window to actually be active (up to 500ms)
     if !WinWaitActive(targetWin, , 0.5) {
         ShowNotif("error", "Focus Error", "Could not bring Gaming UI to foreground.")
         return
     }
 
-    ; 3. Perform the paste
-    ; Store original clipboard, put the number in, send Ctrl+V, then restore
+    ; Perform the paste sequence
     oldClip := ClipboardAll()
     A_Clipboard := numberToPaste
     
-    Sleep(100) ; Small pause to ensure the UI is ready to accept input
+    Sleep(100) 
     Send("^v")
     Sleep(100)
     Send("{Enter}")
-    
-    ; Restore original clipboard
     A_Clipboard := oldClip
 
-    Sleep(500)
+    Sleep(500) 
+
+    ; 4. VERIFY AND CLOSE THE WINDOWS
+    ; First, close the primary Gaming UI window
+    if WinExist(targetWin) {
+        WinClose(targetWin)
+        if !WinWaitClose(targetWin, , 1.0) {
+            WinActivate(targetWin)
+            Send("{Esc}")
+        }
+    }
+
+    ; SECONDARY SWEEP: Hunt down any lingering blank windows from the same process
+    if (targetPID) {
+        Loop 3 { ; Attempt up to 3 times so the script never gets stuck in an infinite loop
+            blankWin := WinExist("ahk_class ApplicationFrameWindow ahk_pid " targetPID)
+            if !blankWin
+                break ; No more windows from this process found, we are clear!
+                
+            ; If it exists and the title is completely empty, it's the stuck input box
+            if (WinGetTitle(blankWin) == "") {
+                WinClose(blankWin)
+                if !WinWaitClose(blankWin, , 0.5) {
+                    WinActivate(blankWin)
+                    Send("{Esc}")
+                    Sleep(100)
+                }
+            } else {
+                break ; If it has an actual title, leave it alone to be safe
+            }
+        }
+    }
+
+    ; 5. KILL THE GLOW: Force-focus the game so Windows clears the taskbar alarm
+    if (gameWin && WinExist(gameWin)) {
+        Sleep(200)
+        WinActivate(gameWin)
+        WinWaitActive(gameWin, , 0.5)
+    }
+
+    ; 6. BE A GOOD NEIGHBOR: If you were tabbed out, put you right back where you were
+    if (originalActiveWin && originalActiveWin != gameWin && WinExist(originalActiveWin)) {
+        Sleep(100)
+        WinActivate(originalActiveWin)
+    }
 }
 
 Process(text, delay := 0) {
@@ -1224,36 +1282,16 @@ ScanMenu(timeoutDuration := 5000) {
     PressKey("up", 1000) ; Stop idling
 
     StartTime := A_TickCount
-
-    menuProfiles := [
-        { x: 0.027, y: 0.190, w: 0.221, h: 0.091, menu: "Home Menu", 
-          keywords: Map("Campaign", "Home Menu - Campaign", 
-                        "Buy & Sell", "Home Menu - Buy & Sell", 
-                        "Cars", "Home Menu - Cars", 
-                        "Custom", "Home Menu - Customizable Garage", 
-                        "Character", "Home Menu - Character") },
-
-        { x: 0.130, y: 0.508, w: 0.137, h: 0.105, menu: "Free Roam Menu", 
-          keywords: Map("Collection Journal", "Free Roam Menu - Campaign", 
-                        "Buy New & Used", "Free Roam Menu - Cars", 
-                        "Super Wheelspin", "Free Roam Menu - My Horizon", 
-                        "Convoy", "Free Roam Menu - Online", 
-                        "Estates", "Free Roam Menu - Creative Hub") },
-
-        { x: 0.730, y: 0.240, w: 0.134, h: 0.063, menu: "Free Roam Menu", 
-          keywords: Map("Car Pass", "Free Roam Menu - Store") },
-
-        { x: 0.069, y: 0.933, w: 0.030, h: 0.025, menu: "Free Roam", 
-          keywords: Map("ANNA", "Free Roam") } ; Defaulted submenu to Free Roam here
-    ]
-
+    
     while (A_TickCount - StartTime <= timeoutDuration) {
-        for profile in menuProfiles {
-            ocrText := ScanOCR(profile.x, profile.y, profile.w, profile.h, 200)
+        for profile in MenuProfiles {
+            ; Fetch coordinates instantly using the profile's coordinate key
+            el := OCRCoords[profile.coordKey]
+            
+            ocrText := ScanOCR(el.x, el.y, el.w, el.h, 200)
             
             for keyword, subMenuValue in profile.keywords {
                 if InStr(ocrText, keyword) {
-                    ; Return both as an object
                     return { menu: profile.menu, submenu: subMenuValue }
                 }
             }
@@ -1264,32 +1302,42 @@ ScanMenu(timeoutDuration := 5000) {
     Process("Timeout Error...")
     ShowNotif("error", "Menu Detection", "Scanning timed out!")
     ActiveMode := "", MasterMode := false
-    return { menu: "", submenu: "" } ; Return empty object on timeout
+    return { menu: "", submenu: "" } 
 }
 
-WaitForText(targetText, x, y, w, h, timeoutDuration := 5000) {
+WaitForText(elementKey, timeoutDuration := 5000, customSearchText := "") {
+    ; Safety check: Make sure the element exists in your map
+    if !OCRCoords.Has(elementKey) {
+        MsgBox("Error: '" elementKey "' is missing from the OCRCoords map.")
+        return false
+    }
+    
+    ; Fetch coordinates cleanly using dot notation
+    el := OCRCoords[elementKey]
     startTime := A_TickCount
     
-    ; 1. Convert single string to a temporary array for uniform processing
-    targets := IsObject(targetText) ? targetText : [targetText]
-    isMultiple := IsObject(targetText)
+    ; Determine the text to look for: 
+    ; Use customSearchText if provided, otherwise default to the elementKey string
+    searchText := (customSearchText != "") ? customSearchText : elementKey
+    
+    ; Your original uniform processing logic for single strings vs arrays
+    targets := IsObject(searchText) ? searchText : [searchText]
+    isMultiple := IsObject(searchText)
 
     while (A_TickCount - startTime <= timeoutDuration) {
-        ocrText := ScanOCR(x, y, w, h, 200)
+        ocrText := ScanOCR(el.x, el.y, el.w, el.h, 200)
         
-        ; 2. Check each target text against the scanned OCR result
+        ; Check each target text against the scanned OCR result
         for textItem in targets {
             if (InStr(ocrText, textItem)) {
-                ; If user passed an array, return the text that matched.
-                ; If they passed a single string, return true to keep old code working perfectly.
                 return isMultiple ? textItem : true 
             }
         }
         
-        Sleep(50) ; Small delay to prevent CPU spiking
+        Sleep(50) 
     }
     
-    return false ; Timed out
+    return false 
 }
 
 CarVerifyCheck(title:="", car:="", stats:="", exit:=true) {

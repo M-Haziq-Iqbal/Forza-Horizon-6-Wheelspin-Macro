@@ -34,11 +34,14 @@ StartUnlock() {
 
     if CustomCarCount
         CarsToUnlock := CarCount_In.Value
+
     else {
-        CarsToUnlock := CarsToTarget
+        CarsToUnlock := Floor(SkillPtsCount / car.SkillPtsCost)
+        CarCount_In.Value := CarsToUnlock
     }
 
-    CarsLabel_UI.Value := CarsToUnlock
+    if !MasterMode
+        CarsLabel_UI.Value := CarsToUnlock
 
     if (CarsToUnlock <= 0) {
         if (CustomCarCount && !MasterMode) {

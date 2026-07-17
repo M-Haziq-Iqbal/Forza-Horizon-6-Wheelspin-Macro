@@ -146,7 +146,7 @@ BuildMainGui(savedVals := "") {
     Global MainGUI, TabControl, ThemeBtn, CustomMin, CustomX, StatusText, CustomCarToggle_UI
     Global SkillPtsCount_In, SkillPtsWant_In, LoopCount_In, CarCount_In
     Global CarSelect_UI, AddCarBtn, EditCarBtn, RadioRace, RadioBuy, RadioUnlock
-    Global AllBtn, RaceBtn, BuyBtn, UnlockBtn, OpenSpinWindowBtn
+    Global AllBtn, OpenSpinWindowBtn
     Global PointsLabel_UI, SectorLabel_UI, TimeLabel_UI, CarsLabel_UI
     Global RaceRunTime_UI, PointsCount_UI, SectorCount_UI, BuyRunTime_UI
     Global CarCount_UI, UnlockRunTime_UI, SWheelCount_UI, WheelCount_UI, CreditCount_UI
@@ -297,7 +297,7 @@ _AddInputTab(savedVals) {
     Global SkillPtsCountText, SkillPtsWantText, LoopCountText, CarCountText
     Global CarSelect_UI, AddCarBtn, EditCarBtn, RadioRace, RadioBuy, RadioUnlock
     Global AllBtn, OpenSpinWindowBtn
-    Global ScaleX, ScaleY, SkillPtsCount, SkillPtsWant, LoopCount, CarList, SelectedCar, StartLoopMode, UseCustomCarCount
+    Global ScaleX, ScaleY, SkillPtsCount, SkillPtsWant, LoopCount, CarList, SelectedCar, StartLoopMode
 
     TabControl.UseTab(1)
     MainGUI.Add("Text", "x0 y+5 w" Round(270*ScaleX) " h5 BackgroundTrans c" p["footer"], "")

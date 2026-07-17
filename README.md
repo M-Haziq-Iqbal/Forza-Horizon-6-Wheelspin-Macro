@@ -189,7 +189,7 @@ You now have two options to launch the AAMIRUSMANDUS Challenge farm, selectable 
 
 ### 🚗 5. Garage Car Tuning Configuration
 
-You can now have multiple favorited vehicles in your garage (though keeping the list short is highly recommended for speed). The script will automatically scan and navigate through your favorited cars to select the **Subaru Impreza 22B-STi** (either running the provided tune or stock).
+You can now have multiple favorited vehicles in your garage (though keeping the list short is highly recommended for speed). The script will automatically scan and navigate through your favorited cars to select the **Subaru Impreza 22B-STi** (stock tuning).
 
 * **Requirement:** The Subaru will still need all mastery perks unlocked for the SP multiplication bonus.
 * **Critical Limit:** You can only favorite up to a **maximum of 3 cars from the Subaru manufacturer**. Having more will break the script's selection logic.
@@ -200,7 +200,7 @@ You can now have multiple favorited vehicles in your garage (though keeping the 
 
 *(You can click these directly inside the macro window footer to copy them instantly)*
 
-* **AAMIRUSMANDUS Profile (Active):** Tune Code: `206 657 706` | Event Code: `140 849 306`
+* **AAMIRUSMANDUS Profile (Active):** Event Code: `140 849 306`
 * ~~**AMMAGEDON Profile (Patched):**~~ Tune Code: `206 657 706` | EventLab Map Code: `102 089 819`
 * ~~**LIQUIDPOTATO Profile (Patched):**~~ Tune Code: `293 391 902` | EventLab Map Code: `124 198 343`
 

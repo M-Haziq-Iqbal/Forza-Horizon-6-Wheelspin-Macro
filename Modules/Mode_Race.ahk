@@ -64,8 +64,6 @@ RaceLoop() {
 
     FailedTurn      := 0
     NotiFreqInterv  := 10
-    challenge := "July 14 2026"
-    option := "Continue"
 
     CheckAbort() {
         return ActiveMode != "Race" && !MasterMode
@@ -91,7 +89,7 @@ RaceLoop() {
                 break
 
             if GetInFavCar() = true {
-                WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 10000)
+                WaitForText("ANNA", 10000)
                 PressKey("Esc", 1000)
                 PressKey("PgDn", 100) 
             }
@@ -107,7 +105,7 @@ RaceLoop() {
         if EventLabData[EventLab].Type = "Challenge" {
             PressKey("Down", 1000) ; Navigate to Play Challenge
             PressKey("Enter") ; Select Play Challenge
-            WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 10000, 200)
+            WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 15000, 200)
 
             if SearchByCode {
                 PressKey("Backspace") ; Search
@@ -116,16 +114,17 @@ RaceLoop() {
                 PasteNumberToGamingUI(EventLabData[EventLab].CodeEvent)          
                 PressKey("Down")
                 PressKey("Enter")
-                WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 10000, 200)
+                if !WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 15000, 200, , , true)
+                    EmergencyExit("Unable to find Challenge by " EventLab)
                 PressKey("Enter")
             }
             else {
 
                 Loop 6
                     PressKey("PgDn", 50) ; Navigate to Favourite Creator
-                WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 15000, 200)
+                WaitForPixel("Waiting for Challenge to load...", 0.269, 0.268, "0xF4BA04", , 30000, 200)
                 Loop {
-                    if WaitForText(challenge, 0.260, 0.635, 0.413-0.260, 0.776-0.635, 200) {
+                    if WaitForText("Challenge", 200, EventLabData[EventLab].Keyword) {
                         PressKey("Enter")
                         break
                     } else {
@@ -139,10 +138,11 @@ RaceLoop() {
             }
             Loop {
                 Process("Waiting for the challenge to start...")
-                WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 40000)
+
+                WaitForText("ANNA", 40000)
 
                 if CheckAbort(){
-                    Process("Quitting the Event...", 2000)
+                    Process("Quitting the Event...")
                     PressKey("Esc", 1000)   ; Pause Menu
                     PressKey("Right")       ; Navigate to Quit
                     PressKey("Enter")       ; Quit Event
@@ -151,32 +151,71 @@ RaceLoop() {
                 }
 
                 DiscordStatusUpdate("info", "Driving EventLab", "Wrecking " EventLab " circuit...")
-                Process("Throttling...")
+
+                SectionsPerRow := EventLabData[EventLab].SectionsPerRow
+                SectionTime := EventLabData[EventLab].SecPerSection * 1000
 
                 if EventLab = "AAMIRUSMANDUS" {
-                    Loop 3
-                        PressKey("w down", 5000)
+                    Loop SectionsPerRow {
+                        Process("Throttling...")
+                        PressKey("w down", SectionTime)
+                        SectorCount++
+
+                        if (Mod(SectorCount, NotiFreqInterv) == 0)
+                            ShowNotif("info", "Race Mode", SectorCount " sectors of Challenge Race completed.")
+
+                        PointsCount := Floor(SectorCount * event.AveragePoints) 
+
+                        ; Live Real-time UI Telemetry Updates
+                        PointsCount_UI.Value     := PointsCount
+                        SectorCount_UI.Value     := SectorCount
+                        MiniPointsCount_UI.Value := PointsCount
+                        MiniSectorCount_UI.Value := SectorCount
+                    }
                 } else if EventLab = "JWRREN" {
-                    Loop 20
-                        PressKey("w down", 15000)
+                    if WaitForPixel("Checking spawn direction...", 0.376, 0.381, "0xCC708C", , 1000, 0, 15, 15, true, "0") = false {
+                        ShowNotif("Warning", "Race Mode", "Respawned the wrong way. Restarting...", true, true)
+                        Process("Restarting the Event...")
+                        PressKey("Esc", 1000)   ; Pause Menu
+                        PressKey("Left")       ; Navigate to Restart
+                        PressKey("Enter")       ; Restart Event
+                        PressKey("Enter")       ; Confirm Restart
+                        continue
+                    }
+                    Loop SectionsPerRow {
+                        Process("Throttling...")
+                        PressKey("w down", SectionTime)
+                        SectorCount++
+
+                        if (Mod(SectorCount, NotiFreqInterv) == 0)
+                            ShowNotif("info", "Race Mode", SectorCount " sectors of Challenge Race completed.")
+
+                        PointsCount := Floor(SectorCount * event.AveragePoints) 
+
+                        ; Live Real-time UI Telemetry Updates
+                        PointsCount_UI.Value     := PointsCount
+                        SectorCount_UI.Value     := SectorCount
+                        MiniPointsCount_UI.Value := PointsCount
+                        MiniSectorCount_UI.Value := SectorCount
+
+                        if (CheckAbort() || PointsCount >= PointsGain) && Mod(SectorCount, SectionsPerRow) = 0 {
+                            break
+                        }
+
+                        if (CheckAbort() || PointsCount >= PointsGain) && Mod(SectorCount, SectionsPerRow) != 0 {
+                            Process("Quitting the Event...")
+                            PressKey("Esc", 1000)   ; Pause Menu
+                            PressKey("Right")       ; Navigate to Quit
+                            PressKey("Enter")       ; Quit Event
+                            PressKey("Enter")       ; Confirm Quit
+                            break
+                        }
+                    }
                 }
                     
-                option := WaitForText(["Continue", "Retry"], 0.071, 0.912, 0.120-0.071, 0.947-0.912, 15000)
+                option := WaitForText("Retry", 20000, ["Continue", "Retry"])
 
                 PressKey("w up")
-
-                SectorCount++
-
-                if (Mod(SectorCount, NotiFreqInterv) == 0)
-                    ShowNotif("info", "Race Mode", SectorCount " sectors of EventLab Race completed.")
-
-                PointsCount := Floor(SectorCount * event.AveragePoints) 
-
-                ; Live Real-time UI Telemetry Updates
-                PointsCount_UI.Value     := PointsCount
-                SectorCount_UI.Value     := SectorCount
-                MiniPointsCount_UI.Value := PointsCount
-                MiniSectorCount_UI.Value := SectorCount
                 
                 if CheckAbort() || PointsCount >= PointsGain {
                     if option = "Retry"
@@ -384,11 +423,10 @@ RaceLoop() {
         
         PressKey("w up")
 
-        ShowNotif("success", "Race Mode", SectorCount " sectors EventLab Race completed.")
+        ShowNotif("success", "Race Mode", SectorCount " sectors of " EventLabData[EventLab].Type " Race completed.")
 
         Process("Returning to Free Roam...")
-        WaitForText("ANNA", 0.052, 0.929, 0.099-0.052, 0.957-0.929, 40000)
-        ; WaitForPixel("Returning to Free Roam...", 0.061, 0.945, "0xFFFFFF", "", 30000)
+        WaitForText("ANNA", 40000)
 
         if CheckAbort()
             break
@@ -512,7 +550,7 @@ RaceNav() {
 GetInFavCar() {
     global EventCar
     
-    WaitForText("My Cars", 0.060, 0.090, 0.096, 0.045, 5000)
+    WaitForText("My Cars", 5000)
 
     Process("Verifying if 1998 Subaru is Current Car...", 200)
     if CarVerifyCheck("Race Mode", "1998 Subaru", EventCar, false) {
@@ -566,5 +604,3 @@ GetInFavCar() {
         }
     }
 }
-; MsgBox(ScanOCR(0.063, 0.324, 0.204-0.063, 0.368-0.324))
-; MsgBox(ScanOCR(0.177, 0.457, 0.028, 0.250))

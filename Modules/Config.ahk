@@ -3,7 +3,7 @@
 ; ║            Cyber Noir Edition           ║
 ; ╚═════════════════════════════════════════╝
 
-;@Ahk2Exe-SetVersion 1.9.4
+;@Ahk2Exe-SetVersion 1.9.5
 ;@Ahk2Exe-SetDescription MHI - FH6 Wheelspin Macro
 ;@Ahk2Exe-SetMainIcon assets\icon.ico
 
@@ -32,7 +32,7 @@
 ; Create an empty container for UI elements
 global UI := {}
 
-global CurrentVersion   := "v1.9.4"
+global CurrentVersion   := "v1.9.5"
 global RepoOwner        := "M-Haziq-Iqbal"
 global RepoName         := "Forza-Horizon-6-Wheelspin-Macro"
 
@@ -57,31 +57,33 @@ global SearchByCode := ReadMacroIni("Settings", "SearchByCode", false)
 global EventLabList     := ["JWRREN", "AAMIRUSMANDUS", "AMMAGEDON", "LIQUIDPOTATO"]
 global EventLabData     := Map(
     "JWRREN", {
-        CodeTune: "206657706",
-        CodeEvent: "593235325",
+        CodeTune: "",
+        CodeEvent: "170967418",
         Type: "Challenge",
-        MaxPoints: 999,
-        MaxSections: 13,
-        AveragePoints: 80,
-        SecPerSection: 300,
-        SecPerRow: 25,
-        SectionsPerRow: 1,
+        Keyword: "AFK skill point",
+        MaxPoints: 990,
+        MaxSections: 99,
+        AveragePoints: 10,
+        SecPerSection: 32,
+        SecPerRow: 0,
+        SectionsPerRow: 9,
         StartLoadingTime : 42,
-        MidLoadingTime : 0,
+        MidLoadingTime : 25,
         FinLoadingTime : 33,
     },
     "AAMIRUSMANDUS", {
-        CodeTune: "206657706",
-        CodeEvent: "140849306",
+        CodeTune: "",
+        CodeEvent: "415085169", ; "140849306" (14 July ver.)
         Type: "Challenge",
+        Keyword: "Always Lose",
         MaxPoints: 999,
         MaxSections: 110,
         AveragePoints: 9.4,
         SecPerSection: 20,
-        SecPerRow: 25,
+        SecPerRow: 0,
         SectionsPerRow: 1,
         StartLoadingTime : 42,
-        MidLoadingTime : 0,
+        MidLoadingTime : 25,
         FinLoadingTime : 33,
     },
     "AMMAGEDON", {
@@ -114,7 +116,7 @@ global EventLabData     := Map(
     }
 )
 
-global EventLab         := "JWRREN"
+global EventLab         := ReadMacroIni("Settings", "EventLab", false)
 global EventCar         := [816997639471, 594970474057, 725598108369]
 global EventManufact    := "SUBARU"
 global MaxPoints        := EventLabData[EventLab].MaxPoints
@@ -243,6 +245,63 @@ global cTextDim         := "7A4A60"
 global Multipliers      := [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4]
 global KeyMultiplier    := ReadMacroIni("Settings", "KeyMultiplier", 1)
 global PixelMultiplier  := ReadMacroIni("Settings", "PixelMultiplier", 1)
+
+global OCRCoords := Map(
+    "ANNA",         {x: 0.052, y: 0.932, w: 0.100, h: 0.028},
+    "Challenge",    {x: 0.260, y: 0.635, w: 0.413-0.260, h: 0.776-0.635},
+    "Retry",        {x: 0.071, y: 0.912, w: 0.120-0.071, h: 0.947-0.912},
+    "My Cars",      {x: 0.060, Y: 0.090, W: 0.096, h: 0.045},
+
+    "MENU_HOME_MAIN",       {x: 0.027, y: 0.190, w: 0.221, h: 0.091},
+    "MENU_FREE_ROAM_MAIN",  {x: 0.130, y: 0.508, w: 0.137, h: 0.105},
+    "MENU_FREE_ROAM_STORE", {x: 0.730, y: 0.240, w: 0.134, h: 0.063},
+)
+
+global MenuProfiles := [
+    { 
+        coordKey: "MENU_HOME_MAIN", 
+        menu: "Home Menu", 
+        keywords: Map(
+            "Campaign", "Home Menu - Campaign", 
+            "Buy & Sell", "Home Menu - Buy & Sell", 
+            "Cars", "Home Menu - Cars", 
+            "Custom", "Home Menu - Customizable Garage", 
+            "Character", "Home Menu - Character"
+        ) 
+    },
+    { 
+        coordKey: "MENU_FREE_ROAM_MAIN", 
+        menu: "Free Roam Menu", 
+        keywords: Map(
+            "Collection Journal", "Free Roam Menu - Campaign", 
+            "Buy New & Used", "Free Roam Menu - Cars", 
+            "Super Wheelspin", "Free Roam Menu - My Horizon", 
+            "Convoy", "Free Roam Menu - Online", 
+            "Estates", "Free Roam Menu - Creative Hub"
+        ) 
+    },
+    { 
+        coordKey: "MENU_FREE_ROAM_STORE", 
+        menu: "Free Roam Menu", 
+        keywords: Map(
+            "Car Pass", "Free Roam Menu - Store"
+        ) 
+    },
+    { 
+        coordKey: "ANNA", 
+        menu: "Free Roam", 
+        keywords: Map(
+            "ANNA", "Free Roam"
+        ) 
+    }
+]
+
+; TestCoords("ANNA")
+
+TestCoords(target) {
+    ui := OCRCoords[target]
+    MsgBox(ScanOCR(ui.x, ui.y, ui.w, ui.h))
+}
 
 ; ══════════════════════════════════════════════
 ;  SPECIAL K INJECTION SETTINGS

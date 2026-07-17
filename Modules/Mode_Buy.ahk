@@ -5,7 +5,7 @@
 
 StartBuy() {
     global ActiveMode, StatusText, BuyRunSeconds
-    global SpinOpenCount_UI, SpinLeftCount_UI, SpinRunTime_UI
+    global SpinRunTime_UI
     global CarCount_UI, BuyRunTime_UI
     global MiniCarCount_UI, MiniBuyRunTime_UI
     global SuperBtn, RegularBtn
@@ -40,7 +40,8 @@ StartBuy() {
         CarCount_In.Value := CarsToBuy
     }
 
-    CarsLabel_UI.Value := CarsToBuy
+    if !MasterMode
+        CarsLabel_UI.Value := CarsToBuy
 
     if (CarsToBuy <= 0) {
         if (CustomCarCount && !MasterMode) {
@@ -123,11 +124,11 @@ BuyLoop() {
     Loop 3
         PressKey("Up", 50)     ; Navigate to Drive
     PressKey("Down", 50)       ; Navigate to Collection Journal
-    PressKey("Enter", 650)     ; Select Collection Journal
+    PressKey("Enter", 800)     ; Select Collection Journal
     PressKey("Right")          ; Navigate to Master Explorer
-    PressKey("Enter", 650)     ; Select Master Explorer
+    PressKey("Enter", 800)     ; Select Master Explorer
     PressKey("Down")           ; Navigate to Car Collection
-    PressKey("Enter", 650)     ; Select Car Collection
+    PressKey("Enter", 800)     ; Select Car Collection
     PressKey("Backspace")      ; Select Manufacturers
     
     if CheckAbort()

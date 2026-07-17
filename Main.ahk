@@ -29,6 +29,24 @@
 #Include modules\SpecialK.ahk
 #Include modules\Discord.ahk
 
+; #Include core\Config.ahk
+; #Include core\Coordination.ahk
+; #Include core\InputController.ahk
+; #Include core\MathUtils.ahk
+; #Include core\System.ahk
+; #Include core\VisionEngine.ahk
+; #Include gui\GUI_Main.ahk
+; #Include gui\GUI_Mini.ahk
+; #Include gui\GUI_Editor.ahk
+; #Include modes\Mode_FullLoop.ahk
+; #Include modes\Mode_Race.ahk
+; #Include modes\Mode_Buy.ahk
+; #Include modes\Mode_Unlock.ahk
+; #Include modes\Mode_Spin.ahk
+; #Include utils\OCR.ahk
+; #Include utils\Discord.ahk
+; #Include utils\SpecialK.ahk
+
 ; Setup tray icon dynamically
 TraySetIcon(A_IsCompiled ? A_ScriptFullPath : A_ScriptDir "\assets\icon.ico")
 
