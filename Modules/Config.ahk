@@ -32,7 +32,7 @@
 ; Create an empty container for UI elements
 global UI := {}
 
-global CurrentVersion   := "v1.10.0"
+global CurrentVersion   := "v1.9.5"
 global RepoOwner        := "M-Haziq-Iqbal"
 global RepoName         := "Forza-Horizon-6-Wheelspin-Macro"
 
