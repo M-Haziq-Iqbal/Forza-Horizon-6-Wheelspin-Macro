@@ -376,9 +376,14 @@ LoadExclusiveCars() {
     global ExclusiveCars
     ExclusiveCars := Map()
 
-    csvPath := A_ScriptDir "\assets\exclusive_cars.csv"
-    if !FileExist(csvPath) {
-        ShowNotif("warning", "Keep Exclusives", "exclusive_cars.csv not found. `nExclusive cars will be sold/gifted as normal.")
+    ; Extract the list to a temp file. FileInstall embeds it into the compiled .exe and unpacks it
+    ; at runtime; when run uncompiled it simply copies from assets\. Same approach as the kofi asset
+    ; in GUI_Main.ahk, so the feature works from a single-file .exe with no assets\ folder shipped.
+    csvPath := A_Temp "\fh6_exclusive_cars.csv"
+    try {
+        FileInstall("assets\exclusive_cars.csv", csvPath, 1)
+    } catch {
+        ShowNotif("warning", "Keep Exclusives", "exclusive_cars.csv could not be loaded. `nExclusive cars will be sold/gifted as normal.")
         return
     }
 
