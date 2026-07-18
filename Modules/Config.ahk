@@ -32,7 +32,7 @@
 ; Create an empty container for UI elements
 global UI := {}
 
-global CurrentVersion   := "v1.9.5"
+global CurrentVersion   := "v1.10.0"
 global RepoOwner        := "M-Haziq-Iqbal"
 global RepoName         := "Forza-Horizon-6-Wheelspin-Macro"
 
@@ -187,7 +187,11 @@ global SelectedCar      := ReadMacroIni("Settings", "Car", CarList[1])
 global SpinInFullLoop   := ReadMacroIni("Settings", "SpinInFullLoop", 0)
 global SpinType         := ReadMacroIni("Settings", "SpinType", "SUPER")
 global SpinMode         := ReadMacroIni("Settings", "SpinMode", "SELL")
+global KeepExclusive    := ReadMacroIni("Settings", "KeepExclusive", "OFF") ; "OFF" | "VALUABLE" | "ALL"
 global StartLoopMode    := ReadMacroIni("Settings", "StartLoopMode", "Race")
+
+; Exclusive-car list (short name -> valuable?), loaded from assets\exclusive_cars.csv at startup
+global ExclusiveCars    := Map()
 
 ; ══════════════════════════════════════════════
 ;  MACRO RUNTIME & OPERATIONAL STATES

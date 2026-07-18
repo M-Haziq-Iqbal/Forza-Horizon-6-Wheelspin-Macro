@@ -364,6 +364,78 @@ StrJoin(arr, separator := ", ") {
     return result
 }
 
+; Load the wheelspin-exclusive car list from assets\exclusive_cars.csv into ExclusiveCars.
+; CSV columns: "Long Car Name", "Short Car Name", "Valuable", "Value Seen In Auction House".
+;   - Short Car Name : the string matched against OCR -> becomes the Map key. It MUST equal the
+;                      name the game shows on the wheelspin duplicate prompt (see ShouldKeepExclusive).
+;   - Valuable       : "true"/"false" -> the Map value. Selects which cars the VALUABLE mode keeps.
+;   - Long / Value   : human-readable reference only; not read by the code.
+; To maintain the list, add/edit rows in the CSV; no code change is needed.
+; Missing/empty file leaves the map empty -> the Keep-Exclusives feature stays inert.
+LoadExclusiveCars() {
+    global ExclusiveCars
+    ExclusiveCars := Map()
+
+    csvPath := A_ScriptDir "\assets\exclusive_cars.csv"
+    if !FileExist(csvPath) {
+        ShowNotif("warning", "Keep Exclusives", "exclusive_cars.csv not found. `nExclusive cars will be sold/gifted as normal.")
+        return
+    }
+
+    csv := FileRead(csvPath, "UTF-8")
+    isHeader := true
+    for line in StrSplit(csv, "`n", "`r") {
+        if (Trim(line) == "")
+            continue
+        if isHeader {
+            isHeader := false ; Skip the column header row
+            continue
+        }
+        cols := StrSplit(line, ",")
+        if (cols.Length < 3)
+            continue
+        shortName := Trim(cols[2])
+        if (shortName == "")
+            continue
+        ExclusiveCars[shortName] := (StrLower(Trim(cols[3])) == "true")
+    }
+}
+
+; Escape a literal string for safe use inside a RegEx pattern.
+RegexEscape(str) {
+    return RegExReplace(str, "([\\.\*\?\+\[\]\{\}\(\)\^\$\|\-#])", "\$1")
+}
+
+; Build a case-insensitive RegEx from a car name: the apostrophe (which OCR routinely garbles
+; into a stray character, e.g. '19 -> 119) becomes a single-char wildcard, while the surrounding
+; text (including the year digits) stays literal. So "Corvette '19" -> "Corvette .19" still
+; matches "Corvette 119" but not "Corvette '09".
+CarNamePattern(name) {
+    parts := StrSplit(name, "'")
+    pattern := ""
+    for i, part in parts
+        pattern .= (i > 1 ? "." : "") RegexEscape(part)
+    return "i)" pattern
+}
+
+; Decide whether an OCR-read car name should be kept as a wheelspin-exclusive.
+; mode: "ALL" keeps every listed exclusive; "VALUABLE" keeps only the valuable subset.
+; Matches the short name with an apostrophe-wildcard (see CarNamePattern) to tolerate OCR noise
+; in the year. Returns true only on a positive match (blank/garbled/unlisted -> false).
+ShouldKeepExclusive(carText, mode) {
+    global ExclusiveCars
+    if (!carText || Trim(carText) == "")
+        return false
+
+    for shortName, valuable in ExclusiveCars {
+        if RegExMatch(carText, CarNamePattern(shortName)) {
+            if (mode == "ALL" || valuable)
+                return true
+        }
+    }
+    return false
+}
+
 GetBackgroundOCR(ratioX, ratioY, ratioW, ratioH) {
     global GameTitle
     hWnd := WinExist(GameTitle)

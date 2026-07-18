@@ -315,6 +315,7 @@ You can add / edit custom reward cars or adjust underlying movement paths effort
 * **Full Loop Inclusion Checkbox:** Toggle whether wheelspin routines run automatically inside background farming loops.
 * **Spin Type Selection:** Set your target selection mode explicitly to **SUPER** or **REGULAR** spins.
 * **KEEP / GIFT / SELL Filter Optimization:** Select what happens to duplicate prize cars: **KEEP** them in your collection, **SELL** them for quick in-game credits, or **GIFT** them away to randomized other players automatically.
+* **Keep Exclusives Override:** While **SELL** or **GIFT** is active, this cycle protects rare Wheelspin-exclusive cars from being dumped so you can auction them for their true value instead. Click to cycle **OFF ➔ VALUABLE ➔ ALL**: **VALUABLE** keeps only the high-value exclusives, **ALL** keeps every listed exclusive, and every other duplicate is still sold/gifted as chosen. A car is only kept on a confident OCR match, so anything unreadable falls through to your SELL/GIFT choice. The list is a plain CSV at `assets\exclusive_cars.csv` — to add or reclassify a car, edit the **Short Car Name** (must match the name shown on the duplicate prompt) and the **Valuable** (`true`/`false`) columns; no code change needed.
 
 #### 5. Speed Calibration Slider
 
