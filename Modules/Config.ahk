@@ -187,7 +187,11 @@ global SelectedCar      := ReadMacroIni("Settings", "Car", CarList[1])
 global SpinInFullLoop   := ReadMacroIni("Settings", "SpinInFullLoop", 0)
 global SpinType         := ReadMacroIni("Settings", "SpinType", "SUPER")
 global SpinMode         := ReadMacroIni("Settings", "SpinMode", "SELL")
+global KeepExclusive    := ReadMacroIni("Settings", "KeepExclusive", "OFF") ; "OFF" | "VALUABLE" | "ALL"
 global StartLoopMode    := ReadMacroIni("Settings", "StartLoopMode", "Race")
+
+; Exclusive-car list (short name -> valuable?), loaded from assets\exclusive_cars.csv at startup
+global ExclusiveCars    := Map()
 
 ; ══════════════════════════════════════════════
 ;  MACRO RUNTIME & OPERATIONAL STATES

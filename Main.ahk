@@ -52,6 +52,7 @@ TraySetIcon(A_IsCompiled ? A_ScriptFullPath : A_ScriptDir "\assets\icon.ico")
 
 UpdateMonitorMetrics()
 InitializeDatabase()
+LoadExclusiveCars()
 BuildMainGui()
 BuildMiniGui()
 UpdateMiniWidgetMode("")

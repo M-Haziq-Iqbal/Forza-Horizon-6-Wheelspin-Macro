@@ -78,6 +78,7 @@ SpinLoop() {
     global ActiveMode, MasterMode
     global SpinInFullLoop, SpinType, SpinMode, SpinCount_In
     global TotalSWheel, TotalWheel
+    global KeepExclusive
 
     global SpinCount       := SpinCount_In.Value
     global SpinLeftCount   := SpinCount
@@ -174,15 +175,29 @@ SpinLoop() {
             if CheckAbort()
                 break
 
+            decided       := false
+            effectiveMode := SpinMode
             Loop 3 {
                 if GetPixelColor(0.352, 0.696, 500) = "0x000000" {
-                    if SpinMode = "SELL" {
+                    ; Keep-Exclusives override (SELL/GIFT only): OCR the won car's name once and,
+                    ; if it matches a listed exclusive, keep it instead. The decision is cached for
+                    ; the remaining Loop 3 iterations so OCR runs at most once per car.
+                    if !decided {
+                        decided := true
+                        if (SpinMode = "SELL" || SpinMode = "GIFT") && KeepExclusive != "OFF" {
+                            carName := ScanOCR(0.404, 0.624, 0.192, 0.032, 1000)
+                            if ShouldKeepExclusive(carName, KeepExclusive)
+                                effectiveMode := "KEEP"
+                        }
+                    }
+
+                    if effectiveMode = "SELL" {
                         Process("Selling...")
                         PressKey("Down", 50)
                         PressKey("Down", 50)
                         PressKey("Enter", 50)
-                    } 
-                    else if SpinMode = "GIFT" {
+                    }
+                    else if effectiveMode = "GIFT" {
                         Process("Gifting...")
                         PressKey("Down", 50) ; Navigate to Send as a Gift
                         PressKey("Enter") ; Select Send as a Gift
@@ -190,14 +205,14 @@ SpinLoop() {
                         PressKey("Enter") ; Select Gift Message
                         PressKey("Enter") ; Select Gift From
                         PressKey("Enter") ; Select Send Gift
-                        
+
                         ScanOCR(0.448, 0.422, 0.553-0.448, 0.474-0.422, 5000, "Gift Sent")
                         PressKey("Enter", 100) ; Select OK after Gift Sent
                     }
-                    else if SpinMode = "KEEP"
-                        Process("Keeping...")
+                    else if effectiveMode = "KEEP"
+                        Process(SpinMode = "KEEP" ? "Keeping..." : "Keeping exclusive...")
                         PressKey("Enter", 50)
-                } 
+                }
                 else
                     break
             }
@@ -258,7 +273,7 @@ OnSpinClose(*) {
 }
 
 OpenSpinPanel(*) {
-    global SpinGUI, SpinRunTime_UI, SpinOpenCount_UI, SpinLeftCount_UI, SpinCount_In, MainGUI, ActiveMode, SpinInFullLoop, SpinType, SpinMode, SuperBtn, RegularBtn
+    global SpinGUI, SpinRunTime_UI, SpinOpenCount_UI, SpinLeftCount_UI, SpinCount_In, MainGUI, ActiveMode, SpinInFullLoop, SpinType, SpinMode, KeepExclusive, SuperBtn, RegularBtn
     global ScaleX, ScaleY
     
     try {
@@ -409,13 +424,46 @@ OpenSpinPanel(*) {
     GiftBtn.OnEvent("Click", (*) => ChangeSpinMode("GIFT", GiftBtn, KeepBtn, SellBtn))
     SellBtn.OnEvent("Click", (*) => ChangeSpinMode("SELL", SellBtn, KeepBtn, GiftBtn))
 
+    ; ── Keep Exclusives Cycle (OFF / VALUABLE / ALL) ─────────
+    ; Affects SELL / GIFT only: keeps wheelspin-exclusive cars instead of selling/gifting them.
+    if !IsSet(KeepExclusive) || (KeepExclusive != "VALUABLE" && KeepExclusive != "ALL")
+        KeepExclusive := "OFF"
+
+    KeepExclLabel(state) {
+        if (state == "VALUABLE")
+            return "▰  KEEP EXCLUSIVES: VALUABLE"
+        if (state == "ALL")
+            return "▰  KEEP EXCLUSIVES: ALL"
+        return "▱  KEEP EXCLUSIVES: OFF"
+    }
+
+    SetFixedFont(SpinGUI, 9, "norm", "Light")
+    initExclColor := KeepExclusive = "OFF" ? p["textDim"] : p["text"]
+    KeepExcl_UI := SpinGUI.Add("Text", "x" Round(15*ScaleX) " y+12 w" Round(220*ScaleX) " h" Round(20*ScaleY) " Center 0x200 c" initExclColor, KeepExclLabel(KeepExclusive))
+
+    CycleKeepExclusive(*) {
+        global KeepExclusive
+        if (KeepExclusive = "OFF")
+            KeepExclusive := "VALUABLE"
+        else if (KeepExclusive = "VALUABLE")
+            KeepExclusive := "ALL"
+        else
+            KeepExclusive := "OFF"
+
+        KeepExcl_UI.Opt("c" (KeepExclusive = "OFF" ? p["textDim"] : p["text"]))
+        KeepExcl_UI.Text := KeepExclLabel(KeepExclusive)
+        KeepExcl_UI.Redraw()
+        WriteMacroIni("Settings", "KeepExclusive", KeepExclusive)
+    }
+    KeepExcl_UI.OnEvent("Click", CycleKeepExclusive)
+
     ; ── Run Button ──
     SetFixedFont(SpinGUI, 10, "bold", "Semibold")
     SpinBtn := SpinGUI.Add("Text", "x" Round(15*ScaleX) " y+12 w" Round(220*ScaleX) " h" Round(35*ScaleY) " Center 0x200 Background" p["btnBg"] " c" p["btnText"], "🎲   RUN WHEELSPIN   =")
     SpinBtn.OnEvent("Click", (*) => StartSpin())
 
     sW := Round(250 * ScaleX)
-    sH := Round(350 * ScaleY)
+    sH := Round(390 * ScaleY)
     
     MainGUI.GetPos(&mX, &mY, &mW, &mH)
     sX := mX + (mW // 2) - (sW // 2)
