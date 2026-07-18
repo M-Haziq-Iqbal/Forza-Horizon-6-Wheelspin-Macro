@@ -249,7 +249,7 @@ global PixelMultiplier  := ReadMacroIni("Settings", "PixelMultiplier", 1)
 global OCRCoords := Map(
     "ANNA",         {x: 0.052, y: 0.932, w: 0.100, h: 0.028},
     "Challenge",    {x: 0.260, y: 0.635, w: 0.413-0.260, h: 0.776-0.635},
-    "Retry",        {x: 0.071, y: 0.912, w: 0.120-0.071, h: 0.947-0.912},
+    "Retry",        {x: 0.078, y: 0.912, w: 0.131-0.078, h: 0.947-0.912},
     "My Cars",      {x: 0.060, Y: 0.090, W: 0.096, h: 0.045},
 
     "MENU_HOME_MAIN",       {x: 0.027, y: 0.190, w: 0.221, h: 0.091},
